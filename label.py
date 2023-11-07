@@ -7,9 +7,13 @@ import torch
 import numpy as np
 from PIL import Image
 from einops import repeat, rearrange
+import pandas
 
 from revChatGPT.V3 import Chatbot
-api_key = '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'
+
+dd = list(pd.read_csv('./key')['key'])
+assert len(dd) == 1
+api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
 engine='gpt-3.5-turbo'
 
