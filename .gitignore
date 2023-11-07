@@ -5,6 +5,8 @@ __pycache__/
 *.tmp
 *.mp4
 
+
+*.csv
 *.txt
 *.docx
 *.pptx
