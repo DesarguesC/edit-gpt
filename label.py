@@ -7,11 +7,11 @@ import torch
 import numpy as np
 from PIL import Image
 from einops import repeat, rearrange
-import pandas
+import pandas as pd
 
 from revChatGPT.V3 import Chatbot
 
-dd = list(pd.read_csv('./key')['key'])
+dd = list(pd.read_csv('./key.csv')['key'])
 assert len(dd) == 1
 api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
@@ -25,7 +25,7 @@ from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamP
 from segment_anything import SamPredictor, sam_model_registry
 import cv2
 
-sam_checkpoint = "../autodl-tmp/SAM/sam_vit_h_4b8939.pth"
+sam_checkpoint = "../autodl-tmp/sam_vit_h_4b8939.pth"
 model_type = "vit_h"
 device = "cuda"
 
@@ -99,6 +99,7 @@ for ins_i in ins_cut:
     edit_op = "\"Instruction: " + ins_i.strip('\n') + "; Image: " + location.strip('\n') + f"; Size: ({image.shape[0]},{image.shape[1]})"
     print('agent input: ', edit_op)
     edited = get_response(edit_agent, edit_op)
+    print('ori edited: ', edited)
     edit_his.append(edited)
     edited = re.split('[\n]', edited)
     if edited[-1] == '': del edited[-1]

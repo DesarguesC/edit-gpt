@@ -29,7 +29,7 @@ system_prompt_edit = 'You are an textual editor who is able to edit images with 
                      'size of an object named name_i that needs to be changed (to increase it or decrease it), '\
                      'then modify the width and height of the rectangle box(namely W_i and H_i); '\
                      'however, you shoulde ensure that the center of the rectangular box, noted as point(x_i,y_i), '\
-                     'which is calculated as x_i = X_i+0.5*W_i, y_i = Y_i+0.5*H_i, stay the same. '\
+                     'which can be calculated by x_i = X_i+0.5*W_i, y_i = Y_i+0.5*H_i, stay the same. '\
                      'Note that if the instruction makes a request that the image canvas needs to be shrunk or magnified, '\
                      'you need to simultaneously decrease/increase the size of W_i,H_i respectively. \n'\
                      'For inputs {(X_0,Y_0), [name_1,(X_1,Y_1,W_1,H_1)], [name_2, (X_2,Y_2,W_2,H_2)], ... , '\
@@ -51,16 +51,16 @@ first_ask_edit = 'Note that if you are following the instructions to do the modi
                  'to the format [name_i, (X_i,Y_i,W_i,H_i)] and add it to the object list (\'Image\'). '\
                  'Additionally, if the object mentioned in instruction is required to be removed, '\
                  'just delete it from \'Image\' when outputing.\nWhen it comes to the output, '\
-                 'you should print several lines accoding to the description below: '\
-                 'First Line - Image list, in the format of {(X_0\',Y_0\'), [name_1\',(X_1\',Y_1\',W_1\',H_1\')]'\
-                 ', [name_2\',(X_2\',Y_2\',W_1\',H_1\')], ..., [name_N\',(X_N\',Y_N\',W_N\',H_N\')]}, '\
-                 'namely the requirments illustrated before.   Second Line - New object list, in the '\
-                 'format of {\'NEW\':[name_{k1}\',(X_{k1}\',Y_{k1}\',W_{k1}\',H_{k1}\')], ..., [name_{m1}\','\
-                 '(X_{m1}\',Y_{m1}\',W_{m1}\',H_{m1}\')]}, gather all newly added objects in this line. '\
-                 'Third Line - Disappeared object list, in the format of {\'DIS\':[name_{k2}\', '\
-                 '(X_{k2}\',Y_{k2}\',W_{k2}\',H_{k2}\')], ..., [name_{m2}\',(X_{m2}\',Y_{m2}\',W_{m2}\',H_{m2}\')]}, '\
-                 'gather all objects removed in this line. However, there might be nothing newly added or nothing '\
-                 'disappeared, so you print {\'NEW\': NULL} or {\'DIS\': NULL} instead in the coresponding line.'
+                 'you should print three lines accoding to the description below: '\
+                 'The first line is in the general output, in format: {(X_0\',Y_0\'), [name_1\',(X_1\',Y_1\',W_1\',H_1\')]'\
+                 ', [name_2\',(X_2\',Y_2\',W_1\',H_1\')], ..., [name_N\',(X_N\',Y_N\',W_N\',H_N\')]}. '\
+                 'namely the requirments illustrated before. The second line is new object list, in '\
+                 'format: {\'NEW\':[name_{k1}\',(X_{k1}\',Y_{k1}\',W_{k1}\',H_{k1}\')], ..., [name_{m1}\', '\
+                 '(X_{m1}\',Y_{m1}\',W_{m1}\',H_{m1}\')]}. It gathers all newly added objects in this line. '\
+                 'The third line is disappeared object list, in format: {\'DIS\':[name_{k2}\', '\
+                 '(X_{k2}\',Y_{k2}\',W_{k2}\',H_{k2}\')], ..., [name_{m2}\',(X_{m2}\',Y_{m2}\',W_{m2}\',H_{m2}\')]}. '\
+                 'It gathers all objects removed in this line. However, there might be nothing newly added or nothing '\
+                 'disappeared, so you print {\'NEW\': NULL} or {\'DIS\': NULL} instead in the coresponding lines.'
 
 system_prompt_cut = 'You are an instruction splitter that splits a single instruction into several instructions based on semantics. '\
                     'You deal with a very specific instruction, the image editing instruction, '\
