@@ -60,7 +60,11 @@ first_ask_edit = 'Note that if you are following the instructions to do the modi
                  'The third line is disappeared object list, in format: {\'DIS\':[name_{k2}\', '\
                  '(X_{k2}\',Y_{k2}\',W_{k2}\',H_{k2}\')], ..., [name_{m2}\',(X_{m2}\',Y_{m2}\',W_{m2}\',H_{m2}\')]}. '\
                  'It gathers all objects removed in this line. However, there might be nothing newly added or nothing '\
-                 'disappeared, so you print {\'NEW\': NULL} or {\'DIS\': NULL} instead in the coresponding lines.'
+                 'disappeared, so you print {\'NEW\': NULL} or {\'DIS\': NULL} instead in the coresponding lines.'\
+                 'For example, I type to input --- Instruction: \'turn the cloud red.\'; Image: {(500,388),[\'cloud\', '\
+                 '(0,0,64,70)],[\'sun\',(400,0,64,64)]}; Size: (500,388). And you should give output: '\
+                 '{(500,388),[\'cloud\',(0,0,64,70)],[\'sun\',(400,0,64,64)]}\n{\'NEW\':NULL}\n{\'DIS\':NULL}.\n\n'\
+                 'If you have understood the task, please answer \"yes\" without extra characters.'
 
 system_prompt_cut = 'You are an instruction splitter that splits a single instruction into several instructions based on semantics. '\
                     'You deal with a very specific instruction, the image editing instruction, '\
@@ -93,7 +97,9 @@ first_ask_cut = 'For the instructions given to modify the image, you have to seg
 system_prompt_noun = 'You are a noun extractor and need to extract all the nouns from an input sentence. '\
                      'But the input sentence you are given is very specific, '\
                      'it is a natural language instruction for editing an image. '\
-                     'You need to find one of the \"modified objects\" and output its name (the corresponding word).'
+                     'You need to find one of the \"modified objects\" and output its name (the corresponding word '\
+                     'and maybe more than one word). Also, don\'t ignore dependencies such as \"dog\'s eyes\".'
+#                     'and add a quantifier before the given noun, such as \'a dog\''
 
 first_ask_noun = 'For example, when you type \"Move the kettle on the table to the right\", '\
                  'then you should output the word \"kettle\", there is no extra output. '\
