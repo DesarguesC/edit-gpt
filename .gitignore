@@ -13,6 +13,7 @@ __pycache__/
 *.ppt
 
 src/*
+tmp/*
 
 # C extensions
 *.so
