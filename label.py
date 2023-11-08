@@ -17,10 +17,10 @@ api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
 engine='gpt-3.5-turbo'
 
-image_path = './assets/dog.jpg'
-instruction = 'close the dog\'s eyes, move the scene into a forest'
-# image_path = './assets/01.png'
-# instruction = 'turn her hair pink'
+# image_path = './assets/dog.jpg'
+# instruction = 'close the dog\'s eyes, move the scene into a forest'
+image_path = './assets/01.png'
+instruction = 'turn her hair pink'
 
 
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
@@ -98,7 +98,7 @@ for i in range(len(ins_cut)):
         img_idx = np.argmax(np.array([(100. * image_feature @ text_feature.T).cpu()[0][0] for image_feature in image_feature_list], dtype=np.float32))
         del image_feature_list[img_idx]
         label_done.add(stack_masks[img_idx]['bbox'], noun, img_idx)
-        TURN(stack_masks[img_idx]['bbox']).save(f'./tmp/noun-list/{noun}.png')
+        TURN((stack_masks[img_idx]['bbox'], stack_masks[img_idx]['segmentation'])).save(f'./tmp/noun-list/{noun}.png')
         del stack_masks[img_idx]
 
         
