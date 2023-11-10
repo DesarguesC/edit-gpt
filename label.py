@@ -17,10 +17,10 @@ api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
 engine='gpt-3.5-turbo'
 
-# image_path = './assets/dog.jpg'
-# instruction = 'close the dog\'s eyes, move the scene into a forest'
-image_path = './assets/01.png'
-instruction = 'turn her hair pink'
+image_path = './assets/dog.jpg'
+instruction = 'close the dog\'s eyes, move the scene into a forest'
+# image_path = './assets/01.png'
+# instruction = 'turn her hair pink'
 
 
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
@@ -57,6 +57,9 @@ model, preprocess = clip.load("ViT-B/32", device=device)
 noun_list = []
 TURN = lambda u: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
 
+# TURN = lambda u: Image.fromarray(np.uint8(get_img(image, u[0]))) # remove mask
+
+
 with torch.no_grad():
     image_feature_list = [model.encode_image(preprocess(TURN(box)).unsqueeze(0).to(device)) for box in box_list]
 
@@ -91,7 +94,7 @@ for i in range(len(ins_cut)):
     noun = get_response(noun_agent, ins_i)
     print(f'target noun: {noun}')
     noun_list.append(noun)
-    text_feature = model.encode_text(clip.tokenize([noun]).to(device))
+    text_feature = model.encode_text(clip.tokenize(['a/an/some ' + noun]).to(device))
     # print(image_feature_list[0]@text_feature.T*100.)
     with torch.no_grad():
         # logits_per_image = [model(fe, text)[0].softmax(dim=-1).cpu().numpy()[0] for fe in box_feature_list]
