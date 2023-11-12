@@ -17,10 +17,10 @@ api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
 engine='gpt-3.5-turbo'
 
-image_path = './assets/dog.jpg'
-instruction = 'close the dog\'s eyes, move the scene into a forest'
-# image_path = './assets/01.png'
-# instruction = 'turn her hair pink'
+# image_path = './assets/dog.jpg'
+# instruction = 'close the dog\'s eyes, move the scene into a forest'
+image_path = './assets/01.png'
+instruction = 'turn her hair pink'
 
 
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
