@@ -98,11 +98,12 @@ system_prompt_noun = 'You are a noun extractor and need to extract all the nouns
                      'But the input sentence you are given is very specific, '\
                      'it is a natural language instruction for editing an image. '\
                      'You need to find one of the \"modified objects\" and output its name (the corresponding word '\
-                     'and maybe more than one word). Also, don\'t ignore dependencies such as \"dog\'s eyes\".'
+                     'and maybe more than one word). Also, mustn\'t ignore any dependencies or '\
+                     'orientation information such as \"dog\'s eyes\" and \"the cloud on the left\".'
 #                     'and add a quantifier before the given noun, such as \'a dog\''
 
 first_ask_noun = 'For example, when you type \"Move the kettle on the table to the right\", '\
-                 'then you should output the word \"kettle\", there is no extra output. '\
+                 'then you should output the word \"kettle on the table\", which declares the attribute of \"kettle\". '\
                  'In particular, if the modification command involves styling the entire image '\
                  '(the target of the modification is the entire image), output \"<WHOLE>\"(without quotation mark)'\
                  'We make sure that there is only one target modification object in the input command '\

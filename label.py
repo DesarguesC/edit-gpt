@@ -98,7 +98,7 @@ for i in range(len(ins_cut)):
     # print(image_feature_list[0]@text_feature.T*100.)
     with torch.no_grad():
         # logits_per_image = [model(fe, text)[0].softmax(dim=-1).cpu().numpy()[0] for fe in box_feature_list]
-        img_idx = np.argmax(np.array([(100. * image_feature @ text_feature.T).cpu()[0][0] for image_feature in image_feature_list], dtype=np.float32))
+        img_idx = np.argmax(np.array([(100. * image_feature @ text_feature.T)[:, 0].softmax(dim=0).cpu() for image_feature in image_feature_list], dtype=np.float32))
         del image_feature_list[img_idx]
         label_done.add(stack_masks[img_idx]['bbox'], noun, img_idx)
         TURN((stack_masks[img_idx]['bbox'], stack_masks[img_idx]['segmentation'])).save(f'./tmp/noun-list/{noun}.png')
