@@ -50,3 +50,4 @@ dependencies:
     - basicsr==1.4.2
     - revChatGPT
     - streamlit
+    - -e git+https://github.com/facebookresearch/segment-anything@main#egg=segment-anything
