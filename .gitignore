@@ -7,7 +7,7 @@ __pycache__/
 
 
 *.csv
-*.txt
+# *.txt
 *.docx
 *.pptx
 *.ppt
