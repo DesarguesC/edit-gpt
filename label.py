@@ -9,7 +9,9 @@ from PIL import Image
 from einops import repeat, rearrange
 import pandas as pd
 
+
 from revChatGPT.V3 import Chatbot
+from prompt import get_args
 
 dd = list(pd.read_csv('./key.csv')['key'])
 assert len(dd) == 1
@@ -19,40 +21,53 @@ engine='gpt-3.5-turbo'
 
 # image_path = './assets/dog.jpg'
 # instruction = 'close the dog\'s eyes, move the scene into a forest'
-image_path = './assets/01.png'
-instruction = 'turn her hair pink'
-
+# image_path = './assets/01.png'
+# instruction = 'turn her hair pink'
 
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
 import cv2
+# calculate IoU between SAM & SEEM
+from seem.masks import middleware
 
-sam_checkpoint = "../autodl-tmp/sam_vit_h_4b8939.pth"
-model_type = "vit_h"
-device = "cuda"
+opt = get_args()
+opt.device = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 image = cv2.imread(image_path)
 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 # print(image)
 
 
-
-sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
-sam.to(device=device)
+sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+sam.to(device=opt.device)
 mask_generator = SamAutomaticMaskGenerator(sam)
+
+# cfg = load_opt_from_config_files([opt.seem_cfg])
+# seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda() 
+# # seem model
+
+
+# with torch.no_grad():
+#     seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
+    
+img = Image.open(opt.in_dir)
+img_np = np.array(img)
+
+
+
 
 
 masks = mask_generator.generate(image)
 masks = sorted(masks, key=(lambda x: x['area']), reverse=True)
-# type(masks), len(masks), masks[0].keys()
 stack_masks = masks
 
 box_list = [(box_['bbox'], box_['segmentation']) for box_ in masks]
 print(f'len(box_list) = {len(box_list)}')
 # bbox: list
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model, preprocess = clip.load("ViT-B/32", device=device)
+
+model, preprocess = clip.load("ViT-B/32", device=opt.device)
 
 noun_list = []
 TURN = lambda u: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
@@ -61,7 +76,7 @@ TURN = lambda u: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1],
 
 
 with torch.no_grad():
-    image_feature_list = [model.encode_image(preprocess(TURN(box)).unsqueeze(0).to(device)) for box in box_list]
+    image_feature_list = [model.encode_image(preprocess(TURN(box)).unsqueeze(0).to(opt.device)) for box in box_list]
 
 
 label_done = Label()
@@ -87,6 +102,10 @@ print(len(ins_cut))
 if ins_cut[-1] == '':
     del ins_cut[-1]
 
+for x in ins_cut:
+    if x == '':
+        del x
+    
 
 for i in range(len(ins_cut)):
     ins_i = ins_cut[i]
@@ -94,15 +113,25 @@ for i in range(len(ins_cut)):
     noun = get_response(noun_agent, ins_i)
     print(f'target noun: {noun}')
     noun_list.append(noun)
-    text_feature = model.encode_text(clip.tokenize(['a/an/some ' + noun]).to(device))
-    # print(image_feature_list[0]@text_feature.T*100.)
-    with torch.no_grad():
-        # logits_per_image = [model(fe, text)[0].softmax(dim=-1).cpu().numpy()[0] for fe in box_feature_list]
-        img_idx = np.argmax(np.array([(100. * image_feature @ text_feature.T)[:, 0].softmax(dim=0).cpu() for image_feature in image_feature_list], dtype=np.float32))
-        del image_feature_list[img_idx]
-        label_done.add(stack_masks[img_idx]['bbox'], noun, img_idx)
-        TURN((stack_masks[img_idx]['bbox'], stack_masks[img_idx]['segmentation'])).save(f'./tmp/noun-list/{noun}.png')
-        del stack_masks[img_idx]
+    # TODO: ensure the location / color / ... and etc infos are included in the noun.
+    _, masks = middleware(opt, img, noun)
+    transform = lambda x: repeat(rearrange(x, 'c h w -> h w c'), '... 1 -> ... b', b=3)
+    masks = transform(masks)
+    img_dragged, img_obj = img_np * (1. - masks), img_np * masks
+
+    img_dragged.save('./test_out/dragged.jpg')
+    img_obj.save('./test_out/obj.jpg')    # ===> no need of SAM !
+    
+    
+    # text_feature = model.encode_text(clip.tokenize(['a/an/some ' + noun]).to(device))
+    # # print(image_feature_list[0]@text_feature.T*100.)
+    # with torch.no_grad():
+    #     # logits_per_image = [model(fe, text)[0].softmax(dim=-1).cpu().numpy()[0] for fe in box_feature_list]
+    #     img_idx = np.argmax(np.array([(100. * image_feature @ text_feature.T)[:, 0].softmax(dim=0).cpu() for image_feature in image_feature_list], dtype=np.float32))
+    #     del image_feature_list[img_idx]
+    #     label_done.add(stack_masks[img_idx]['bbox'], noun, img_idx)
+    #     TURN((stack_masks[img_idx]['bbox'], stack_masks[img_idx]['segmentation'])).save(f'./tmp/noun-list/{noun}.png')
+    #     del stack_masks[img_idx]
 
         
 prompt_list = []
