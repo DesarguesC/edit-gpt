@@ -19,11 +19,6 @@ api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
 engine='gpt-3.5-turbo'
 
-# image_path = './assets/dog.jpg'
-# instruction = 'close the dog\'s eyes, move the scene into a forest'
-# image_path = './assets/01.png'
-# instruction = 'turn her hair pink'
-
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
 import cv2
@@ -33,41 +28,30 @@ from seem.masks import middleware
 opt = get_args()
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-
 image = cv2.imread(image_path)
 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-# print(image)
-
 
 sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
 sam.to(device=opt.device)
 mask_generator = SamAutomaticMaskGenerator(sam)
-
-# cfg = load_opt_from_config_files([opt.seem_cfg])
-# seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda() 
-# # seem model
-
-
-# with torch.no_grad():
-#     seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
-    
+  
 img = Image.open(opt.in_dir)
 img_np = np.array(img)
 
+sam_masks = mask_generator.generate(image)
+sam_masks = sorted(sam_masks, key=(lambda x: x['area']), reverse=True)
+# stack_masks = masks
 
-
-
-
-masks = mask_generator.generate(image)
-masks = sorted(masks, key=(lambda x: x['area']), reverse=True)
-stack_masks = masks
-
-box_list = [(box_['bbox'], box_['segmentation']) for box_ in masks]
+box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
 print(f'len(box_list) = {len(box_list)}')
 # bbox: list
 
+def find_box_idx(mask: np.array, box_list: list[tuple]):
+    cdot = [np.sum(u[1] * mask) for u in box_list]
+    return np.argmax(np.array(cdot))
 
-model, preprocess = clip.load("ViT-B/32", device=opt.device)
+
+# model, preprocess = clip.load("ViT-B/32", device=opt.device)
 
 noun_list = []
 TURN = lambda u: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
@@ -88,9 +72,11 @@ for i in range(len(box_list)):
 
 cut_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_cut, proxy=net_proxy)
 noun_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_noun, proxy=net_proxy)
-edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_edit, proxy=net_proxy)
+# edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_edit, proxy=net_proxy)
 
-a1, a2, a3 = get_response(cut_agent, first_ask_cut), get_response(noun_agent, first_ask_noun), get_response(edit_agent, first_ask_edit)
+a1 = get_response(cut_agent, first_ask_cut)
+a2 = get_response(noun_agent, first_ask_noun)
+# a3 = get_response(edit_agent, first_ask_edit)
 
 print(a1, a2, a3)
 
@@ -106,6 +92,7 @@ for x in ins_cut:
     if x == '':
         del x
     
+transform = lambda x: repeat(rearrange(x, 'c h w -> h w c'), '... 1 -> ... b', b=3)
 
 for i in range(len(ins_cut)):
     ins_i = ins_cut[i]
@@ -114,25 +101,24 @@ for i in range(len(ins_cut)):
     print(f'target noun: {noun}')
     noun_list.append(noun)
     # TODO: ensure the location / color / ... and etc infos are included in the noun.
-    _, masks = middleware(opt, img, noun)
-    transform = lambda x: repeat(rearrange(x, 'c h w -> h w c'), '... 1 -> ... b', b=3)
-    masks = transform(masks)
-    img_dragged, img_obj = img_np * (1. - masks), img_np * masks
-
-    img_dragged.save('./test_out/dragged.jpg')
-    img_obj.save('./test_out/obj.jpg')    # ===> no need of SAM !
+    _, seem_masks = middleware(opt, img, noun)
     
+    # seem_masks = transform(seem_masks)
+    img_idx = find_box_idx(seem_masks, box_list)
+    true_mask = box_list[idx][1]
+    label_done.add(box_list[img_idx][0], noun, imd_idx)
     
-    # text_feature = model.encode_text(clip.tokenize(['a/an/some ' + noun]).to(device))
-    # # print(image_feature_list[0]@text_feature.T*100.)
-    # with torch.no_grad():
-    #     # logits_per_image = [model(fe, text)[0].softmax(dim=-1).cpu().numpy()[0] for fe in box_feature_list]
-    #     img_idx = np.argmax(np.array([(100. * image_feature @ text_feature.T)[:, 0].softmax(dim=0).cpu() for image_feature in image_feature_list], dtype=np.float32))
-    #     del image_feature_list[img_idx]
-    #     label_done.add(stack_masks[img_idx]['bbox'], noun, img_idx)
-    #     TURN((stack_masks[img_idx]['bbox'], stack_masks[img_idx]['segmentation'])).save(f'./tmp/noun-list/{noun}.png')
-    #     del stack_masks[img_idx]
+    TURN((masks[img_idx]['bbox'], masks[img_idx]['segmentation'])).save(f'./tmp/noun-list/{noun}.png')
+    
+        
+    mask = transform(true_mask)
+    img_dragged, img_obj = img_np * (1. - mask), img_np * mask
 
+    img_dragged.save('./tmp/test_out/dragged.jpg')
+    img_obj.save('./tmp/test_out/obj.jpg')    # ===> no need of SAM !
+    
+
+exit(0)
         
 prompt_list = []
 location = str(label_done)
