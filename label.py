@@ -11,7 +11,7 @@ import pandas as pd
 
 
 from revChatGPT.V3 import Chatbot
-from prompt import get_args
+from prompt.arguments import get_args
 
 dd = list(pd.read_csv('./key.csv')['key'])
 assert len(dd) == 1
@@ -28,7 +28,7 @@ from seem.masks import middleware
 opt = get_args()
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-image = cv2.imread(image_path)
+image = cv2.imread(opt.in_dir)
 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
@@ -46,21 +46,26 @@ box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
 print(f'len(box_list) = {len(box_list)}')
 # bbox: list
 
-def find_box_idx(mask: np.array, box_list: list[tuple]):
-    cdot = [np.sum(u[1] * mask) for u in box_list]
+def find_box_idx(mask: np.array, box_list: list[tuple], size: tuple):
+    # print(mask.shape)
+    # print(size)
+    def expand(in_tuple):
+        # x[0-1]: box, mask; x[2-3]: image size (w h)
+        x, y, w, h = in_tuple[0]
+        # print((x,y,w,h))
+        t1 = np.zeros_like(size)
+        # print(in_tuple[1].shape)
+        # print(t1[x:x+w][y:y+h].shape)
+        t1[x:x+w][y:y+h] = in_tuple[1] # mask
+        return t1
+    cdot = [np.sum(expand(u) * mask) for u in box_list]
     return np.argmax(np.array(cdot))
-
 
 # model, preprocess = clip.load("ViT-B/32", device=opt.device)
 
 noun_list = []
 TURN = lambda u: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
 
-# TURN = lambda u: Image.fromarray(np.uint8(get_img(image, u[0]))) # remove mask
-
-
-with torch.no_grad():
-    image_feature_list = [model.encode_image(preprocess(TURN(box)).unsqueeze(0).to(opt.device)) for box in box_list]
 
 
 label_done = Label()
@@ -77,11 +82,11 @@ noun_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt
 a1 = get_response(cut_agent, first_ask_cut)
 a2 = get_response(noun_agent, first_ask_noun)
 # a3 = get_response(edit_agent, first_ask_edit)
-
-print(a1, a2, a3)
+print(a1, a2)
+# print(a1, a2, a3)
 
 from jieba import re
-ins_cut = get_response(cut_agent, instruction)
+ins_cut = get_response(cut_agent, opt.edit_txt)
 ins_cut = re.split('[\.]', ins_cut)
 print(len(ins_cut))
 
@@ -102,9 +107,10 @@ for i in range(len(ins_cut)):
     noun_list.append(noun)
     # TODO: ensure the location / color / ... and etc infos are included in the noun.
     _, seem_masks = middleware(opt, img, noun)
+    print(f'seem_masks.shape = {seem_masks.shape}')
     
     # seem_masks = transform(seem_masks)
-    img_idx = find_box_idx(seem_masks, box_list)
+    img_idx = find_box_idx(seem_masks, box_list, (image.shape[1], image.shape[2]))
     true_mask = box_list[idx][1]
     label_done.add(box_list[img_idx][0], noun, imd_idx)
     
