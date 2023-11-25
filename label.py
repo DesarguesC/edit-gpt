@@ -44,19 +44,7 @@ print(f'img.size = {img.size}')
 
 
 def find_box_idx(mask: np.array, box_list: list[tuple], size: tuple):
-    print(f'mask.shape = {mask.shape}')
-    # print(size)
-    
-    def extand(in_tuple):
-        print(f'in_tuple[0] = {in_tuple[0]}')
-        x, y, w, h = in_tuple[0]
-        t1 = np.zeros(size)
-        print(f'in_tuple[1].shape = {in_tuple[1].shape}')
-        print(f't1.shape = {t1.shape}')
-        t1[x:x+w, y:y+h] = in_tuple[1] # mask
-        
-        return t1.unsqeeze(0)
-    
+    # print(f'mask.shape = {mask.shape}')
     cdot = [np.sum(u[1] * mask) for u in box_list]
     return np.argmax(np.array(cdot))
 
@@ -67,13 +55,13 @@ label_done = Label()
 
 cut_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_cut, proxy=net_proxy)
 noun_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_noun, proxy=net_proxy)
-# edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_edit, proxy=net_proxy)
+edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_edit, proxy=net_proxy)
 
 a1 = get_response(cut_agent, first_ask_cut)
 a2 = get_response(noun_agent, first_ask_noun)
-# a3 = get_response(edit_agent, first_ask_edit)
-print(a1, a2)
-# print(a1, a2, a3)
+a3 = get_response(edit_agent, first_ask_edit)
+# print(a1, a2)
+print(a1, a2, a3)
 
 from jieba import re
 ins_cut = get_response(cut_agent, opt.edit_txt)
@@ -93,14 +81,18 @@ sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
 sam.to(device=opt.device)
 mask_generator = SamAutomaticMaskGenerator(sam)
 
+prompt_list = []
+location = str(label_done)
+edit_his = []
+
 TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
 # sam_masks = sorted(sam_masks, key=(lambda x: x['area']), reverse=True)
 print(len(ins_cut))
 for i in range(len(ins_cut)):
     ins_i = ins_cut[i]
     print(f'edit prompt: {ins_i}')
-    # noun = get_response(noun_agent, ins_i)
-    noun = 'zebra'
+    noun = get_response(noun_agent, ins_i)
+    # noun = 'zebra'
     print(f'target noun: {noun}')
     noun_list.append(noun)
     # TODO: ensure the location / color / ... and etc infos are included in the noun.
@@ -131,19 +123,12 @@ for i in range(len(ins_cut)):
     
     print(true_mask.shape)
     mask = transform(true_mask)
-    img_dragged, img_obj = res * (1 - mask), res * mask
+    img_dragged, img_obj = res * (1. - mask), res * mask
     print(img_dragged.shape, img_obj.shape)
     Image.fromarray(np.uint8(img_dragged)).save('./tmp/test_out/dragged.jpg')
     Image.fromarray(np.uint8(img_obj)).save('./tmp/test_out/obj.jpg')
     
-
-exit(0)
-        
-prompt_list = []
-location = str(label_done)
-edit_his = []
-for ins_i in ins_cut:
-    edit_op = "\"Instruction: " + ins_i.strip('\n') + "; Image: " + location.strip('\n') + f"; Size: ({image.shape[0]},{image.shape[1]})"
+    edit_op = "\"Instruction: " + ins_i.strip('\n') + "; Image: " + location.strip('\n') # + f"; Size: ({res.shape[0]},{res.shape[1]})"
     print('agent input: \n', edit_op)
     edited = get_response(edit_agent, edit_op)
     print('ori edited: \n', edited)
@@ -152,6 +137,10 @@ for ins_i in ins_cut:
     if edited[-1] == '': del edited[-1]
     location = edited[0].strip('\n')
     print('edited: ', location)
+            
+
+# for ins_i in ins_cut:
+    
     
 
 print(f'ori: \n', label_done)

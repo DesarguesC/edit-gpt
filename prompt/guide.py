@@ -112,6 +112,7 @@ first_ask_noun = 'For example, when you type \"Move the kettle on the table to t
                  'As a result, you only need to output a single word(\'<WHOLE>\' included, without quotation mark) without quotation mark'\
                  'If you have understood your task, answer \"yes\" without extra characters.'
 
+import os
 
 def get_bot(engine, api_key, system_prompt, proxy):
     iteration = 0
@@ -122,6 +123,8 @@ def get_bot(engine, api_key, system_prompt, proxy):
             agent = Chatbot(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
         except:
             time.sleep(10)
+            if iteration > 3:
+                os.system("bash ../clash/restart-clash.sh")
             continue
         print('done')
         return agent
@@ -135,6 +138,8 @@ def get_response(chatbot, asks):
             answer = chatbot.ask(asks)
         except:
             time.sleep(10)
+            if iteration > 3:
+                os.system("bash ../clash/restart-clash.sh")
             continue
         print('finish')
         return answer
