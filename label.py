@@ -28,52 +28,42 @@ from seem.masks import middleware
 opt = get_args()
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-image = cv2.imread(opt.in_dir)
-image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+# image = cv2.imread(opt.in_dir)
+# image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+# print(f'image.shape = {image.shape}')
 
-sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
-sam.to(device=opt.device)
-mask_generator = SamAutomaticMaskGenerator(sam)
+
   
 img = Image.open(opt.in_dir)
 img_np = np.array(img)
+print(f'img.size = {img.size}')
 
-sam_masks = mask_generator.generate(image)
-sam_masks = sorted(sam_masks, key=(lambda x: x['area']), reverse=True)
+
 # stack_masks = masks
 
-box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
-print(f'len(box_list) = {len(box_list)}')
-# bbox: list
+
 
 def find_box_idx(mask: np.array, box_list: list[tuple], size: tuple):
-    # print(mask.shape)
+    print(f'mask.shape = {mask.shape}')
     # print(size)
-    def expand(in_tuple):
-        # x[0-1]: box, mask; x[2-3]: image size (w h)
+    
+    def extand(in_tuple):
+        print(f'in_tuple[0] = {in_tuple[0]}')
         x, y, w, h = in_tuple[0]
-        # print((x,y,w,h))
-        t1 = np.zeros_like(size)
-        # print(in_tuple[1].shape)
-        # print(t1[x:x+w][y:y+h].shape)
-        t1[x:x+w][y:y+h] = in_tuple[1] # mask
-        return t1
-    cdot = [np.sum(expand(u) * mask) for u in box_list]
+        t1 = np.zeros(size)
+        print(f'in_tuple[1].shape = {in_tuple[1].shape}')
+        print(f't1.shape = {t1.shape}')
+        t1[x:x+w, y:y+h] = in_tuple[1] # mask
+        
+        return t1.unsqeeze(0)
+    
+    cdot = [np.sum(u[1] * mask) for u in box_list]
     return np.argmax(np.array(cdot))
 
 # model, preprocess = clip.load("ViT-B/32", device=opt.device)
 
 noun_list = []
-TURN = lambda u: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
-
-
-
 label_done = Label()
-
-for i in range(len(box_list)):
-    box = box_list[i]
-    TURN(box).save(f'./tmp/test-{i}.png')
-
 
 cut_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_cut, proxy=net_proxy)
 noun_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_noun, proxy=net_proxy)
@@ -97,31 +87,54 @@ for x in ins_cut:
     if x == '':
         del x
     
-transform = lambda x: repeat(rearrange(x, 'c h w -> h w c'), '... 1 -> ... b', b=3)
+transform = lambda x: repeat(rearrange(x, 'h w -> h w 1'), '... 1 -> ... b', b=3)
 
+sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+sam.to(device=opt.device)
+mask_generator = SamAutomaticMaskGenerator(sam)
+
+TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
+# sam_masks = sorted(sam_masks, key=(lambda x: x['area']), reverse=True)
+print(len(ins_cut))
 for i in range(len(ins_cut)):
     ins_i = ins_cut[i]
     print(f'edit prompt: {ins_i}')
-    noun = get_response(noun_agent, ins_i)
+    # noun = get_response(noun_agent, ins_i)
+    noun = 'zebra'
     print(f'target noun: {noun}')
     noun_list.append(noun)
     # TODO: ensure the location / color / ... and etc infos are included in the noun.
-    _, seem_masks = middleware(opt, img, noun)
+    res, seem_masks = middleware(opt, img, noun)
+    img_np = res
     print(f'seem_masks.shape = {seem_masks.shape}')
+    print(f'res.shape = {res.shape}')
+    Image.fromarray(res).save('./tmp/res.jpg')
+    sam_masks = mask_generator.generate(res)
+    
+    box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
+    print(f'len(box_list) = {len(box_list)}')
+    print(f'box_list[1][0] = {box_list[1][0]}')
+    print(f'box_list[1][1].shape = {box_list[1][1].shape}')
+    print(f'box_list[2][0] = {box_list[2][0]}')
+    print(f'box_list[2][1].shape = {box_list[2][1].shape}')
+    # bbox: list
+    for i in range(len(box_list)):
+        box = box_list[i]
+        TURN(box, res).save(f'./tmp/test-{i}.png')
     
     # seem_masks = transform(seem_masks)
-    img_idx = find_box_idx(seem_masks, box_list, (image.shape[1], image.shape[2]))
-    true_mask = box_list[idx][1]
-    label_done.add(box_list[img_idx][0], noun, imd_idx)
+    img_idx = find_box_idx(seem_masks, box_list, (res.shape[0], res.shape[1]))
+    true_mask = box_list[img_idx][1]
+    label_done.add(box_list[img_idx][0], noun, img_idx)
     
-    TURN((masks[img_idx]['bbox'], masks[img_idx]['segmentation'])).save(f'./tmp/noun-list/{noun}.png')
+    # TURN((masks[img_idx]['bbox'], masks[img_idx]['segmentation']), res).save(f'./tmp/noun-list/{noun}.png')
     
-        
+    print(true_mask.shape)
     mask = transform(true_mask)
-    img_dragged, img_obj = img_np * (1. - mask), img_np * mask
-
-    img_dragged.save('./tmp/test_out/dragged.jpg')
-    img_obj.save('./tmp/test_out/obj.jpg')    # ===> no need of SAM !
+    img_dragged, img_obj = res * (1. - mask), res * mask
+    print(img_dragged.shape, img_obj.shape)
+    Image.fromarray(np.uint8(img_dragged*255.)).save('./tmp/test_out/dragged.jpg')
+    Image.fromarray(np.uint8(img_obj*255.)).save('./tmp/test_out/obj.jpg')
     
 
 exit(0)

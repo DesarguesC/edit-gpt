@@ -65,6 +65,7 @@ def middleware(opt, image, reftxt, tasks=['Text']):
     results, image_size, extra = seem_model.model.evaluate_demo(batch_inputs)
     
     pred_masks = results['pred_masks'][0]
+    print(f'results.keys() = {results.keys()}')
     v_emb = results['pred_captions'][0]
     t_emb = extra['grounding_class']
 
@@ -88,5 +89,5 @@ def middleware(opt, image, reftxt, tasks=['Text']):
         demo = visual.draw_binary_mask(mask, color=colors_list[pred_class[0]%133], text=out_txt)
     res = demo.get_image()
     torch.cuda.empty_cache()
-    return Image.fromarray(res), pred_masks_pos
+    return res, pred_masks_pos
 
