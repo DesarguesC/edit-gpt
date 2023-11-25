@@ -112,11 +112,11 @@ for i in range(len(ins_cut)):
     sam_masks = mask_generator.generate(res)
     
     box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
-    print(f'len(box_list) = {len(box_list)}')
-    print(f'box_list[1][0] = {box_list[1][0]}')
-    print(f'box_list[1][1].shape = {box_list[1][1].shape}')
-    print(f'box_list[2][0] = {box_list[2][0]}')
-    print(f'box_list[2][1].shape = {box_list[2][1].shape}')
+    # print(f'len(box_list) = {len(box_list)}')
+    # print(f'box_list[1][0] = {box_list[1][0]}')
+    # print(f'box_list[1][1].shape = {box_list[1][1].shape}')
+    # print(f'box_list[2][0] = {box_list[2][0]}')
+    # print(f'box_list[2][1].shape = {box_list[2][1].shape}')
     # bbox: list
     for i in range(len(box_list)):
         box = box_list[i]
@@ -131,10 +131,10 @@ for i in range(len(ins_cut)):
     
     print(true_mask.shape)
     mask = transform(true_mask)
-    img_dragged, img_obj = res * (1. - mask), res * mask
+    img_dragged, img_obj = res * (1 - mask), res * mask
     print(img_dragged.shape, img_obj.shape)
-    Image.fromarray(np.uint8(img_dragged*255.)).save('./tmp/test_out/dragged.jpg')
-    Image.fromarray(np.uint8(img_obj*255.)).save('./tmp/test_out/obj.jpg')
+    Image.fromarray(np.uint8(img_dragged)).save('./tmp/test_out/dragged.jpg')
+    Image.fromarray(np.uint8(img_obj)).save('./tmp/test_out/obj.jpg')
     
 
 exit(0)
