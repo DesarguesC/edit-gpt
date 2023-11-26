@@ -33,14 +33,15 @@ from seem.modeling import build_model
 from seem.utils.constants import COCO_PANOPTIC_CLASSES
 from seem.demo.seem.tasks import *
 
-def middleware(opt, image, reftxt, tasks=['Text']):
+def middleware(opt, image, reftxt, tasks=['Text'], paint=False):
     # mask_cover: [0,0,0] -> cover mask area via black
     cfg = load_opt_from_config_files([opt.seem_cfg])
     cfg['device'] = opt.device
     seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda() 
     with torch.no_grad():
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
-    image_ori = transform(image)
+    # image_ori = transform(image)
+    image_ori = image
     width = image_ori.size[0]
     height = image_ori.size[1]
     print(1)
@@ -67,9 +68,9 @@ def middleware(opt, image, reftxt, tasks=['Text']):
     pred_masks = results['pred_masks'][0]
     print(f'results.keys() = {results.keys()}')
     uu = results['aux_outputs']
-    print(f'uu = {uu}')
-    print(f'len(uu) = {len(uu)}')
-    print(f'tyep(uu[0]) = {type(uu[0])}')
+    # print(f'uu = {uu}')
+    # print(f'len(uu) = {len(uu)}')
+    # print(f'tyep(uu[0]) = {type(uu[0])}')
     
     
     v_emb = results['pred_captions'][0]
@@ -92,7 +93,7 @@ def middleware(opt, image, reftxt, tasks=['Text']):
     for idx, mask in enumerate(pred_masks_pos):
         # color = random_color(rgb=True, maximum=1).astype(np.int32).tolist()
         out_txt = texts[idx] # if 'Text' not in tasks else reftxt
-        demo = visual.draw_binary_mask(mask, color=colors_list[pred_class[0]%133], text=out_txt)
+        demo = visual.draw_binary_mask(mask, color=colors_list[pred_class[0]%133] if paint else [0,1,1,1], text=out_txt)
     res = demo.get_image()
     torch.cuda.empty_cache()
     return res, pred_masks_pos

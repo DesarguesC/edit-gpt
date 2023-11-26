@@ -41,7 +41,9 @@ print(f'img.size = {img.size}')
 
 # stack_masks = masks
 
-
+# def save_mask(mask, mask_name):
+    
+    
 
 def find_box_idx(mask: np.array, box_list: list[tuple], size: tuple):
     # print(f'mask.shape = {mask.shape}')
@@ -123,6 +125,9 @@ for i in range(len(ins_cut)):
     
     print(true_mask.shape)
     mask = transform(true_mask)
+    
+    Image.fromarray(np.uint8(mask * 255.)).save('./tmp/mask/m.jpg')
+    
     img_dragged, img_obj = res * (1. - mask), res * mask
     print(img_dragged.shape, img_obj.shape)
     Image.fromarray(np.uint8(img_dragged)).save('./tmp/test_out/dragged.jpg')
