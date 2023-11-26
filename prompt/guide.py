@@ -65,7 +65,7 @@ system_prompt_locate = """\
                        I guarantee that only one object has moved its position.
                        """
 locate_first_ask = """\
-                    You need to output the moved object A, and where the object is moved B, so there are two nouns in the output, \
+                    You need to output the moved object named A, and B is the name where the object is moved to, so there are two nouns in the output, \
                     please output in the form of "(A,B)". If you have understood your task, \
                     please answer "yes" in the round without any extra characters, \
                     after which I will give you input and ask you to judge.                   

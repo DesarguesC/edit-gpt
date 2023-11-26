@@ -64,7 +64,7 @@ def remove_target(opt, target_noun):
     print(true_mask.shape)
     mask = transform(true_mask)
     img_dragged, img_obj = res * (1. - mask), res * mask
-    return img_np, np.uint8(img_fragged), np.uint8(img_obj)
+    return img_np, np.uint8(img_dragged), np.uint8(img_obj)
 
 
 
@@ -115,7 +115,7 @@ TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrang
 # print(len(ins_cut))
 
 
-if sorted_class == 'remove':
+if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery
     noun_remove_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)
     a = get_response(noun_remove_agent, first_ask_noun)
@@ -131,7 +131,7 @@ if sorted_class == 'remove':
     # TODO: recover the scenery for img_dragged in mask
 
 
-if sorted_class == 'replace':
+if 'replace' in sorted_class:
     # find the target -> remove -> recover the scenery -> add the new
     noun_replace_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy)
     a = get_response(noun_replace_agent, first_ask_noun)
@@ -141,7 +141,7 @@ if sorted_class == 'replace':
     img_np, img_dragged_target
 
 
-if sorted_class == 'locate':
+if 'locate' in sorted_class:
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
     noun_locate_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
     a = get_response(noun_locate_agent, first_ask_noun)
