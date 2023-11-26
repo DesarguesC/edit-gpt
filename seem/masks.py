@@ -66,6 +66,12 @@ def middleware(opt, image, reftxt, tasks=['Text']):
     
     pred_masks = results['pred_masks'][0]
     print(f'results.keys() = {results.keys()}')
+    uu = results['aux_outputs']
+    print(f'uu = {uu}')
+    print(f'len(uu) = {len(uu)}')
+    print(f'tyep(uu[0]) = {type(uu[0])}')
+    
+    
     v_emb = results['pred_captions'][0]
     t_emb = extra['grounding_class']
 
