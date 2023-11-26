@@ -2,7 +2,6 @@ import numpy as np
 
 
 class Label():
-    
     def __init__(self):
         self.label_dict = {}
         self.idx_list = []   # index in masks list gaining from SAM
@@ -27,4 +26,13 @@ class Label():
             if cnt >=0: out = out + ','
             else: out = out + '}'
         return out
+
+
+def get_replace_tuple(replace_tupple: str):
+    # deal with GPT-3.5 return messages
+    replace_tupple = replace_tupple.strip('(')
+    replace_tupple = replace_tupple.strip(')')
+    replace_tupple = replace_tupple.split(',')
+    print(f'len replace_tuple = {len(replace_tupple)}')
+    return (replace_tupple[0], replace_tupple[1])
 

@@ -1,6 +1,79 @@
 from revChatGPT.V3 import Chatbot
 import time
 
+system_prompt_sort = """\
+                    You are an expert in text categorization, and I will input text for you to categorize. \
+                    Note that the text I entered has an editing nature, which is an editing instruction for the picture, \
+                    and now you need to classify the input text according to the following criteria: \
+                    1. Determines whether the text removes the object, and if so, its category is "romove". \
+                    2. Determine whether the text replaces the object, and if so, its category is "replace". \
+                    3. Determine whether the text moves the object. If it does, the category is "locate". \
+                    You may find that category 2. "replace" actually contains the case of category 1. "remove", \
+                    but in fact, as long as it conforms to category 2. The edited text of the condition is classified as category 2. "replace", \
+                    otherwise it is considered whether it is the case of 1. "remove". \
+                    Also, I guarantee that the text I enter will be in one of these categories and will not contain elements that belong to more than one category.\
+                    """
+first_ask_sort = """\
+                For the text I entered, you only need to answer one of the three categories and print its name, \
+                one of "remove", "replace", "locate", with no extra characters. If you have already understood your task, \
+                please answer "yes" to me in this round without any extra characters, after which I will give you input and ask you to judge.
+                 """
+
+
+system_prompt_remove = """\
+                       You are a text detection master and need to find a specific object in a piece of text. \
+                       In the text input you will receive, there will be an object object removed, you need to find the \
+                       removed object and output its name in full. Note: Be sure to keep all the touches on this object.\
+                       I guarantee only one object was removed.
+                       """
+remove_first_ask = """\
+                    Be careful to keep the modification about the object when you output the noun, \
+                    for example if you get an input "remove the leftmost zebra", you need to output "leftmost zebra" instead of just the word "zebra", \
+                    because there may not be only one zebra. If you have understood your task, please answer "yes" in the round without any extra characters, \
+                    after which I will give you input and ask you to judge.
+                   """
+
+
+system_prompt_replace = """\
+                       You are a text detection master and need to find a specific object in a piece of text. In the text input, \
+                       an object will be replaced, and you need to find the replaced object from the text and print its name in full, \
+                       and you will also need to find the new object from the text to replace the object. Note: Be sure to keep all the touches on this object.\
+                       I guarantee only one object was replaced.
+                       """
+replace_first_ask = """\
+                    You need to output both the replaced object A and the replaced object B, in the form (A,B), without extra spaces.
+                    Be careful to keep the modification about the object when you output the noun, \
+                    for example if you get an input "Replace the leftmost zebra with a horse", \
+                    you need to output \"(leftmost zebra, horse)\" instead of just \"(zebra, horse)\", \
+                    because there may not be only one zebra. If you have understood your task, \
+                    please answer "yes" in the round without any extra characters, after which I will give you input and ask you to judge.
+                   """
+
+
+system_prompt_locate = """\
+                       You are a text detection master and need to find a specific object in a piece of text. \
+                       You're going to get text input, you're going to get an object whose position has been moved, \
+                       and you're going to find that position in the text and print out the name of that object in its entirety; \
+                       In addition, you also need to find out where the object has been moved and print the name of that place. \
+                       As for the nouns involved, you need to note: make sure to keep all the modifications about the object. \
+                       You need to print the name of the object being moved without extra space. \
+                       Be careful to keep the modification of the object in the output noun, \
+                       for example if you get an input "move the leftmost zebra to the right lawn", \
+                       you need to output the name of the moved object is "leftmost zebra" instead of just one word "zebra", \
+                       and the location you need to output is "right lawn" instead of just one word "lawn". \
+                       Because there may be more than one zebra or lawn, confusion must be avoided. \
+                       I guarantee that only one object has moved its position.
+                       """
+locate_first_ask = """\
+                    You need to output the moved object A, and where the object is moved B, so there are two nouns in the output, \
+                    please output in the form of "(A,B)". If you have understood your task, \
+                    please answer "yes" in the round without any extra characters, \
+                    after which I will give you input and ask you to judge.                   
+                   """
+
+
+
+
 system_prompt_edit = 'You are an textual editor who is able to edit images with the given text input. '\
                      'But unlike traditional textual editors, you only need to edit the positions of some objects, '\
                      'which I will give in the following format: the i-th object is represented by the data '\

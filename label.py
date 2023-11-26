@@ -2,7 +2,7 @@ from prompt.guide import *
 import clip
 from revChatGPT.V3 import Chatbot
 from prompt.util import get_image_from_box as get_img
-from prompt.item import Label
+from prompt.item import Label, get_replace_tuple
 import torch
 import numpy as np
 from PIL import Image
@@ -28,19 +28,12 @@ from seem.masks import middleware
 opt = get_args()
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# image = cv2.imread(opt.in_dir)
-# image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-# print(f'image.shape = {image.shape}')
-
-
-  
 img = Image.open(opt.in_dir)
 img_np = np.array(img)
 print(f'img.size = {img.size}')
 
-
-# stack_masks = masks
-
+noun_list = []
+label_done = Label()
 
 
 def find_box_idx(mask: np.array, box_list: list[tuple], size: tuple):
@@ -48,32 +41,64 @@ def find_box_idx(mask: np.array, box_list: list[tuple], size: tuple):
     cdot = [np.sum(u[1] * mask) for u in box_list]
     return np.argmax(np.array(cdot))
 
+
+def remove_target(opt, target_noun):
+    img = Image.open(opt.in_dir)
+    res, seem_masks = middleware(opt, img, target_noun)
+    img_np = res
+    print(f'seem_masks.shape = {seem_masks.shape}')
+    print(f'res.shape = {res.shape}')
+    Image.fromarray(res).save('./tmp/res.jpg')
+    sam_masks = mask_generator.generate(res)
+
+    box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
+    # bbox: list
+    for i in range(len(box_list)):
+        box = box_list[i]
+        TURN(box, res).save(f'./tmp/test-{i}.png')
+
+    img_idx = find_box_idx(seem_masks, box_list, (res.shape[0], res.shape[1]))
+    true_mask = box_list[img_idx][1]
+    label_done.add(box_list[img_idx][0], noun, img_idx)
+
+    print(true_mask.shape)
+    mask = transform(true_mask)
+    img_dragged, img_obj = res * (1. - mask), res * mask
+    return img_np, np.uint8(img_fragged), np.uint8(img_obj)
+
+
+
 # model, preprocess = clip.load("ViT-B/32", device=opt.device)
 
-noun_list = []
-label_done = Label()
 
-cut_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_cut, proxy=net_proxy)
-noun_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_noun, proxy=net_proxy)
+
+# cut_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_cut, proxy=net_proxy)
+class_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_sort, proxy=net_proxy)
+
+
+
 edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_edit, proxy=net_proxy)
 
-a1 = get_response(cut_agent, first_ask_cut)
-a2 = get_response(noun_agent, first_ask_noun)
+a1 = get_response(class_agent, first_ask_sort)
+
 a3 = get_response(edit_agent, first_ask_edit)
-# print(a1, a2)
+# print(a2, a3)
 print(a1, a2, a3)
 
-from jieba import re
-ins_cut = get_response(cut_agent, opt.edit_txt)
-ins_cut = re.split('[\.]', ins_cut)
-print(len(ins_cut))
+sorted_class = get_response(class_agent, opt.edit_txt)
+print(f'sorted class: <{sorted_class}>')
 
-if ins_cut[-1] == '':
-    del ins_cut[-1]
+# from jieba import re
+# ins_cut = get_response(cut_agent, opt.edit_txt)
+# ins_cut = re.split('[\.]', ins_cut)
+# print(len(ins_cut))
 
-for x in ins_cut:
-    if x == '':
-        del x
+# if ins_cut[-1] == '':
+#     del ins_cut[-1]
+#
+# for x in ins_cut:
+#     if x == '':
+#         del x
     
 transform = lambda x: repeat(rearrange(x, 'h w -> h w 1'), '... 1 -> ... b', b=3)
 
@@ -87,56 +112,84 @@ edit_his = []
 
 TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
 # sam_masks = sorted(sam_masks, key=(lambda x: x['area']), reverse=True)
-print(len(ins_cut))
-for i in range(len(ins_cut)):
-    ins_i = ins_cut[i]
-    print(f'edit prompt: {ins_i}')
-    noun = get_response(noun_agent, ins_i)
-    # noun = 'zebra'
-    print(f'target noun: {noun}')
-    noun_list.append(noun)
-    # TODO: ensure the location / color / ... and etc infos are included in the noun.
-    res, seem_masks = middleware(opt, img, noun)
-    img_np = res
-    print(f'seem_masks.shape = {seem_masks.shape}')
-    print(f'res.shape = {res.shape}')
-    Image.fromarray(res).save('./tmp/res.jpg')
-    sam_masks = mask_generator.generate(res)
-    
-    box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
-    # print(f'len(box_list) = {len(box_list)}')
-    # print(f'box_list[1][0] = {box_list[1][0]}')
-    # print(f'box_list[1][1].shape = {box_list[1][1].shape}')
-    # print(f'box_list[2][0] = {box_list[2][0]}')
-    # print(f'box_list[2][1].shape = {box_list[2][1].shape}')
-    # bbox: list
-    for i in range(len(box_list)):
-        box = box_list[i]
-        TURN(box, res).save(f'./tmp/test-{i}.png')
-    
-    # seem_masks = transform(seem_masks)
-    img_idx = find_box_idx(seem_masks, box_list, (res.shape[0], res.shape[1]))
-    true_mask = box_list[img_idx][1]
-    label_done.add(box_list[img_idx][0], noun, img_idx)
-    
-    # TURN((masks[img_idx]['bbox'], masks[img_idx]['segmentation']), res).save(f'./tmp/noun-list/{noun}.png')
-    
-    print(true_mask.shape)
-    mask = transform(true_mask)
-    img_dragged, img_obj = res * (1. - mask), res * mask
+# print(len(ins_cut))
+
+
+if sorted_class == 'remove':
+    # find the target -> remove -> recover the scenery
+    noun_remove_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)
+    a = get_response(noun_remove_agent, first_ask_noun)
+    print(a)
+    target_noun = get_response(noun_remove_agent, opt.edit_txt)
+    print(f'target_noun: {target_noun}')
+    img_np, img_dragged, img_obj = remove_target(opt, target_noun)
     print(img_dragged.shape, img_obj.shape)
     Image.fromarray(np.uint8(img_dragged)).save('./tmp/test_out/dragged.jpg')
     Image.fromarray(np.uint8(img_obj)).save('./tmp/test_out/obj.jpg')
+
+    Recover_Scenery_For(img_dragged)
+    # TODO: recover the scenery for img_dragged in mask
+
+
+if sorted_class == 'replace':
+    # find the target -> remove -> recover the scenery -> add the new
+    noun_replace_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy)
+    a = get_response(noun_replace_agent, first_ask_noun)
+    print(a)
+    replace_tuple = get_response(noun_replace_agent, opt.edit_txt)
+    replace_target, replace_place = get_replace_tuple(replace_tuple)
+    img_np, img_dragged_target
+
+
+if sorted_class == 'locate':
+    # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
+    noun_locate_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
+    a = get_response(noun_locate_agent, first_ask_noun)
+    print(a)
+
+
+
+# for i in range(len(ins_cut)):
+ins_i = opt.edit_txt
+print(f'edit prompt: {ins_i}')
+# noun = get_response(noun_agent, ins_i)
+# noun = 'zebra'
+print(f'target noun: {noun}')
+noun_list.append(noun)
+# TODO: ensure the location / color / ... and etc infos are included in the noun.
+res, seem_masks = middleware(opt, img, noun)
+img_np = res
+print(f'seem_masks.shape = {seem_masks.shape}')
+print(f'res.shape = {res.shape}')
+Image.fromarray(res).save('./tmp/res.jpg')
+sam_masks = mask_generator.generate(res)
+
+box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
+# bbox: list
+for i in range(len(box_list)):
+    box = box_list[i]
+    TURN(box, res).save(f'./tmp/test-{i}.png')
+
+img_idx = find_box_idx(seem_masks, box_list, (res.shape[0], res.shape[1]))
+true_mask = box_list[img_idx][1]
+label_done.add(box_list[img_idx][0], noun, img_idx)
+
+print(true_mask.shape)
+mask = transform(true_mask)
+img_dragged, img_obj = res * (1. - mask), res * mask
+print(img_dragged.shape, img_obj.shape)
+Image.fromarray(np.uint8(img_dragged)).save('./tmp/test_out/dragged.jpg')
+Image.fromarray(np.uint8(img_obj)).save('./tmp/test_out/obj.jpg')
     
-    edit_op = "\"Instruction: " + ins_i.strip('\n') + "; Image: " + location.strip('\n') # + f"; Size: ({res.shape[0]},{res.shape[1]})"
-    print('agent input: \n', edit_op)
-    edited = get_response(edit_agent, edit_op)
-    print('ori edited: \n', edited)
-    edit_his.append(edited)
-    edited = re.split('[\n]', edited)
-    if edited[-1] == '': del edited[-1]
-    location = edited[0].strip('\n')
-    print('edited: ', location)
+    # edit_op = "\"Instruction: " + ins_i.strip('\n') + "; Image: " + location.strip('\n') # + f"; Size: ({res.shape[0]},{res.shape[1]})"
+    # print('agent input: \n', edit_op)
+    # edited = get_response(edit_agent, edit_op)
+    # print('ori edited: \n', edited)
+    # edit_his.append(edited)
+    # edited = re.split('[\n]', edited)
+    # if edited[-1] == '': del edited[-1]
+    # location = edited[0].strip('\n')
+    # print('edited: ', location)
             
 
 # for ins_i in ins_cut:
