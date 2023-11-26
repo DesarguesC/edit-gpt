@@ -13,6 +13,7 @@ def get_args():
     parser.add_argument('--sam_type', default='vit_h', choices=['vit_l', 'vit_h', 'vit_b'], help='choose SAM model type')
     parser.add_argument('--seem_cfg', default='seem/configs/seem/focall_unicl_lang_demo.yaml', help='path to seem config file')
     parser.add_argument('--seem_ckpt', default='../autodl-tmp/seem_focall_v0.pt', help='path to origin SEEM ckpt')
+    parser.add_argument('--pbe_ckpt', default='../autodl-tmp/model.ckpt', help='path to ckpt of Paint-by-Example')
     
 
     return parser.parse_args() 
