@@ -5,7 +5,7 @@ __pycache__/
 *.tmp
 *.mp4
 test_out/
-
+checkpoints/*.*
 
 *.csv
 # *.txt
