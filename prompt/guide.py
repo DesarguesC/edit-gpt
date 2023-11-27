@@ -196,6 +196,7 @@ def get_bot(engine, api_key, system_prompt, proxy):
             agent = Chatbot(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
         except:
             time.sleep(10)
+            print('Timed Out')
             if iteration > 3:
                 os.system("bash ../clash/restart-clash.sh")
             continue
@@ -211,6 +212,7 @@ def get_response(chatbot, asks):
             answer = chatbot.ask(asks)
         except:
             time.sleep(10)
+            print('Timed Out')
             if iteration > 3:
                 os.system("bash ../clash/restart-clash.sh")
             continue

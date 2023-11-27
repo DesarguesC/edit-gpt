@@ -56,11 +56,12 @@ def remove_target(opt, target_noun):
     img = Image.open(opt.in_dir)
     img = img.resize((ab64(img.size[0]), ab64(img.size[1])))
     res, seem_masks = middleware(opt, img, target_noun)
-    img_np = res
-    print(f'seem_masks.shape = {seem_masks.shape}')
-    print(f'res.shape = {res.shape}')
-    Image.fromarray(res).save('./tmp/res.jpg')
-    sam_masks = mask_generator.generate(res)
+    # print(f'')
+    res = cv2.resize(res, img.size)
+    img.save('./tmp/img_np.jpg')
+    img_np = np.array(img)
+    assert img_np.shape == res.shape, f'res.shape = {res.shape}, img_np.shape = {img_np.shape}'
+    sam_masks = mask_generator.generate(np.array(res))
 
     box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
     # bbox: list
@@ -74,7 +75,7 @@ def remove_target(opt, target_noun):
 
     print(f'true_mask.shape = {true_mask.shape}')
     mask = transform(true_mask)
-    img_dragged, img_obj = res * (1. - mask), res * mask
+    img_dragged, img_obj = img_np * (1. - mask), img_np * mask
     return img_np, np.uint8(img_dragged), np.uint8(img_obj), mask
 
 
@@ -139,13 +140,19 @@ if 'remove' in sorted_class:
     print(img_dragged.shape, img_obj.shape)
     
     img_dragged, img_obj = Image.fromarray(np.uint8(img_dragged)), Image.fromarray(np.uint8(img_obj))
+    img_dragged_, img_obj_ = Image.fromarray(np.uint8(img_np * img_mask)), Image.fromarray(np.uint8(img_np * (1.-img_mask)))
     
     img_dragged.save('./tmp/test_out/dragged.jpg')
     img_obj.save('./tmp/test_out/obj.jpg')
     
-    process_image_via_crfill(img_np, img_mask, opt) # automatically getting model
+    img_dragged_.save('./tmp/test_out/dragged_.jpg')
+    img_obj_.save('./tmp/test_out/obj_.jpg')
+    
+    removed_pil = process_image_via_crfill(img_np, img_mask, opt) # automatically getting model
+    removed_pil.save(f'static/{opt.name}')
+    print(f'removed.')
 
-    Recover_Scenery_For(img_dragged)
+    # Recover_Scenery_For(img_dragged)
     # TODO: recover the scenery for img_dragged in mask
 
 

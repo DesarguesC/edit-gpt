@@ -30,7 +30,9 @@ def ab8(x):
 
 
 def get_crfill_model(opt):
-    crfill_model = crfill.model.create_model(opt)
+    print('getting model')
+    crfill_model = models.create_model(opt)
+    print('getting model done')
     crfill_model.eval()
     return crfill_model
 
@@ -69,8 +71,10 @@ def process_image_via_crfill(img, mask, opt, crfill_model=None):
     mask = torch.tensor(mask, dtype=torch.float32, requires_grad=False)
     img = 2. * torch.tensor(img / 255., dtype=torch.float32, requires_grad=False) - 1.
     
+    print('in')
     with torch.no_grad():
         generated,_ = crfill_model({'image':img, 'mask':mask}, mode='inference')
+    print('out')
     
     generated = torch.clamp(generated, -1, 1)
     generated = (generated + 1.) / 2. * 255.
@@ -82,7 +86,8 @@ def process_image_via_crfill(img, mask, opt, crfill_model=None):
     result = Image.fromarray(result).resize((w_raw, h_raw))
     result = np.array(result)
     result = Image.fromarray(result.astype(np.uint8))
-    result.save(f"static/removed/{opt.name}")
+    return result
+    # result.save(f"static/removed/{opt.name}")
     
 
 

@@ -1,11 +1,14 @@
 import argparse
 from prompt.crfill_init import initialize
+from options.base_options import BaseOptions
+from options.test_options import TestOptions
 
 
 def get_args():
     parser = argparse.ArgumentParser('SEEM Demo', add_help=False)
     
-    parser = initialize(parser)
+    # parser = BaseOptions().initialize(parser)
+    parser = TestOptions().parse()
     
     parser.add_argument('--conf_files', default="configs/seem/focall_unicl_lang_demo.yaml", help='path to config file', )
     # set as default
