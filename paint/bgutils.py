@@ -58,7 +58,7 @@ def target_removing(
 ) -> Image:
     device = 'cuda' if is_available() else 'cpu'
     # ori_shape => image.shape
-    if model == None: model = load_inpaint_model(ckpt_base_path=opt.inpaint_path, device=device)
+    if model == None: model = load_inpaint_model(ckpt_base_path=opt.inpaint_folder, device=device)
     pil_image_pointer = image
 
     if center_crop:

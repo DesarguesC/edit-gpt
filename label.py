@@ -148,6 +148,8 @@ if 'locate' in sorted_class:
     print(a)
 
 
+exit(0)    
+
 
 # for i in range(len(ins_cut)):
 ins_i = opt.edit_txt
