@@ -72,4 +72,5 @@ dependencies:
     - -e git+https://github.com/facebookresearch/segment-anything@main#egg=segment-anything
     - -e git+https://github.com/arogozhnikov/einops.git@master#egg=einops
     - -e git+https://github.com/openai/whisper.git@main#egg=whisper
+    - -e git+https://github.com/DesarguesC/inst-inpaint.git@main#egg=inst-inpaint
 # https://github.com/MaureenZOU/detectron2-xyz
