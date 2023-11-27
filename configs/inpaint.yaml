@@ -39,7 +39,7 @@ model:
     first_stage_config:
       target: ldm.models.autoencoder.VQModel
       params:
-        ckpt_path: models/gqa_inpaint/first_stage/vq-f8-cb16384-openimages.ckpt
+        ckpt_path: "../autodl-tmp/models/gqa_inpaint/first_stage/vq-f8-cb16384-openimages.ckpt" # TODO: Edit Your CKPT Path
         monitor: "val/rec_loss"
         embed_dim: 4
         n_embed: 16384
