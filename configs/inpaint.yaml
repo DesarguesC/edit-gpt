@@ -70,7 +70,6 @@ data:
   params:
     batch_size: 8
     num_workers: 4
-    
     train:
       target: dataset.gqa_inpaint.GQAInpaintTrain
       params:
@@ -89,8 +88,8 @@ data:
       params:
         images_root: "data/gqa-inpaint/images"
         images_inpainted_root: "data/gqa-inpaint/images_inpainted"
-        masks_root: "data/gqa-inpaint/masks" 
-        scene_json_path: "data/gqa-inpaint/test_scenes.json" 
+        masks_root: "data/gqa-inpaint/masks"
+        scene_json_path: "data/gqa-inpaint/test_scenes.json"
         max_relations: 1
         simplify_augment: True
         instruction_type: "remove"

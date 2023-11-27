@@ -3,11 +3,11 @@ from PIL import Image
 from torchvision.transforms import ToTensor
 from torch.cuda import is_available
 import os
+
 to_tensor = ToTensor()
 
 inpaint_config_path = './src/inst-inpaint/configs/latent-diffusion/gqa-inpaint-ldm-vq-f8-256x256.yaml'
 inpaint_model_base_path = '../autodl-tmp/inst-paint'
-
 
 
 def instantiate_from_config(config):
@@ -28,8 +28,14 @@ def loag_inpaint_model(ckpt_base_path=inpaint_model_base_path, config_path=inpai
     model.eval()
     model.to(device)
 
+<<<<<<< HEAD
 def preprocess_image(
     image: Image, resize_shape: Tuple[int, int] = (256, 256), center_crop=False
+=======
+
+def preprocess_image(
+        image: Image, resize_shape: Tuple[int, int] = (256, 256), center_crop=False
+>>>>>>> a32c2121e3f77deac6b15f14e08780df01b220a8
 ):
     pil_image = image
 
@@ -45,11 +51,12 @@ def preprocess_image(
         pil_image = image.crop((left, top, right, bottom))
 
     pil_image = pil_image.resize(resize_shape)
-    
+
     tensor_image = to_tensor(pil_image)
     tensor_image = tensor_image.unsqueeze(0) * 2 - 1
 
     return pil_image, tensor_image
+
 
 def target_removing(
     opt, target_noun: str, image: Image, model=None, resize_shape: Tuple[int,int]=(256,256), 
@@ -60,6 +67,7 @@ def target_removing(
     if model==None: model = load_inpaint_model(ckpt_base_path=opt.inpaint_path, device=device)
     pil_image_pointer = image
     
+
     if center_crop:
         width, height = image.size
         crop_size = min(width, height)
@@ -69,7 +77,7 @@ def target_removing(
         bottom = (height + crop_size) // 2
         pil_image_pointer = image.crop((left, top, right, bottom))
         # if used, connect it with the uncopped part
-        
+
     pil_image = pil_image_pointer.resize(resize_shape)
     tensor_image = to_tensor(pil_image)
     tensor_image = tensor_image.unsqueeze(0) * 2 - 1
@@ -78,8 +86,6 @@ def target_removing(
     pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0)
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed
-    
-    
-    
+
 
 
