@@ -5,14 +5,20 @@ __pycache__/
 *.tmp
 *.mp4
 test_out/
-checkpoints/*.*
-static/*.* # object removed images
+checkpoints/
+static/ # object removed images
 
 *.csv
 # *.txt
 *.docx
 *.pptx
 *.ppt
+
+
+# weights
+*.pt
+*.pth
+*.ckpt
 
 src/*
 tmp/*
