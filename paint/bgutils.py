@@ -3,6 +3,7 @@ from PIL import Image
 from torchvision.transforms import ToTensor
 from torch.cuda import is_available
 import os
+from omegaconf import OmegaConf
 
 to_tensor = ToTensor()
 
@@ -20,7 +21,8 @@ def instantiate_from_config(config):
     return get_obj_from_str(config["target"])(**config.get("params", dict()))
 
 
-def loag_inpaint_model(ckpt_base_path=inpaint_model_base_path, config_path=inpaint_config_path, device='cuda'):
+def load_inpaint_model(ckpt_base_path=inpaint_model_base_path, config_path=inpaint_config_path, device='cuda'):
+    parsed_config = OmegaConf.load(config_path)
     model = instantiate_from_config(parsed_config["model"])
     model_state_dict = torch.load(os.path.join(ckpt_base_path, 'ldm/model.ckpt'), map_location="cpu")["state_dict"]
     model.load_state_dict(model_state_dict)

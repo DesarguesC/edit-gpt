@@ -8,6 +8,7 @@ import numpy as np
 from PIL import Image
 from einops import repeat, rearrange
 import pandas as pd
+from paint.bgutils import target_removing
 
 
 from revChatGPT.V3 import Chatbot
@@ -82,8 +83,8 @@ edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt
 a1 = get_response(class_agent, first_ask_sort)
 
 a3 = get_response(edit_agent, first_ask_edit)
-# print(a2, a3)
-print(a1, a2, a3)
+print(a1, a3)
+# print(a1, a2, a3)
 
 sorted_class = get_response(class_agent, opt.edit_txt)
 print(f'sorted class: <{sorted_class}>')
@@ -122,16 +123,21 @@ if 'remove' in sorted_class:
     print(a)
     target_noun = get_response(noun_remove_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
-    img_np, img_dragged, img_obj = remove_target(opt, target_noun)
-    print(img_dragged.shape, img_obj.shape)
-    Image.fromarray(np.uint8(img_dragged)).save('./tmp/test_out/dragged.jpg')
-    Image.fromarray(np.uint8(img_obj)).save('./tmp/test_out/obj.jpg')
+    input_image = Image.open(opt.in_dir)
+    # ori_shape = input_image.size
+    result = target_removing(opt=opt, target_noun=target_noun, image=input_image, 
+                             model=None, ori_shape=input_image.size, recovery=True)
+    result.save(os.path.join(opt.out_dir, opt.name))
+    # img_np, img_dragged, img_obj = remove_target(opt, target_noun)
+    # print(img_dragged.shape, img_obj.shape)
+    # Image.fromarray(np.uint8(img_dragged)).save('./tmp/test_out/dragged.jpg')
+    # Image.fromarray(np.uint8(img_obj)).save('./tmp/test_out/obj.jpg')
 
-    Recover_Scenery_For(img_dragged)
+    # Recover_Scenery_For(img_dragged)
     # TODO: recover the scenery for img_dragged in mask
 
 
-if 'replace' in sorted_class:
+elif 'replace' in sorted_class:
     # find the target -> remove -> recover the scenery -> add the new
     noun_replace_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy)
     a = get_response(noun_replace_agent, first_ask_noun)
@@ -141,7 +147,7 @@ if 'replace' in sorted_class:
     img_np, img_dragged_target
 
 
-if 'locate' in sorted_class:
+elif 'locate' in sorted_class:
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
     noun_locate_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
     a = get_response(noun_locate_agent, first_ask_noun)
