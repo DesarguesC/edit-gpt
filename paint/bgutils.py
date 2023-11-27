@@ -1,15 +1,24 @@
 from typing import Tuple
 from PIL import Image
 from torchvision.transforms import ToTensor
-from torch.cuda import is_available
+import torch
 import os
 from omegaconf import OmegaConf
+import importlib
 
 to_tensor = ToTensor()
 
 inpaint_config_path = './src/inst-inpaint/configs/latent-diffusion/gqa-inpaint-ldm-vq-f8-256x256.yaml'
 inpaint_model_base_path = '../autodl-tmp/inst-paint'
 
+
+
+def get_obj_from_str(string, reload=False):
+    module, cls = string.rsplit(".", 1)
+    if reload:
+        module_imp = importlib.import_module(module)
+        importlib.reload(module_imp)
+    return getattr(importlib.import_module(module, package=None), cls)
 
 def instantiate_from_config(config):
     if not "target" in config:
@@ -58,9 +67,9 @@ def target_removing(
         opt, target_noun: str, image: Image, model=None, resize_shape: Tuple[int, int] = (256, 256),
         ori_shape: Tuple[int, int] = (512, 512), recovery=True, center_crop=False
 ) -> Image:
-    device = 'cuda' if is_available() else 'cpu'
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # ori_shape => image.shape
-    if model == None: model = load_inpaint_model(ckpt_base_path=opt.inpaint_folder, device=device)
+    if model == None: model = load_inpaint_model(ckpt_base_path=opt.inpaint_folder, config_path=opt.inpaint_config, device=device)
     pil_image_pointer = image
 
     if center_crop:
@@ -77,7 +86,7 @@ def target_removing(
     tensor_image = to_tensor(pil_image)
     tensor_image = tensor_image.unsqueeze(0) * 2 - 1
     print(f'tensor_image.shape = {tensor_image.shape}')
-    rmtxt = 'remove: ' + tartget_noun
+    rmtxt = 'remove the ' + target_noun
     pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0)
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed

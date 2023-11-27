@@ -1,3 +1,11 @@
+# import sys
+# print(sys.path)
+
+# import importlib
+# crfill = importlib.import_module("crfill")
+# import models
+# import crfill
+
 from prompt.guide import *
 import clip
 from revChatGPT.V3 import Chatbot
@@ -9,7 +17,7 @@ from PIL import Image
 from einops import repeat, rearrange
 import pandas as pd
 from paint.bgutils import target_removing
-
+from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 
 from revChatGPT.V3 import Chatbot
 from prompt.arguments import get_args
@@ -29,9 +37,10 @@ from seem.masks import middleware
 opt = get_args()
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-img = Image.open(opt.in_dir)
-img_np = np.array(img)
-print(f'img.size = {img.size}')
+# img = Image.open(opt.in_dir)
+# img = img.resize(())
+# img_np = np.array(img)
+# print(f'img.size = {img.size}')
 
 noun_list = []
 label_done = Label()
@@ -45,6 +54,7 @@ def find_box_idx(mask: np.array, box_list: list[tuple], size: tuple):
 
 def remove_target(opt, target_noun):
     img = Image.open(opt.in_dir)
+    img = img.resize((ab64(img.size[0]), ab64(img.size[1])))
     res, seem_masks = middleware(opt, img, target_noun)
     img_np = res
     print(f'seem_masks.shape = {seem_masks.shape}')
@@ -60,17 +70,12 @@ def remove_target(opt, target_noun):
 
     img_idx = find_box_idx(seem_masks, box_list, (res.shape[0], res.shape[1]))
     true_mask = box_list[img_idx][1]
-    label_done.add(box_list[img_idx][0], noun, img_idx)
+    label_done.add(box_list[img_idx][0], target_noun, img_idx)
 
-    print(true_mask.shape)
+    print(f'true_mask.shape = {true_mask.shape}')
     mask = transform(true_mask)
     img_dragged, img_obj = res * (1. - mask), res * mask
-    return img_np, np.uint8(img_dragged), np.uint8(img_obj)
-
-
-
-# model, preprocess = clip.load("ViT-B/32", device=opt.device)
-
+    return img_np, np.uint8(img_dragged), np.uint8(img_obj), mask
 
 
 # cut_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_cut, proxy=net_proxy)
@@ -115,6 +120,8 @@ TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrang
 # sam_masks = sorted(sam_masks, key=(lambda x: x['area']), reverse=True)
 # print(len(ins_cut))
 
+# crfill_model = 
+
 
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery
@@ -125,15 +132,20 @@ if 'remove' in sorted_class:
     print(f'target_noun: {target_noun}')
     input_image = Image.open(opt.in_dir)
     # ori_shape = input_image.size
-    result = target_removing(opt=opt, target_noun=target_noun, image=input_image, 
-                             model=None, ori_shape=input_image.size, recovery=True)
-    result.save(os.path.join(opt.out_dir, opt.name))
-    # img_np, img_dragged, img_obj = remove_target(opt, target_noun)
-    # print(img_dragged.shape, img_obj.shape)
-    # Image.fromarray(np.uint8(img_dragged)).save('./tmp/test_out/dragged.jpg')
-    # Image.fromarray(np.uint8(img_obj)).save('./tmp/test_out/obj.jpg')
+    # result = target_removing(opt=opt, target_noun=target_noun, image=input_image, 
+                             # model=None, ori_shape=input_image.size, recovery=True)
+    # result.save(os.path.join(opt.out_dir, opt.name))
+    img_np, img_dragged, img_obj, img_mask = remove_target(opt, target_noun)
+    print(img_dragged.shape, img_obj.shape)
+    
+    img_dragged, img_obj = Image.fromarray(np.uint8(img_dragged)), Image.fromarray(np.uint8(img_obj))
+    
+    img_dragged.save('./tmp/test_out/dragged.jpg')
+    img_obj.save('./tmp/test_out/obj.jpg')
+    
+    process_image_via_crfill(img_np, img_mask, opt) # automatically getting model
 
-    # Recover_Scenery_For(img_dragged)
+    Recover_Scenery_For(img_dragged)
     # TODO: recover the scenery for img_dragged in mask
 
 
