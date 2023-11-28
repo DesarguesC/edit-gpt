@@ -8,8 +8,8 @@ import importlib
 
 to_tensor = ToTensor()
 
-inpaint_config_path = './src/inst-inpaint/configs/latent-diffusion/gqa-inpaint-ldm-vq-f8-256x256.yaml'
-inpaint_model_base_path = '../autodl-tmp/inst-paint'
+inpaint_config_path = './configs/latent-diffusion/gqa-inpaint-ldm-vq-f8-256x256.yaml'
+inpaint_model_base_path = './inst-paint'
 
 
 
@@ -33,7 +33,10 @@ def instantiate_from_config(config):
 def load_inpaint_model(ckpt_base_path=inpaint_model_base_path, config_path=inpaint_config_path, device='cuda'):
     parsed_config = OmegaConf.load(config_path)
     model = instantiate_from_config(parsed_config["model"])
-    model_state_dict = torch.load(os.path.join(ckpt_base_path, 'ldm/model.ckpt'), map_location="cpu")["state_dict"]
+    model_state_dict = torch.load(os.path.join(ckpt_base_path, 'ldm/model.ckpt'), map_location="cuda")["state_dict"]
+    print(os.path.join(ckpt_base_path, 'ldm/model.ckpt'))
+    print(os.path.isfile(os.path.join(ckpt_base_path, 'ldm/model.ckpt')))
+    print('ldm model.ckpt loaded')
     model.load_state_dict(model_state_dict)
     model.eval()
     model.to(device)
@@ -69,7 +72,8 @@ def target_removing(
 ) -> Image:
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # ori_shape => image.shape
-    if model == None: model = load_inpaint_model(ckpt_base_path=opt.inpaint_folder, config_path=opt.inpaint_config, device=device)
+    model = load_inpaint_model(ckpt_base_path=opt.inpaint_folder, config_path=opt.inpaint_config, device=device) if model==None else model
+    print(f'model: \n{model}')
     pil_image_pointer = image
 
     if center_crop:
