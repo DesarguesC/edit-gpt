@@ -74,4 +74,5 @@ dependencies:
     - -e git+https://github.com/openai/whisper.git@main#egg=whisper
     # - -e git+https://github.com/DesarguesC/inst-inpaint.git@main#egg=inst-inpaint
     - -e git+http://github.com/DesarguesC/crfill.git@master#egg=crfill
+    - -e git+https://github.com/DesarguesC/inst-inpaint.git@main#egg=inst-inpaint
 # https://github.com/MaureenZOU/detectron2-xyz
