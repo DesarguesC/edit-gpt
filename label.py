@@ -53,7 +53,7 @@ def find_box_idx(mask: np.array, box_list: list[tuple], size: tuple):
 
 
 def remove_target(opt, target_noun):
-    img = Image.open(opt.in_dir)
+    img = Image.open(opt.in_dir).convert('RGB')
     img = img.resize((ab64(img.size[0]), ab64(img.size[1])))
     res, seem_masks = middleware(opt, img, target_noun)
     # print(f'')
@@ -75,7 +75,7 @@ def remove_target(opt, target_noun):
 
     print(f'true_mask.shape = {true_mask.shape}')
     mask = transform(true_mask)
-    img_dragged, img_obj = img_np * (1. - mask), img_np * mask
+    img_dragged, img_obj = img_np * mask, img_np * (1. - mask)
     return img_np, np.uint8(img_dragged), np.uint8(img_obj), mask
 
 

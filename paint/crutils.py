@@ -8,9 +8,8 @@ from werkzeug.utils import secure_filename
 from flask import Flask, url_for, render_template, request, redirect, send_from_directory
 from PIL import Image
 import base64
-import io
-import random
-
+import io, random
+from einops import repeat, rearrange
 from options.test_options import TestOptions
 import models # from crfill
 import torch
@@ -67,24 +66,36 @@ def process_image_via_crfill(img, mask, opt, crfill_model=None):
     mask = mask[None,None]
     
     """
-
+    # exit(0)
+    
     mask = torch.tensor(mask, dtype=torch.float32, requires_grad=False)
+    img_raw = torch.tensor(rearrange(img, 'h w c -> 1 c h w'))
     img = 2. * torch.tensor(img / 255., dtype=torch.float32, requires_grad=False) - 1.
+    # print(f'before \'in\': img.shape = {img.shape}')
+    img = rearrange(img, 'h w c -> 1 c h w')
+    mask = rearrange(mask, 'h w c -> c h w')
+    
+    print(f'before \'in\': img.shape = {img.shape}')
+    print(f'before \'in\': mask.shape = {mask.shape}')
+    print(f'before \'in\': mask[0][None][None].shape = {mask[0][None][None].shape}')
     
     print('in')
     with torch.no_grad():
-        generated,_ = crfill_model({'image':img, 'mask':mask}, mode='inference')
+        generated,_ = crfill_model({'image':img, 'mask':mask[0][None][None]}, mode='inference')
     print('out')
     
     generated = torch.clamp(generated, -1, 1)
     generated = (generated + 1.) / 2. * 255.
     generated = generated.cpu().numpy().astype(np.uint8)
-    generated = generated[0].transpose((1,2,0))
-    result = generated * mask + img * (1. - mask)
+    # generated = generated[0].transpose((1,2,0))
+    print(f'generated.shape = {generated.shape}')
+    mask = rearrange(mask, 'c h w -> 1 c h w')
+    result = rearrange((torch.tensor(generated, dtype=torch.float32) * mask + img_raw * (1.-mask) ).squeeze(), 'c h w -> h w c').numpy()
+    # result = rearrange((torch.tensor(generated, dtype=torch.float32) * (1.-mask) + img_raw * (mask) ).squeeze(), 'c h w -> h w c').numpy()
     result = result.astype(np.uint8)
 
-    result = Image.fromarray(result).resize((w_raw, h_raw))
-    result = np.array(result)
+    # result = Image.fromarray(result).resize((w_raw, h_raw))
+    # result = np.array(result)
     result = Image.fromarray(result.astype(np.uint8))
     return result
     # result.save(f"static/removed/{opt.name}")
