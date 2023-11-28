@@ -149,7 +149,7 @@ if 'remove' in sorted_class:
     img_obj_.save('./tmp/test_out/obj_.jpg')
     
     removed_pil = process_image_via_crfill(img_np, img_mask, opt) # automatically getting model
-    removed_pil.save(f'static/{opt.name}')
+    removed_pil.save(f'static/{opt.out_name}')
     print(f'removed.')
 
     # Recover_Scenery_For(img_dragged)
