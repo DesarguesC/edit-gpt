@@ -46,7 +46,7 @@ noun_list = []
 label_done = Label()
 
 
-def find_box_idx(mask: np.array, box_list: list[tuple], size: tuple):
+def find_box_idx(mask: np.array, box_list: list[tuple]):
     # print(f'mask.shape = {mask.shape}')
     cdot = [np.sum(u[1] * mask) for u in box_list]
     return np.argmax(np.array(cdot))
@@ -56,20 +56,21 @@ def remove_target(opt, target_noun):
     img = Image.open(opt.in_dir).convert('RGB')
     img = img.resize((ab64(img.size[0]), ab64(img.size[1])))
     res, seem_masks = middleware(opt, img, target_noun)
-    # print(f'')
-    res = cv2.resize(res, img.size)
+    print(f'type(seem_masks) = {type(seem_masks)}, seem_masks.shape = {seem_masks.shape}')
+    img = img.resize((ab64(res.shape[1]), ab64(res.shape[0])))
+    # res = cv2.resize(res, img.size)
     img.save('./tmp/img_np.jpg')
     img_np = np.array(img)
     assert img_np.shape == res.shape, f'res.shape = {res.shape}, img_np.shape = {img_np.shape}'
-    sam_masks = mask_generator.generate(np.array(res))
+    sam_masks = mask_generator.generate(img_np)
 
     box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
     # bbox: list
-    for i in range(len(box_list)):
-        box = box_list[i]
-        TURN(box, res).save(f'./tmp/test-{i}.png')
+    # for i in range(len(box_list)):
+    #     box = box_list[i]
+    #     TURN(box, res).save(f'./tmp/test-{i}.png')
 
-    img_idx = find_box_idx(seem_masks, box_list, (res.shape[0], res.shape[1]))
+    img_idx = find_box_idx(seem_masks, box_list)
     true_mask = box_list[img_idx][1]
     label_done.add(box_list[img_idx][0], target_noun, img_idx)
 
