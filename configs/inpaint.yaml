@@ -1,6 +1,6 @@
 model:
   base_learning_rate: 2.0e-06
-  target: ldm.models.diffusion.ddpm.LatentDiffusion
+  target: paint.ldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.0015
     linear_end: 0.0195
@@ -18,7 +18,7 @@ model:
     monitor: val/loss_simple_ema
 
     unet_config:
-      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
+      target: paint.ldm.modules.diffusionmodules.openaimodel.UNetModel
       params:
         image_size: 32
         in_channels: 8 # 4 (noisy image features) + 4 (source image features)
@@ -37,7 +37,7 @@ model:
         ###################################################
 
     first_stage_config:
-      target: ldm.models.autoencoder.VQModel
+      target: paint.ldm.models.autoencoder.VQModel
       params:
         ckpt_path: "../autodl-tmp/models/gqa_inpaint/first_stage/vq-f8-cb16384-openimages.ckpt" # TODO: Edit Your CKPT Path
         monitor: "val/rec_loss"
@@ -60,64 +60,64 @@ model:
     cond_stage_config: __is_first_stage__
 
     cond_stage_instruction_embedder_config:
-      target: ldm.modules.encoders.modules.BERTEmbedder
+      target: paint.ldm.modules.encoders.modules.BERTEmbedder
       params:
         n_embed: 512
         n_layer: 16
 
-data:
-  target: main.DataModuleFromConfig
-  params:
-    batch_size: 8
-    num_workers: 4
+# data:
+#   target: main.DataModuleFromConfig
+#   params:
+#     batch_size: 8
+#     num_workers: 4
 
-    train:
-      target: dataset.gqa_inpaint.GQAInpaintTrain
-      params:
-        images_root: "data/gqa-inpaint/images"
-        images_inpainted_root: "data/gqa-inpaint/images_inpainted"
-        masks_root: "data/gqa-inpaint/masks"
-        scene_json_path: "data/gqa-inpaint/train_scenes.json"
-        max_relations: 1
-        simplify_augment: True
-        instruction_type: "remove"
-        size: 256
-        irrelevant_text_prob: 0.2
+#     train:
+#       target: paint.dataset.gqa_inpaint.GQAInpaintTrain
+#       params:
+#         images_root: "data/gqa-inpaint/images"
+#         images_inpainted_root: "data/gqa-inpaint/images_inpainted"
+#         masks_root: "data/gqa-inpaint/masks"
+#         scene_json_path: "data/gqa-inpaint/train_scenes.json"
+#         max_relations: 1
+#         simplify_augment: True
+#         instruction_type: "remove"
+#         size: 256
+#         irrelevant_text_prob: 0.2
 
-    validation:
-      target: dataset.gqa_inpaint.GQAInpaintTest
-      params:
-        images_root: "data/gqa-inpaint/images"
-        images_inpainted_root: "data/gqa-inpaint/images_inpainted"
-        masks_root: "data/gqa-inpaint/masks"
-        scene_json_path: "data/gqa-inpaint/test_scenes.json"
-        max_relations: 1
-        simplify_augment: True
-        instruction_type: "remove"
-        size: 256
+#     validation:
+#       target: paint.dataset.gqa_inpaint.GQAInpaintTest
+#       params:
+#         images_root: "data/gqa-inpaint/images"
+#         images_inpainted_root: "data/gqa-inpaint/images_inpainted"
+#         masks_root: "data/gqa-inpaint/masks"
+#         scene_json_path: "data/gqa-inpaint/test_scenes.json"
+#         max_relations: 1
+#         simplify_augment: True
+#         instruction_type: "remove"
+#         size: 256
 
-    test:
-      target: dataset.gqa_inpaint.GQAInpaintTest
-      params:
-        images_root: "data/gqa-inpaint/images"
-        images_inpainted_root: "data/gqa-inpaint/images_inpainted"
-        masks_root: "data/gqa-inpaint/masks"
-        scene_json_path: "data/gqa-inpaint/test_scenes.json"
-        test_instructions_path: "data/gqa-inpaint/test_instructions.json"
-        max_relations: 1
-        simplify_augment: True
-        instruction_type: "remove"
-        size: 256
+#     test:
+#       target: paint.dataset.gqa_inpaint.GQAInpaintTest
+#       params:
+#         images_root: "data/gqa-inpaint/images"
+#         images_inpainted_root: "data/gqa-inpaint/images_inpainted"
+#         masks_root: "data/gqa-inpaint/masks"
+#         scene_json_path: "data/gqa-inpaint/test_scenes.json"
+#         test_instructions_path: "data/gqa-inpaint/test_instructions.json"
+#         max_relations: 1
+#         simplify_augment: True
+#         instruction_type: "remove"
+#         size: 256
 
-lightning:
-  callbacks:
-    image_logger:
-      target: main.ImageLogger
-      params:
-        batch_frequency: 5000
-        max_images: 8
-        increase_log_steps: True
+# lightning:
+#   callbacks:
+#     image_logger:
+#       target: main.ImageLogger
+#       params:
+#         batch_frequency: 5000
+#         max_images: 8
+#         increase_log_steps: True
 
-  trainer:
-    benchmark: True
+#   trainer:
+#     benchmark: True
 
