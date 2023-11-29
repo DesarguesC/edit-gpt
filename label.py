@@ -36,12 +36,12 @@ class_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_promp
 
 
 
-edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_edit, proxy=net_proxy)
+# edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_edit, proxy=net_proxy)
 
 a1 = get_response(class_agent, first_ask_sort)
 
-a3 = get_response(edit_agent, first_ask_edit)
-print(a1, a3)
+# a3 = get_response(edit_agent, first_ask_edit)
+# print(a1, a3)
 # print(a1, a2, a3)
 
 sorted_class = get_response(class_agent, opt.edit_txt)

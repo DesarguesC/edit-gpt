@@ -35,9 +35,7 @@ def middleware(opt, image, reftxt, tasks=['Text']):
     # mask_cover: [0,0,0] -> cover mask area via black
     cfg = load_opt_from_config_files([opt.seem_cfg])
     cfg['device'] = opt.device
-    module = build_model(cfg)
-    print('build_modol(cfg): ', module)
-    seem_model = BaseModel(cfg, module).from_pretrained(opt.seem_ckpt).eval().cuda()
+    seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
     with torch.no_grad():
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
     image_ori = transform(image)
@@ -65,17 +63,27 @@ def middleware(opt, image, reftxt, tasks=['Text']):
     if 'Panoptic' in tasks:
         seem_model.model.metadata = metadata
         results = seem_model.model.evaluate(batch_inputs)
+        print(f'len(results) = {len(results)}')
         pano_seg = results[-1]['panoptic_seg'][0]
         pano_seg_info = results[-1]['panoptic_seg'][1]
+        rr = results[-1]
+        ps = results[-1]['panoptic_seg']
+        print(f'rr.keys() = {rr.keys()}')
+        print(f'len(results[-1][\'panoptic_seg\']) = {len(ps)}')
         demo = visual.draw_panoptic_seg(pano_seg.cpu(), pano_seg_info) # rgb Image
         res = demo.get_image()
+        
+        exit(0)
         return Image.fromarray(res), None
     else:
         results, image_size, extra = seem_model.model.evaluate_demo(batch_inputs)
     
     pred_masks = results['pred_masks'][0]
-    print(f'results.keys() = {results.keys()}')
+    pm = results['pred_masks']
     v_emb = results['pred_captions'][0]
+    pv = results['pred_captions']
+    print(f'len(results[\'pred_masks\']) = {len(pm)}, len(results[\'pred_captions\']) = {len(pv)}')
+    print(f'pred_captions: {pv}')
     t_emb = extra['grounding_class']
 
     t_emb = t_emb / (t_emb.norm(dim=-1, keepdim=True) + 1e-7)

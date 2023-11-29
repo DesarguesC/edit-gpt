@@ -22,16 +22,27 @@ def remove_target(opt, target_noun, mask_generator=None, label_done=None):
     assert mask_generator != None, 'mask_generator not initialized.'
     img = Image.open(opt.in_dir).convert('RGB')
     img = img.resize((ab64(img.size[0]), ab64(img.size[1])))
-    res, seem_masks = middleware(opt, img, target_noun)
+    
+    
+    # for debug
+    sam_masks = mask_generator.generate(np.array(img))
+    print(f'sam pieces num: {len(sam_masks)}')
+    
+    
+    
+    
+    res, seem_masks = middleware(opt, img, target_noun, tasks=['Text', 'Panoptic'])
     print(f'type(seem_masks) = {type(seem_masks)}, seem_masks.shape = {seem_masks.shape}')
     img = img.resize((ab64(res.shape[1]), ab64(res.shape[0])))
     # res = cv2.resize(res, img.size)
     img.save('./tmp/img_np.jpg')
     img_np = np.array(img)
+    
     assert img_np.shape == res.shape, f'res.shape = {res.shape}, img_np.shape = {img_np.shape}'
     sam_masks = mask_generator.generate(img_np)
 
     box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
+    print(f'sam pieces num: {len(sam_masks)}')
     # bbox: list
     # for i in range(len(box_list)):
     #     box = box_list[i]
