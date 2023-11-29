@@ -80,8 +80,8 @@ def Remove_Me(opt, target_noun, mask_generator=None, label_done=None):
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size)
     removed_np = np.array(removed_pil)
     print(f'removed_np.shape = {removed_np.shape}, img_mask.shape = {img_mask.shape}')
-    removed_np = img_np * (1. - mask) + removed_np * mask
-    cv2.imwrite(f'./static-inpaint/{opt.out_name}', removed_np)
+    removed_np = img_np * (1. - img_mask) + removed_np * img_mask # probably not use mask at this step
+    cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
     
     # removed_pil.save(f'static-inpaint/{opt.out_name}')
     # except Exception as err:
