@@ -1,6 +1,6 @@
 model:
   base_learning_rate: 2.0e-06
-  target: paint.ldm.models.diffusion.ddpm.LatentDiffusion
+  target: ldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.0015
     linear_end: 0.0195
@@ -18,7 +18,7 @@ model:
     monitor: val/loss_simple_ema
 
     unet_config:
-      target: paint.ldm.modules.diffusionmodules.openaimodel.UNetModel
+      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
       params:
         image_size: 32
         in_channels: 8 # 4 (noisy image features) + 4 (source image features)
@@ -37,7 +37,7 @@ model:
         ###################################################
 
     first_stage_config:
-      target: paint.ldm.models.autoencoder.VQModel
+      target: ldm.models.autoencoder.VQModel
       params:
         ckpt_path: "../autodl-tmp/models/gqa_inpaint/first_stage/vq-f8-cb16384-openimages.ckpt" # TODO: Edit Your CKPT Path
         monitor: "val/rec_loss"
@@ -60,7 +60,7 @@ model:
     cond_stage_config: __is_first_stage__
 
     cond_stage_instruction_embedder_config:
-      target: paint.ldm.modules.encoders.modules.BERTEmbedder
+      target: ldm.modules.encoders.modules.BERTEmbedder
       params:
         n_embed: 512
         n_layer: 16
