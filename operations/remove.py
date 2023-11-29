@@ -29,9 +29,7 @@ def remove_target(opt, target_noun, mask_generator=None, label_done=None):
     print(f'sam pieces num: {len(sam_masks)}')
     
     
-    
-    
-    res, seem_masks = middleware(opt, img, target_noun, tasks=['Text', 'Panoptic'])
+    res, seem_masks = middleware(opt, img, target_noun, tasks=['Text'])
     print(f'type(seem_masks) = {type(seem_masks)}, seem_masks.shape = {seem_masks.shape}')
     img = img.resize((ab64(res.shape[1]), ab64(res.shape[0])))
     # res = cv2.resize(res, img.size)

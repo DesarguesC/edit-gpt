@@ -368,6 +368,11 @@ class GeneralizedSEEM(nn.Module):
             mode="bilinear",
             align_corners=False,
         )
+        
+        print(f'mask_pred_results.shape = {mask_pred_results.shape}')
+        print(f'box_pred_results = {box_pred_results}')
+        if isinstance(box_pred_results, list):
+            print(f'len(box_pred_results) = {len(box_pred_results)}')
 
         input_size = mask_pred_results.shape[-2:]
         del outputs

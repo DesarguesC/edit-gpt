@@ -73,7 +73,7 @@ def middleware(opt, image, reftxt, tasks=['Text']):
         demo = visual.draw_panoptic_seg(pano_seg.cpu(), pano_seg_info) # rgb Image
         res = demo.get_image()
         
-        exit(0)
+        # exit(0)
         return Image.fromarray(res), None
     else:
         results, image_size, extra = seem_model.model.evaluate_demo(batch_inputs)
