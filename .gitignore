@@ -6,9 +6,9 @@ __pycache__/
 *.mp4
 test_out/
 checkpoints/
-static-crfill/* # object removed images
-static-inpaint/* 
-static/*
+static-crfill/  # object removed images
+static-inpaint/ 
+static/
 
 *.csv
 # *.txt
