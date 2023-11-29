@@ -88,7 +88,10 @@ elif 'replace' in sorted_class:
     
     # label_done = Remove_Me(opt, replace_target)
     
-    # Remove the <replace_target>
+    """
+    Remove the <replace_target>
+    """
+    
     
     
     
