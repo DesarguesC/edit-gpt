@@ -76,12 +76,12 @@ def Remove_Me(opt, target_noun, mask_generator=None, label_done=None):
     removed_pil = process_image_via_crfill(img_np, img_mask, opt) # automatically getting model
     removed_pil.save(f'static-crfill/{opt.out_name}')
     
-    try:
-        removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size)
-        removed_pil.save(f'static-inpaint/{opt.out_name}')
-    except Exception as err:
-        print(err)
-        print('inst-inpaint error didn\'t be handled')
+    # try:
+    removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size)
+    removed_pil.save(f'static-inpaint/{opt.out_name}')
+    # except Exception as err:
+        # print(err)
+        # print('inst-inpaint error didn\'t be handled')
     
     return label_done
 

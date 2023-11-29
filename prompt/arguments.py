@@ -21,6 +21,6 @@ def get_args():
     parser.add_argument('--seem_cfg', default='seem/configs/seem/focall_unicl_lang_demo.yaml', help='path to seem config file')
     parser.add_argument('--seem_ckpt', default='../autodl-tmp/seem_focall_v0.pt', help='path to origin SEEM ckpt')
     parser.add_argument('--inpaint_folder', default='../autodl-tmp/models/gqa_inpaint', help='path to origin gqa_inpaint ckpt folder')
-    parser.add_argument('--inpaint_config', default='./configs/inpaint.yaml', help='path to amended gqa_inpaint config path')
+    parser.add_argument('--inpaint_config', default='./paint/inpaint.yaml', help='path to amended gqa_inpaint config path')
 
     return parser.parse_args() 
