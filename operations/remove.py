@@ -58,35 +58,37 @@ def remove_target(opt, target_noun, mask_generator=None, label_done=None):
 
 
 
-def Remove_Me(opt, target_noun, mask_generator=None, label_done=None):
-    input_image = Image.open(opt.in_dir)
-    
+def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
     img_np, img_dragged, img_obj, img_mask, img_pil, label_done = remove_target(opt, target_noun, mask_generator, label_done)
-#     print(img_dragged.shape, img_obj.shape)
-    
-#     img_dragged, img_obj = Image.fromarray(np.uint8(img_dragged)), Image.fromarray(np.uint8(img_obj))
-#     img_dragged_, img_obj_ = Image.fromarray(np.uint8(img_np * img_mask)), Image.fromarray(np.uint8(img_np * (1.-img_mask)))
-    
-#     img_dragged.save('./tmp/test_out/dragged.jpg')
-#     img_obj.save('./tmp/test_out/obj.jpg')
-    
-#     img_dragged_.save('./tmp/test_out/dragged_.jpg')
-#     img_obj_.save('./tmp/test_out/obj_.jpg')
-    
-#     removed_pil = process_image_via_crfill(img_np, img_mask, opt) # automatically getting model
-#     removed_pil.save(f'static-crfill/{opt.out_name}')
-    
-    # try:
+    print(img_dragged.shape, img_obj.shape)
+
+    img_dragged, img_obj = Image.fromarray(np.uint8(img_dragged)), Image.fromarray(np.uint8(img_obj))
+    img_dragged_, img_obj_ = Image.fromarray(np.uint8(img_np * img_mask)), Image.fromarray(np.uint8(img_np * (1.-img_mask)))
+
+    img_dragged.save('./tmp/test_out/dragged.jpg')
+    img_obj.save('./tmp/test_out/obj.jpg')
+    img_dragged_.save('./tmp/test_out/dragged_.jpg')
+    img_obj_.save('./tmp/test_out/obj_.jpg')
+
+    removed_pil = process_image_via_crfill(img_np, img_mask, opt) # automatically getting model
+    removed_pil.save(f'static-crfill/{opt.out_name}')
+
+    return np.array(removed_pil), label_done
+
+
+def Remove_Me(opt, target_noun, mask_generator=None, label_done=None):
+    img_np, img_dragged, img_obj, img_mask, img_pil, label_done = remove_target(opt, target_noun, mask_generator, label_done)
+
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size)
     removed_np = np.array(removed_pil)
     print(f'removed_np.shape = {removed_np.shape}, img_mask.shape = {img_mask.shape}')
-    removed_np = img_np * (1. - img_mask) + removed_np * img_mask # probably not use mask at this step
+    """
+        removed_np = img_np * (1. - img_mask) + removed_np * img_mask # probably not use mask at this step
+        TODO: using mask to avoid the unnecessary editing of the image but failed
+        Ablation: SEEM / SAM never perfectly fit the edge, which means mask hardly cover the whole object.
+    """
+
     cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
     
-    # removed_pil.save(f'static-inpaint/{opt.out_name}')
-    # except Exception as err:
-        # print(err)
-        # print('inst-inpaint error didn\'t be handled')
-    
-    return label_done
+    return removed_np, label_done
 
