@@ -12,7 +12,12 @@ class Label():
         if name not in self.label_dict.keys(): self.label_dict[name] = box
         else: pass  # ?
         self.idx_list.append(idx)
-        
+
+    def create_list_str(self, masks: list, boxes: list):
+        assert len(masks) == len(boxes), f'len(masks) = {len(masks)}, len(boxes) = {len(boxes)}'
+
+
+
     def __str__(self):
         out = "{"
         cnt = len(self.label_dict)

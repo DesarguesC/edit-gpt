@@ -18,18 +18,15 @@ def find_box_idx(mask: np.array, box_list: list[tuple]):
     return np.argmax(np.array(cdot))
 
 
-def remove_target(opt, target_noun, mask_generator=None, label_done=None):
+def remove_target(opt, target_noun, tasks=['Text'], mask_generator=None):
     assert mask_generator != None, 'mask_generator not initialized.'
     img = Image.open(opt.in_dir).convert('RGB')
     img = img.resize((ab64(img.size[0]), ab64(img.size[1])))
-    
-    
     # for debug
     sam_masks = mask_generator.generate(np.array(img))
     print(f'sam pieces num: {len(sam_masks)}')
-    
-    
-    res, seem_masks = middleware(opt, img, target_noun, tasks=['Text'])
+
+    res, seem_masks = middleware(opt, img, target_noun, tasks=tasks)
     print(f'type(seem_masks) = {type(seem_masks)}, seem_masks.shape = {seem_masks.shape}')
     img = img.resize((ab64(res.shape[1]), ab64(res.shape[0])))
     # res = cv2.resize(res, img.size)
@@ -48,13 +45,13 @@ def remove_target(opt, target_noun, mask_generator=None, label_done=None):
 
     img_idx = find_box_idx(seem_masks, box_list)
     true_mask = box_list[img_idx][1]
-    if label_done != None:
-        label_done.add(box_list[img_idx][0], target_noun, img_idx)
+    # if label_done != None:
+    #     label_done.add(box_list[img_idx][0], target_noun, img_idx)
 
     print(f'true_mask.shape = {true_mask.shape}')
     mask = transform(true_mask)
     img_dragged, img_obj = img_np * mask, img_np * (1. - mask)
-    return img_np, np.uint8(img_dragged), np.uint8(img_obj), mask, img, label_done
+    return img_np, np.uint8(img_dragged), np.uint8(img_obj), mask, img
 
 
 
@@ -76,8 +73,24 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
     return np.array(removed_pil), label_done
 
 
-def Remove_Me(opt, target_noun, mask_generator=None, label_done=None):
-    img_np, img_dragged, img_obj, img_mask, img_pil, label_done = remove_target(opt, target_noun, mask_generator, label_done)
+def Remove_Me(opt, target_noun):
+
+    img_pil = Image.open(opt.in_dir).convert('RGB')
+    removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size)
+    removed_np = np.array(removed_pil)
+    # print(f'removed_np.shape = {removed_np.shape}, img_mask.shape = {img_mask.shape}')
+    """
+        removed_np = img_np * (1. - img_mask) + removed_np * img_mask # probably not use mask at this step
+        TODO: using mask to avoid the unnecessary editing of the image but failed
+        Ablation: SEEM / SAM never perfectly fit the edge, which means mask hardly cover the whole object.
+    """
+    cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
+    return removed_np, f'./static-inpaint/{opt.out_name}'
+
+
+def Remove_Me_SEEM(opt, target_noun, mask_generator=None, label_done=None):
+    img_np, img_dragged, img_obj, img_mask, img_pil, label_done = remove_target(opt=opt, \
+          target_noun=target_noun, mask_generator=mask_generator, task=['Text', 'Panoptic'], label_done=label_done)
 
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size)
     removed_np = np.array(removed_pil)
@@ -89,6 +102,5 @@ def Remove_Me(opt, target_noun, mask_generator=None, label_done=None):
     """
 
     cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
-    
-    return removed_np, label_done
 
+    return removed_np, label_done

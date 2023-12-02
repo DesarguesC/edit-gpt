@@ -31,7 +31,7 @@ from seem.modeling import build_model
 from seem.utils.constants import COCO_PANOPTIC_CLASSES
 from seem.demo.seem.tasks import *
 
-def middleware(opt, image, reftxt, tasks=['Text']):
+def middleware(opt, image: Image, reftxt: str, tasks=['Text']):
     # mask_cover: [0,0,0] -> cover mask area via black
     cfg = load_opt_from_config_files([opt.seem_cfg])
     cfg['device'] = opt.device
@@ -49,20 +49,20 @@ def middleware(opt, image, reftxt, tasks=['Text']):
     if len(tasks) == 0:
         tasks = ["Panoptic"]
 
-
     # inistalize task
     seem_model.model.task_switch['spatial'] = False
     seem_model.model.task_switch['visual'] = False
     seem_model.model.task_switch['grounding'] = False
     seem_model.model.task_switch['audio'] = False
-    example = None
+
     if 'Text' in tasks:
         seem_model.model.task_switch['grounding'] = True
         data['text'] = [reftxt]
     batch_inputs = [data]
+
     if 'Panoptic' in tasks:
         seem_model.model.metadata = metadata
-        results = seem_model.model.evaluate(batch_inputs)
+        results, mask_box_dict = seem_model.model.evaluate_all(batch_inputs)
         print(f'len(results) = {len(results)}')
         pano_seg = results[-1]['panoptic_seg'][0]
         pano_seg_info = results[-1]['panoptic_seg'][1]
@@ -74,7 +74,7 @@ def middleware(opt, image, reftxt, tasks=['Text']):
         res = demo.get_image()
         
         # exit(0)
-        return Image.fromarray(res), None
+        return Image.fromarray(res), mask_box_dict
     else:
         results, image_size, extra = seem_model.model.evaluate_demo(batch_inputs)
     
