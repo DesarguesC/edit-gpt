@@ -3,6 +3,10 @@ from seem.masks import middleware
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 
 
+def preprocess_image2mask(opt,old_noun, new_nou , mask_generator=None, label_done=None):
+    assert mask_generator != None, 'mask_generator not initialized'
+    
+
 def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None):
     assert mask_generator != None, 'mask_generator not initialized'
     img = Image.open(opt.in_dir).convert('RGB')
