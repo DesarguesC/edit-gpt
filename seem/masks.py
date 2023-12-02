@@ -63,31 +63,35 @@ def middleware(opt, image: Image, reftxt: str, tasks=['Text']):
     if 'Panoptic' in tasks:
         seem_model.model.metadata = metadata
         results, mask_box_dict = seem_model.model.evaluate_all(batch_inputs)
-        # print('\nin mask.py\n')
+        # print(f'results[-1].keys() = {results[-1].keys()}')
+        mask_all, category, masks_list = results[-1]['panoptic_seg']
+        
+        assert len(category) == len(masks_list), f'len(category) = {len(category)}, len(masks_list) = {len(masks_list)}'
+        object_mask_list = [ {
+            'name': metadata.stuff_classes[category[i]['category_id']],
+            'mask': masks_list[i]
+        }  for i in range(len(category)) ]
+        
+        
+        # print(f'category = {category}') # List[Dict]
+        # print(f'pano_seg_info[0].keys() = {pano_seg_info[0].keys()}')
+        
+        # print('processed_results[-1][\'instances\'] => ')
+        # print(results[-1]['instances'])
         # print(f'len(results) = {len(results)}')
-        print(f'results[-1].keys() = {results[-1].keys()}')
-        pano_seg = results[-1]['panoptic_seg'][0] # mask_list
-        pano_seg_info = results[-1]['panoptic_seg'][1] # 
-        print(f'pano_seg = {pano_seg.cpu()}')
-        print(f'pano_seg_info = {pano_seg_info}') # List[Dict]
-        print(f'pano_seg_info[0].keys() = {pano_seg_info[0].keys()}')
-        print('processed_results[-1][\'instances\'] => ')
-        print(results[-1]['instances'])
-        print(f'len(results) = {len(results)}')
         
-        mask_box_dict['objects'] = pano_seg_info
+        # mask_box_dict['objects'] = pano_seg_info
         
-        # another_nouns = [metadata.stuff_classes[int(x)] for x in results[-1]['instances'].pred_classes]
-        # print(f'another_nouns = {another_nouns}')
+        # print(f'pano_seg.shape = {pano_seg.cpu().shape}')
+        # print(f'pano_seg = {pano_seg.cpu()}')
+        
+        # print(f'len(pano_seg_info) = {len(pano_seg_info)}')
 
-        print(f'pano_seg.shape = {pano_seg.cpu().shape}')
-        print(f'len(pano_seg_info) = {len(pano_seg_info)}')
-
-        demo = visual.draw_panoptic_seg(pano_seg.cpu(), pano_seg_info) # rgb Image
+        demo = visual.draw_panoptic_seg(mask_all.cpu(), category) # rgb Image
         res = demo.get_image()
         
         # exit(0)
-        return Image.fromarray(res), mask_box_dict
+        return Image.fromarray(res), object_mask_list
     else:
         results, image_size, extra = seem_model.model.evaluate_demo(batch_inputs)
     

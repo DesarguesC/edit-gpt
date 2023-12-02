@@ -299,10 +299,10 @@ class GeneralizedSEEM(nn.Module):
         )
         # only after the upsampling did the range of mask equals to the boxes ?
 
-        print(f'upsampled mask_pred_results.shape = {mask_pred_results.shape}')
-        print(f'box_pred_results (ori-output) = {box_pred_results}')
-        if isinstance(box_pred_results, list):
-            print(f'len(box_pred_results) = {len(box_pred_results)}')
+        # print(f'upsampled mask_pred_results.shape = {mask_pred_results.shape}')
+        # print(f'box_pred_results (ori-output) = {box_pred_results}')
+        # if isinstance(box_pred_results, list):
+            # print(f'len(box_pred_results) = {len(box_pred_results)}')
 
         input_size = mask_pred_results.shape[-2:]
         del outputs
@@ -312,6 +312,10 @@ class GeneralizedSEEM(nn.Module):
             'masks': mask_pred_results,
             'boxes': box_pred_results
         }
+        
+        print(f'---- mask_pred_results.shape = {mask_pred_results.shape} ----')
+        
+        
         for mask_cls_result, mask_pred_result, box_pred_result, input_per_image, image_size in zip(
                 mask_cls_results, mask_pred_results, box_pred_results, batched_inputs, images.image_sizes
         ):
@@ -334,7 +338,7 @@ class GeneralizedSEEM(nn.Module):
 
             # panoptic segmentation inference
             if self.panoptic_on:
-                panoptic_r = retry_if_cuda_oom(self.panoptic_inference)(mask_cls_result, mask_pred_result)
+                panoptic_r = retry_if_cuda_oom(self.panoptic_inference_masks)(mask_cls_result, mask_pred_result)
                 processed_results[-1]["panoptic_seg"] = panoptic_r
 
             # instance segmentation inference
@@ -875,6 +879,68 @@ class GeneralizedSEEM(nn.Module):
                     )
 
             return panoptic_seg, segments_info
+    
+    def panoptic_inference_masks(self, mask_cls, mask_pred):
+        scores, labels = F.softmax(mask_cls, dim=-1).max(-1)
+        mask_pred = mask_pred.sigmoid()
+
+        keep = labels.ne(self.sem_seg_head.num_classes) & (scores > self.object_mask_threshold)
+        cur_scores = scores[keep]
+        cur_classes = labels[keep]
+        cur_masks = mask_pred[keep]
+        cur_mask_cls = mask_cls[keep]
+        cur_mask_cls = cur_mask_cls[:, :-1]
+
+        cur_prob_masks = cur_scores.view(-1, 1, 1) * cur_masks
+
+        h, w = cur_masks.shape[-2:]
+        panoptic_seg = torch.zeros((h, w), dtype=torch.int32, device=cur_masks.device)
+        segments_info = []
+
+        current_segment_id = 0
+        masks_list = []
+
+        if cur_masks.shape[0] == 0:
+            # We didn't detect any mask :(
+            return panoptic_seg, segments_info
+        else:
+            # take argmax
+            cur_mask_ids = cur_prob_masks.argmax(0)
+            stuff_memory_list = {}
+            for k in range(cur_classes.shape[0]):
+                pred_class = cur_classes[k].item()
+                isthing = pred_class in self.metadata.thing_dataset_id_to_contiguous_id.values()
+                mask_area = (cur_mask_ids == k).sum().item()
+                original_area = (cur_masks[k] >= 0.5).sum().item()
+                mask = (cur_mask_ids == k) & (cur_masks[k] >= 0.5)
+
+                if mask_area > 0 and original_area > 0 and mask.sum().item() > 0:
+                    if mask_area / original_area < self.overlap_threshold:
+                        continue
+
+                    # merge stuff regions
+                    if not isthing:
+                        if int(pred_class) in stuff_memory_list.keys():
+                            panoptic_seg[mask] = stuff_memory_list[int(pred_class)]
+                            continue
+                        else:
+                            stuff_memory_list[int(pred_class)] = current_segment_id + 1
+
+                    current_segment_id += 1
+                    panoptic_seg[mask] = current_segment_id
+                    masks_list.append(mask.cpu())
+                    assert len(mask.shape) == 2
+                    
+
+                    segments_info.append(
+                        {
+                            "id": current_segment_id,
+                            "isthing": bool(isthing),
+                            "category_id": int(pred_class),
+                        }
+                    )
+
+            return panoptic_seg, segments_info, masks_list
 
     def instance_inference(self, mask_cls, mask_pred, box_pred):
         # mask_pred is already processed to have the same shape as original input
