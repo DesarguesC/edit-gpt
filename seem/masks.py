@@ -71,21 +71,6 @@ def middleware(opt, image: Image, reftxt: str, tasks=['Text']):
             'name': metadata.stuff_classes[category[i]['category_id']],
             'mask': masks_list[i]
         }  for i in range(len(category)) ]
-        
-        
-        # print(f'category = {category}') # List[Dict]
-        # print(f'pano_seg_info[0].keys() = {pano_seg_info[0].keys()}')
-        
-        # print('processed_results[-1][\'instances\'] => ')
-        # print(results[-1]['instances'])
-        # print(f'len(results) = {len(results)}')
-        
-        # mask_box_dict['objects'] = pano_seg_info
-        
-        # print(f'pano_seg.shape = {pano_seg.cpu().shape}')
-        # print(f'pano_seg = {pano_seg.cpu()}')
-        
-        # print(f'len(pano_seg_info) = {len(pano_seg_info)}')
 
         demo = visual.draw_panoptic_seg(mask_all.cpu(), category) # rgb Image
         res = demo.get_image()

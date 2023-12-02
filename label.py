@@ -1,6 +1,5 @@
 from prompt.guide import *
 import clip
-from revChatGPT.V3 import Chatbot
 from prompt.util import get_image_from_box as get_img
 from prompt.item import Label, get_replace_tuple
 import torch
@@ -9,8 +8,6 @@ from PIL import Image
 from einops import repeat, rearrange
 import pandas as pd
 
-
-from revChatGPT.V3 import Chatbot
 from prompt.arguments import get_args
 
 dd = list(pd.read_csv('./key.csv')['key'])
@@ -95,10 +92,14 @@ if 'replace' in sorted_class:
     """
     Remove the <replace_target>
     """
-    replace_target(opt, old_noun, new_noun, mask_generator)
     
     
+    # TODO: replace has no need of an agent; original mask and box is necessary!
+    edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_edit, proxy=net_proxy)
+    replace_target(opt, old_noun, new_noun, mask_generator, edit_agent=edit_agent)
     
+    
+    print(exit)
     exit(0)
     # img_np, img_dragged_target
 

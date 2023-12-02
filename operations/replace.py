@@ -6,6 +6,8 @@ import numpy as np
 # from utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog as mt
 import torch
+from prompt.item import Label
+
 
 def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[tuple]):
     # masks: segmentation gained from SEEM
@@ -43,8 +45,9 @@ def preprocess_image2mask(opt, img: Image):
 
     
 
-def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None):
+def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None, edit_agent=None):
     # assert mask_generator != None, 'mask_generator not initialized'
+    assert edit_agent != None, 'no edit agent!'
     removed_np, _ = RM(opt, old_noun)
     removed_pil = Image.fromarray(removed_np)
     seg_res, objects_masks_list = preprocess_image2mask(opt, removed_pil)
@@ -57,11 +60,22 @@ def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None
         mask_ = objects_masks_list[i]['mask']
         objects_masks_list[i]['bbox'], sam_list = match_sam_box(mask_, sam_list)
     
-
-    print('exit')
-    exit(0)
+    """
+        objects_masks_list = [
+            {'name': ..., 'mask': ..., 'bbox': ...},
+            ...
+        ]
+    
+    """
+    # print('exit')
+    # exit(0)
+    
     # TODO: <0> create [name, (x,y,w,h)] list to ask GPT-3.5 and arrange a place for [new_noun, (x,y,w,h)]
-
+    series = Label().get_str(objects_masks_list)
+    print(series)
+    
+    from revChatGPT.V3 import Chatbot
+    
 
 
     # TODO: <1> create LIST

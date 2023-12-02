@@ -13,11 +13,18 @@ class Label():
         else: pass  # ?
         self.idx_list.append(idx)
 
-    def create_list_str(self, nouns: list, masks: list, boxes: list):
-        assert len(nouns) == len(masks) and len(nouns) == len(boxes), \
-                f'len(nouns) = {len(nouns)}, len(masks) = {len(masks)}, len(boxes) = {len(boxes)}\nnouns = {nouns}'
-        
-
+    def get_str(self, objects_masks_list: list[dict]):
+        # get [name, (x,y,w,h)]
+        length = len(objects_masks_list)
+        out = "{"
+        for idx in range(len(objects_masks_list)):
+            bb = objects_masks_list[idx]
+            name = bb['name']
+            x,y,w,h = bb['bbox']
+            item = f"[{name}, ({x}, {y}, {w}, {h})]"
+            out = out + item + (', ' if idx < length - 1 else '')
+        out = out + "}"
+        return out
 
 
     def __str__(self):
