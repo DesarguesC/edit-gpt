@@ -63,28 +63,25 @@ def middleware(opt, image: Image, reftxt: str, tasks=['Text']):
     if 'Panoptic' in tasks:
         seem_model.model.metadata = metadata
         results, mask_box_dict = seem_model.model.evaluate_all(batch_inputs)
-        print('\nin mask.py\n')
-        print(f'len(results) = {len(results)}')
+        # print('\nin mask.py\n')
+        # print(f'len(results) = {len(results)}')
         print(f'results[-1].keys() = {results[-1].keys()}')
-        pano_seg = results[-1]['panoptic_seg'][0]
-        pano_seg_info = results[-1]['panoptic_seg'][1]
+        pano_seg = results[-1]['panoptic_seg'][0] # mask_list
+        pano_seg_info = results[-1]['panoptic_seg'][1] # 
         print(f'pano_seg = {pano_seg.cpu()}')
         print(f'pano_seg_info = {pano_seg_info}') # List[Dict]
         print(f'pano_seg_info[0].keys() = {pano_seg_info[0].keys()}')
+        print('processed_results[-1][\'instances\'] => ')
+        print(results[-1]['instances'])
+        print(f'len(results) = {len(results)}')
+        
+        mask_box_dict['objects'] = pano_seg_info
+        
+        # another_nouns = [metadata.stuff_classes[int(x)] for x in results[-1]['instances'].pred_classes]
+        # print(f'another_nouns = {another_nouns}')
 
-        # mask_box_dict['nouns'] = pano_seg_info ?
-
-        try:
-            print(f'pano_seg.shape = {pano_seg.cpu().shape}')
-            print(f'len(pano_seg) = {len(pano_seg)}')
-        except Exception as err:
-            print(err)
-
-        try:
-            print(f'pano_seg_info.shape = {pano_seg_info.shape}')
-            print(f'len(pano_seg_info) = {len(pano_seg_info)}')
-        except Exception as err:
-            print(err)
+        print(f'pano_seg.shape = {pano_seg.cpu().shape}')
+        print(f'len(pano_seg_info) = {len(pano_seg_info)}')
 
         demo = visual.draw_panoptic_seg(pano_seg.cpu(), pano_seg_info) # rgb Image
         res = demo.get_image()

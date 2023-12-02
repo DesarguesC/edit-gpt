@@ -18,6 +18,8 @@ def find_box_idx(mask: np.array, box_list: list[tuple]):
     return np.argmax(np.array(cdot))
 
 
+        
+
 def remove_target(opt, target_noun, tasks=['Text'], mask_generator=None):
     assert mask_generator != None, 'mask_generator not initialized.'
     img = Image.open(opt.in_dir).convert('RGB')

@@ -13,8 +13,10 @@ class Label():
         else: pass  # ?
         self.idx_list.append(idx)
 
-    def create_list_str(self, masks: list, boxes: list):
-        assert len(masks) == len(boxes), f'len(masks) = {len(masks)}, len(boxes) = {len(boxes)}'
+    def create_list_str(self, nouns: list, masks: list, boxes: list):
+        assert len(nouns) == len(masks) and len(nouns) == len(boxes), \
+                f'len(nouns) = {len(nouns)}, len(masks) = {len(masks)}, len(boxes) = {len(boxes)}\nnouns = {nouns}'
+        
 
 
 

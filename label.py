@@ -23,6 +23,7 @@ from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamP
 from segment_anything import SamPredictor, sam_model_registry
 import cv2
 from operations.remove import Remove_Me
+from operations.replace import replace_target
 
 opt = get_args()
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -66,7 +67,7 @@ if 'remove' in sorted_class:
     target_noun = get_response(noun_remove_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
     
-    save_path = Remove_Me(opt, target_noun)
+    _, save_path = Remove_Me(opt, target_noun)
     
     print(f'removed. saved in: {save_path}')
 
@@ -86,15 +87,15 @@ if 'replace' in sorted_class:
     print(a)
     replace_tuple = get_response(noun_replace_agent, opt.edit_txt)
     print(f'replace_tuple = {replace_tuple}')
-    replace_target, replace_place = get_replace_tuple(replace_tuple)
-    print(f'replace_target = {replace_target}, replace_place = {replace_place}')
+    old_noun, new_noun = get_replace_tuple(replace_tuple)
+    print(f'old_noun = {old_noun}, new_noun = {new_noun}')
     
     # label_done = Remove_Me(opt, replace_target)
     
     """
     Remove the <replace_target>
     """
-    
+    replace_target(opt, old_noun, new_noun, mask_generator)
     
     
     

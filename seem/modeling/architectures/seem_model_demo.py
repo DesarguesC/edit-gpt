@@ -288,8 +288,7 @@ class GeneralizedSEEM(nn.Module):
 
         mask_cls_results = outputs["pred_logits"]
         mask_pred_results = outputs["pred_masks"]
-        box_pred_results = outputs["pred_boxes"] if self.task_switch['bbox'] else [None for i in
-                                                                                   range(len(mask_pred_results))]
+        box_pred_results = outputs["pred_boxes"] if self.task_switch['bbox'] else [None for i in range(len(mask_pred_results))]
 
         # upsample masks to image.shape
         mask_pred_results = F.interpolate(
