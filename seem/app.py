@@ -8,47 +8,23 @@
 import os, sys
 sys.path.append('~/seem/')
 os.chdir('./')
-
-def p(x):
-    print(x)
-
-p(-1)
-
 import os
-
-p(0)
-
 import warnings
 import PIL
 from PIL import Image
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
-
-p(1)
-
 import gradio as gr
 import torch
 import argparse
 import whisper
 import numpy as np
-
-
-
 from gradio import processing_utils
-p(2)
 from modeling.BaseModel import BaseModel
-p(2)
 from modeling import build_model
-p(2)
 from utils.distributed import init_distributed
-p(2)
 from utils.arguments import load_opt_from_config_files
-p(2)
 from utils.constants import COCO_PANOPTIC_CLASSES
-p(2)
-
 from demo.seem.tasks import *
-
-p(3)
 
 
 def parse_option():
