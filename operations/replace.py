@@ -24,6 +24,8 @@ def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None
     _, pred_dict = preprocess_image2mask(opt, Image.fromarray(removed_np))
     masks, boxes = pred_dict['masks'], pred_dict['boxes']
     del pred_dict
+    # get noun list ?
+
     # TODO: <0> create [name, (x,y,w,h)] list to ask GPT-3.5 and arrange a place for [new_noun, (x,y,w,h)]
 
 
