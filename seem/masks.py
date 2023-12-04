@@ -32,7 +32,6 @@ from seem.utils.constants import COCO_PANOPTIC_CLASSES
 from seem.demo.seem.tasks import *
 
 def middleware(opt, image: Image, reftxt: str, tasks=['Text'], remove_mask=False, visual_mode=True):
-    assert image_rm.size == image.size, f'unequal size: image_rm.size = {image_rm.size}, image.size = {image.size}'
     # mask_cover: [0,0,0] -> cover mask area via black
     cfg = load_opt_from_config_files([opt.seem_cfg])
     cfg['device'] = opt.device
