@@ -69,10 +69,12 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
     return np.array(removed_pil), label_done
 
 
-def Remove_Me(opt, target_noun, mask=None):
+def Remove_Me(opt, target_noun, remove_mask=False):
 
     img_pil = Image.open(opt.in_dir).convert('RGB')
-    removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size, mask=mask)
+    *_, target_mask = middleware(opt, img_pil, target_noun, remove_mask=True)
+    removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil,
+                                  ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask)
     removed_np = np.array(removed_pil)
     # print(f'removed_np.shape = {removed_np.shape}, img_mask.shape = {img_mask.shape}')
     """

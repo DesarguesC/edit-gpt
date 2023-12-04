@@ -61,7 +61,7 @@ def preprocess_image(
 
 def target_removing(
         opt, target_noun: str, image: Image, model=None, resize_shape: Tuple[int, int] = (256, 256),
-        ori_shape: Tuple[int, int] = (512, 512), recovery=True, center_crop=False
+        ori_shape: Tuple[int, int] = (512, 512), recovery=True, center_crop=False, remove_mask=False, mask=None
 ) -> Image:
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # ori_shape => image.shape
@@ -83,7 +83,7 @@ def target_removing(
     tensor_image = tensor_image.unsqueeze(0) * 2 - 1
     print(f'tensor_image.shape = {tensor_image.shape}')
     rmtxt = 'remove the ' + target_noun
-    pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0)
+    pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0, mask=mask if remove_mask else None)
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed
 

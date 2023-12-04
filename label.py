@@ -64,10 +64,11 @@ if 'remove' in sorted_class:
     target_noun = get_response(noun_remove_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
     
-    _, save_path = Remove_Me(opt, target_noun)
+    _, save_path = Remove_Me(opt, target_noun, remove_mask=True)
     
     print(f'removed. saved in: {save_path}')
-
+    print('exit from remove')
+    exit(0)
     # Recover_Scenery_For(img_dragged)
     # TODO: recover the scenery for img_dragged in mask
 
@@ -92,8 +93,6 @@ if 'replace' in sorted_class:
     """
     Remove the <replace_target>
     """
-    
-    
     # TODO: replace has no need of an agent; original mask and box is necessary!
     edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_edit, proxy=net_proxy)
     replace_target(opt, old_noun, new_noun, mask_generator, edit_agent=edit_agent)

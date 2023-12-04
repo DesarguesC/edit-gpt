@@ -31,7 +31,7 @@ from seem.modeling import build_model
 from seem.utils.constants import COCO_PANOPTIC_CLASSES
 from seem.demo.seem.tasks import *
 
-def middleware(opt, image_rm: Image, image: Image, reftxt: str, remove_mask=False, **kwargs):
+def middleware(opt, image: Image, reftxt: str, tasks=['Text'], remove_mask=False, visual_mode=True):
     assert image_rm.size == image.size, f'unequal size: image_rm.size = {image_rm.size}, image.size = {image.size}'
     # mask_cover: [0,0,0] -> cover mask area via black
     cfg = load_opt_from_config_files([opt.seem_cfg])
@@ -39,13 +39,13 @@ def middleware(opt, image_rm: Image, image: Image, reftxt: str, remove_mask=Fals
     seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
     with torch.no_grad():
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
-    image_ori = transform(image_rm)
-    width = image_ori.size[0]
-    height = image_ori.size[1]
+    image_ori = transform(image)
+    width, height = image_ori.size
     image_ori = np.asarray(image_ori)
-    visual = Visualizer(image_ori, metadata=metadata)
     images = torch.from_numpy(image_ori.copy()).permute(2,0,1).cuda()
 
+    if visual_mode:
+        visual = Visualizer(image_ori, metadata=metadata)
     data = {"image": images, "height": height, "width": width}
 
     # inistalize task
@@ -53,12 +53,12 @@ def middleware(opt, image_rm: Image, image: Image, reftxt: str, remove_mask=Fals
     seem_model.model.task_switch['visual'] = False
     seem_model.model.task_switch['grounding'] = False
     seem_model.model.task_switch['audio'] = False
-
     seem_model.model.task_switch['grounding'] = True
-    data['text'] = [reftxt]
 
+    data['text'] = [reftxt]
     batch_inputs = [data]
 
+    # if 'Panoptic' in tasks:
     seem_model.model.metadata = metadata
     results, mask_box_dict = seem_model.model.evaluate_all(batch_inputs)
     mask_all, category, masks_list = results[-1]['panoptic_seg']
@@ -72,10 +72,7 @@ def middleware(opt, image_rm: Image, image: Image, reftxt: str, remove_mask=Fals
     demo = visual.draw_panoptic_seg(mask_all.cpu(), category) # rgb Image
     res = demo.get_image()
 
-    if not remove_mask:
-    # exit(0)
-        return Image.fromarray(res), object_mask_list
-    else:
+    if remove_mask:
         # get text-image mask
         results, image_size, extra = seem_model.model.evaluate_demo(batch_inputs)
 
@@ -96,3 +93,4 @@ def middleware(opt, image_rm: Image, image: Image, reftxt: str, remove_mask=Fals
         pred_masks_pos = (F.interpolate(pred_masks_pos[None,], image_size[-2:], mode='bilinear')[0,:,:data['height'],:data['width']] > 0.0).float().cpu().numpy()
         return Image.fromarray(res), object_mask_list, pred_masks_pos
 
+    else: return Image.fromarray(res), object_mask_list

@@ -74,8 +74,10 @@ def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None
     series = Label().get_str(objects_masks_list)
     print(series)
     
-    from revChatGPT.V3 import Chatbot
-    
+    from revChatGPT.V3 import Chatbot # add new_noun via edit_agent
+    """
+        e.g. new_noun = 'cat'
+    """
 
 
     # TODO: <1> create LIST
