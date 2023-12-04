@@ -31,14 +31,15 @@ from seem.modeling import build_model
 from seem.utils.constants import COCO_PANOPTIC_CLASSES
 from seem.demo.seem.tasks import *
 
-def middleware(opt, image: Image, reftxt: str, tasks=['Text']):
+def middleware(opt, image_rm: Image, image: Image, reftxt: str, remove_mask=False, **kwargs):
+    assert image_rm.size == image.size, f'unequal size: image_rm.size = {image_rm.size}, image.size = {image.size}'
     # mask_cover: [0,0,0] -> cover mask area via black
     cfg = load_opt_from_config_files([opt.seem_cfg])
     cfg['device'] = opt.device
     seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
     with torch.no_grad():
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
-    image_ori = transform(image)
+    image_ori = transform(image_rm)
     width = image_ori.size[0]
     height = image_ori.size[1]
     image_ori = np.asarray(image_ori)
@@ -46,8 +47,6 @@ def middleware(opt, image: Image, reftxt: str, tasks=['Text']):
     images = torch.from_numpy(image_ori.copy()).permute(2,0,1).cuda()
 
     data = {"image": images, "height": height, "width": width}
-    if len(tasks) == 0:
-        tasks = ["Panoptic"]
 
     # inistalize task
     seem_model.model.task_switch['spatial'] = False
@@ -55,58 +54,45 @@ def middleware(opt, image: Image, reftxt: str, tasks=['Text']):
     seem_model.model.task_switch['grounding'] = False
     seem_model.model.task_switch['audio'] = False
 
-    if 'Text' in tasks:
-        seem_model.model.task_switch['grounding'] = True
-        data['text'] = [reftxt]
+    seem_model.model.task_switch['grounding'] = True
+    data['text'] = [reftxt]
+
     batch_inputs = [data]
 
-    if 'Panoptic' in tasks:
-        seem_model.model.metadata = metadata
-        results, mask_box_dict = seem_model.model.evaluate_all(batch_inputs)
-        # print(f'results[-1].keys() = {results[-1].keys()}')
-        mask_all, category, masks_list = results[-1]['panoptic_seg']
-        
-        assert len(category) == len(masks_list), f'len(category) = {len(category)}, len(masks_list) = {len(masks_list)}'
-        object_mask_list = [ {
-            'name': metadata.stuff_classes[category[i]['category_id']],
-            'mask': masks_list[i]
-        }  for i in range(len(category)) ]
+    seem_model.model.metadata = metadata
+    results, mask_box_dict = seem_model.model.evaluate_all(batch_inputs)
+    mask_all, category, masks_list = results[-1]['panoptic_seg']
 
-        demo = visual.draw_panoptic_seg(mask_all.cpu(), category) # rgb Image
-        res = demo.get_image()
-        
-        # exit(0)
+    assert len(category) == len(masks_list), f'len(category) = {len(category)}, len(masks_list) = {len(masks_list)}'
+    object_mask_list = [ {
+        'name': metadata.stuff_classes[category[i]['category_id']],
+        'mask': masks_list[i]
+    }  for i in range(len(category)) ]
+
+    demo = visual.draw_panoptic_seg(mask_all.cpu(), category) # rgb Image
+    res = demo.get_image()
+
+    if not remove_mask:
+    # exit(0)
         return Image.fromarray(res), object_mask_list
     else:
+        # get text-image mask
         results, image_size, extra = seem_model.model.evaluate_demo(batch_inputs)
-    
-    pred_masks = results['pred_masks'][0]
-    pm = results['pred_masks']
-    v_emb = results['pred_captions'][0]
-    pv = results['pred_captions']
-    print(f'len(results[\'pred_masks\']) = {len(pm)}, len(results[\'pred_captions\']) = {len(pv)}')
-    print(f'pred_captions: {pv}')
-    t_emb = extra['grounding_class']
 
-    t_emb = t_emb / (t_emb.norm(dim=-1, keepdim=True) + 1e-7)
-    v_emb = v_emb / (v_emb.norm(dim=-1, keepdim=True) + 1e-7)
+        pred_masks = results['pred_masks'][0]
 
-    temperature = seem_model.model.sem_seg_head.predictor.lang_encoder.logit_scale
-    out_prob = vl_similarity(v_emb, t_emb, temperature=temperature)
+        v_emb = results['pred_captions'][0]
+        t_emb = extra['grounding_class']
 
-    matched_id = out_prob.max(0)[1]
-    pred_masks_pos = pred_masks[matched_id,:,:]
-    pred_class = results['pred_logits'][0][matched_id].max(dim=-1)[1]
-    
-    pred_masks_pos = (F.interpolate(pred_masks_pos[None,], image_size[-2:], mode='bilinear')[0,:,:data['height'],:data['width']] > 0.0).float().cpu().numpy()
-    # mask
-    texts = [all_classes[pred_class[0]]]
+        t_emb = t_emb / (t_emb.norm(dim=-1, keepdim=True) + 1e-7)
+        v_emb = v_emb / (v_emb.norm(dim=-1, keepdim=True) + 1e-7)
 
-    for idx, mask in enumerate(pred_masks_pos):
-        # color = random_color(rgb=True, maximum=1).astype(np.int32).tolist()
-        out_txt = texts[idx] # if 'Text' not in tasks else reftxt
-        demo = visual.draw_binary_mask(mask, color=colors_list[pred_class[0]%133], text=out_txt)
-    res = demo.get_image()
-    torch.cuda.empty_cache()
-    return res, pred_masks_pos
+        temperature = seem_model.model.sem_seg_head.predictor.lang_encoder.logit_scale
+        out_prob = vl_similarity(v_emb, t_emb, temperature=temperature)
+
+        matched_id = out_prob.max(0)[1]
+        pred_masks_pos = pred_masks[matched_id,:,:]
+        # mask
+        pred_masks_pos = (F.interpolate(pred_masks_pos[None,], image_size[-2:], mode='bilinear')[0,:,:data['height'],:data['width']] > 0.0).float().cpu().numpy()
+        return Image.fromarray(res), object_mask_list, pred_masks_pos
 

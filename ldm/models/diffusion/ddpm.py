@@ -949,7 +949,7 @@ class LatentDiffusion(DDPM):
         return log
     
     @torch.no_grad()
-    def inpaint(self, image, instruction, num_steps=50, device="cuda", return_pil=True, seed=0):
+    def inpaint(self, image, instruction, num_steps=50, device="cuda", return_pil=True, seed=0, mask=None):
         assert len(image.shape) == 4 and image.shape[0] == 1, "Input image should be a tensor object with batch size 1"
         assert isinstance(instruction, str), "Input instruction type should be String"
         assert self.model.conditioning_key == "hybrid", "Inpaint function is only available for hybrid conditioning"
@@ -965,7 +965,8 @@ class LatentDiffusion(DDPM):
                 instruction_embedding = self.cond_stage_instruction_embedder(None, [instruction]) 
                 c = {'c_concat': c, 'c_crossattn': instruction_embedding}
                 batch_size=c["c_concat"].shape[0]
-                output_latent, _ = sampler.sample(S=num_steps, 
+                output_latent, _ = sampler.sample(S=num_steps,
+                                                msak=mask,
                                                 conditioning=c, 
                                                 batch_size=batch_size,
                                                 shape=shape,

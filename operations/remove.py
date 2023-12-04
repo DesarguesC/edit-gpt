@@ -28,7 +28,7 @@ def remove_target(opt, target_noun, tasks=['Text'], mask_generator=None):
     sam_masks = mask_generator.generate(np.array(img))
     print(f'sam pieces num: {len(sam_masks)}')
 
-    res, seem_masks = middleware(opt, img, target_noun, tasks=tasks)
+    res, seem_masks, target_mask = middleware(opt, img, target_noun, tasks=tasks, remove_mask=True)
     print(f'type(seem_masks) = {type(seem_masks)}, seem_masks.shape = {seem_masks.shape}')
     img = img.resize((ab64(res.shape[1]), ab64(res.shape[0])))
     # res = cv2.resize(res, img.size)
@@ -40,15 +40,9 @@ def remove_target(opt, target_noun, tasks=['Text'], mask_generator=None):
 
     box_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
     print(f'sam pieces num: {len(sam_masks)}')
-    # bbox: list
-    # for i in range(len(box_list)):
-    #     box = box_list[i]
-    #     TURN(box, res).save(f'./tmp/test-{i}.png')
 
     img_idx = find_box_idx(seem_masks, box_list)
     true_mask = box_list[img_idx][1]
-    # if label_done != None:
-    #     label_done.add(box_list[img_idx][0], target_noun, img_idx)
 
     print(f'true_mask.shape = {true_mask.shape}')
     mask = transform(true_mask)
@@ -75,10 +69,10 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
     return np.array(removed_pil), label_done
 
 
-def Remove_Me(opt, target_noun):
+def Remove_Me(opt, target_noun, mask=None):
 
     img_pil = Image.open(opt.in_dir).convert('RGB')
-    removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size)
+    removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size, mask=mask)
     removed_np = np.array(removed_pil)
     # print(f'removed_np.shape = {removed_np.shape}, img_mask.shape = {img_mask.shape}')
     """
