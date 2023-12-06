@@ -7,6 +7,8 @@ import numpy as np
 from detectron2.data import MetadataCatalog as mt
 import torch
 from prompt.item import Label
+from prompt.guide import get_response
+from jieba import re
 
 
 def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[tuple]):
@@ -71,13 +73,20 @@ def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None
     # exit(0)
     
     # TODO: <0> create [name, (x,y,w,h)] list to ask GPT-3.5 and arrange a place for [new_noun, (x,y,w,h)]
-    series = Label().get_str(objects_masks_list)
+    series = Label().get_str_part(objects_masks_list)
     print(series)
-    
-    from revChatGPT.V3 import Chatbot # add new_noun via edit_agent
+    # from revChatGPT.V3 import Chatbot # add new_noun via edit_agent
     """
         e.g. new_noun = 'cat'
     """
+    edit_prompt = "Objects: " + series + "; New: " + new_nou
+    new = get_response(edit_agent, edit_prompt)
+    print(new)
+    new = new.strip('[').strip(']')
+    w_h = re.split('[{}(),]', new)
+    w, h = w_h
+    print(w, h)
+
 
 
     # TODO: <1> create LIST

@@ -70,13 +70,38 @@ locate_first_ask = """\
                     please answer "yes" in the round without any extra characters, \
                     after which I will give you input and ask you to judge.                   
                    """
+# find target_noun and new_noun
+
+system_prompt_add = """\
+                        You are an object scaler, capable of generating the size of an object with a known name \
+                        based on information about a set of objects with a known name and a known size. \
+                        The "name" is the category of the object, for example: cat, dog, apple, etc. \
+                        The "size" of an object with a known name will be represented by a binary tuple (w,h), \
+                        which represents the size of the smallest rectangular box that can include the object. \
+                        In addition, all the objects are actually in a rectangular canvas (photo), \
+                        all the rectangular boxes (width and height is represented as w and h respectively, \
+                        and the definition of width and height actually conforms to the form of the opencv-python library).\
+                    """
+
+add_first_ask = """\
+                    For your task, I will give you the input that Objects: {[name_1, (w_1 h_1))], [name_2, (w_2, h_2))],... , [name_2, (w_n,h_n))]}; \
+                    New: name_{new}. Where [name_i, (w_i,h_i)] in the "Objects" field represents the known information of the i-th object, name_i \
+                    is the name of the object (class), (w_i,h_i) represents the width and height of the rectangular box including the i th object; \
+                    While name_{new} in the "new" field indicates that a new object needs to be added, \
+                    your job is to estimate the size of the new object name_{new} (e.i. w_{new}, h_{new}) \
+                    based on the size of various objects with known names (i.e. name_i) (i.e. w_i, h_{new}). \
+                    And output as [name_{new}, (w_{new}, h_{new})]. If you have fully understood your task, \
+                    please answer "yes" without any extra characters, after which I will give you input.\
+                """
 
 # system_prompt_replcace: 你是一个物体缩放器，能够根据一系列已知名字、已知大小的物体的信息，生成一个已知名字的物体的大小。“名字”即物体的类别，例如：猫，狗，苹果，等等。
-#           已知名字的物体的“大小”将用一个二元tuple (w,h)表示，这表示一个能够将物体包括在内的最小的矩形框的大小。另外，所有的物体其实在一张长方形画布（照片）中，
-#           所有矩形框（宽度和高度分别为w, h，且对宽度和高度的定义实际上符合opencv-python库的形式）。
+#                         已知名字的物体的“大小”将用一个二元tuple (w,h)表示，这表示一个能够将物体包括在内的最小的矩形框的大小。另外，所有的物体其实在一张长方形画布（照片）中，
+#                         所有矩形框（宽度和高度分别为w, h，且对宽度和高度的定义实际上符合opencv-python库的形式）。
 
-# replace_first_ask: 针对你的任务，我会给你这样的输入：[name_1, (w_1,h_1))], [name_2, (w_2,h_2))], ..., [name_2, (w_n,h_n))].
-#                    其中[name_i, (w_i,h_i)]表示第i个物体的已知信息，name_i是物体的名字（类别），(w_i,h_i)表示包括第i个物体的矩形框的宽度和高度的大小
+# replace_first_ask: 针对你的任务，我会给你这样的输入：Objects: {[name_1, (w_1,h_1))], [name_2, (w_2,h_2))], ..., [name_2, (w_n,h_n))]}; New: name_{new}..
+#                    其中"Objects"字段中[name_i, (w_i,h_i)]表示第i个物体的已知信息，name_i是物体的名字（类别），(w_i,h_i)表示包括第i个物体的矩形框的宽度和高度的大小；
+#                    而“New”字段中name_{new}表示需要新增一个物体，你的工作就是根据已知名字(即name_i)的各种物体的大小(即w_i,h_i)来估计新增物体name_{new}的大小(e.i. w_{new}, h_{new})
+#                    并输出为[name_{new}, (w_{new}, h_{new})]的形式。如果你已经完全明白你的任务，请回答“yes”，不要有任何多余的字符，在此之后我会向你给出输入。
 
 
 system_prompt_edit = 'You are an textual editor who is able to edit images with the given text input. '\

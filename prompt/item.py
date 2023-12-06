@@ -13,11 +13,11 @@ class Label():
         else: pass  # ?
         self.idx_list.append(idx)
 
-    def get_str(self, objects_masks_list: list[dict]):
+    def get_str_all(self, objects_masks_list: list[dict]):
         # get [name, (x,y,w,h)]
         length = len(objects_masks_list)
         out = "{"
-        for idx in range(len(objects_masks_list)):
+        for idx in range(length):
             bb = objects_masks_list[idx]
             name = bb['name']
             x,y,w,h = bb['bbox']
@@ -26,6 +26,18 @@ class Label():
         out = out + "}"
         return out
 
+    def get_str_part(self, objectss_masks_list: list[dict]):
+        # get [name, (w,h)]
+        length = len(objectss_masks_list)
+        out = "{"
+        for idx in range(length):
+            bb = objectss_masks_list[idx]
+            name = bb['name']
+            *_, w, h = bb['bbox']
+            item = f'[{name}, ({w},{h})]'
+            out = ot + item + (', ' if idx < length - 1 else '')
+        out = out + "}"
+        return out
 
     def __str__(self):
         out = "{"
