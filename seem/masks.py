@@ -62,7 +62,6 @@ def query_middleware(opt, image: Image, reftxt: str):
     batch_inputs = [data]
 
 
-
     results, image_size, extra = seem_model.model.evaluate_demo(batch_inputs)
     print(f'extra.keys() = {extra.keys()}')
     print(f'results.keys() = {results.keys()}')
@@ -82,9 +81,10 @@ def query_middleware(opt, image: Image, reftxt: str):
     pred_masks_pos = (F.interpolate(pred_masks_pos[None,], image_size[-2:], mode='bilinear')[0,:,:data['height'],:data['width']] > 0.0).float().cpu().numpy()
     # mask queried from text
 
-    pred_box_pos = <?>
+    # pred_box_pos = <?>
+    pred_box_pos = None
 
-    demo = visual.draw_panoptic_seg(mask_all.cpu(), category)  # rgb Image
+    demo = visual.draw_binary_mask(pred_masks_pos.squeeze(), text=reftxt)  # rgb Image
     res = demo.get_image()
 
     return Image.fromarray(res), pred_masks_pos, pred_box_pos

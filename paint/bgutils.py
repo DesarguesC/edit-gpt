@@ -3,6 +3,7 @@ from PIL import Image
 from torchvision.transforms import ToTensor
 import torch
 import os
+import numpy as np
 from omegaconf import OmegaConf
 import importlib
 from ldm.util import instantiate_from_config
@@ -83,10 +84,11 @@ def target_removing(
     tensor_image = tensor_image.unsqueeze(0) * 2 - 1
     print(f'tensor_image.shape = {tensor_image.shape}')
 
-    # rmtxt = 'remove the ' + target_noun
-    rmtxt = target_noun # just use target_noun ?
-
-    print(f'mask == None ? => {mask==None}')
+    rmtxt = 'remove the ' + target_noun
+    # print(mask)
+    # print(type(mask))
+    mask = torch.tensor(mask, dtype=torch.float32, requires_grad=False)
+    # print(torch.sum(mask))
     pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0, mask=mask if remove_mask else None)
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed

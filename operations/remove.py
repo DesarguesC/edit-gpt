@@ -3,7 +3,7 @@ import torch
 from paint.bgutils import target_removing
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 # calculate IoU between SAM & SEEM
-from seem.masks import middleware, quiery_middleware
+from seem.masks import middleware, query_middleware
 from PIL import Image
 from einops import repeat, rearrange
 
@@ -72,8 +72,12 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
 def Remove_Me(opt, target_noun, remove_mask=False):
 
     img_pil = Image.open(opt.in_dir).convert('RGB')
-    *_, target_mask = middleware(opt, img_pil, target_noun)
+    _, target_mask, _ = query_middleware(opt, img_pil, target_noun)
+    # *_, target_mask = middleware(opt, img_pil, target_noun)
     # mask = 1 / mask = 0 => no edit ???
+    
+    # print(f'type(target_mask) = {type(target_mask)}')
+    # print(f'type(target_mask[0]) = {type(target_mask[0])} ')
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil,
                                   ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask)
     removed_np = np.array(removed_pil)
@@ -85,7 +89,7 @@ def Remove_Me(opt, target_noun, remove_mask=False):
     """
     cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
     if remove_mask:
-        return removed_np, target_mask, target_box, f'./static-inpaint/{opt.out_name}'
+        return removed_np, target_mask, f'./static-inpaint/{opt.out_name}'
     else: return removed_np, f'./static-inpaint/{opt.out_name}'
 
 
@@ -96,11 +100,6 @@ def Remove_Me_SEEM(opt, target_noun, mask_generator=None, label_done=None):
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size)
     removed_np = np.array(removed_pil)
     print(f'removed_np.shape = {removed_np.shape}, img_mask.shape = {img_mask.shape}')
-    """
-        removed_np = img_np * (1. - img_mask) + removed_np * img_mask # probably not use mask at this step
-        TODO: using mask to avoid the unnecessary editing of the image but failed
-        Ablation: SEEM / SAM never perfectly fit the edge, which means mask hardly cover the whole object.
-    """
 
     cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
 
