@@ -68,7 +68,7 @@ locate_first_ask = """\
                     You need to output the moved object named A, and B is the name where the object is moved to, so there are two nouns in the output, \
                     please output in the form of "(A,B)". If you have understood your task, \
                     please answer "yes" in the round without any extra characters, \
-                    after which I will give you input and ask you to judge.                   
+                    after which I will give you input and ask you to judge. \
                    """
 # find target_noun and new_noun
 

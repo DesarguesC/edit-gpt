@@ -1,8 +1,34 @@
 import torch
 import numpy as np
 from tqdm import tqdm
-
 from ldm.modules.diffusionmodules.util import make_ddim_sampling_parameters, make_ddim_timesteps, noise_like
+
+
+
+
+DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, ' \
+                          'fewer digits, cropped, worst quality, low quality'
+
+
+
+def get_sd_models(opt):
+    """
+    build stable diffusion model, sampler
+    """
+    # SD
+    config = OmegaConf.load(f"{opt.config}")
+    model = load_model_from_config(config, opt.sd_ckpt, opt.vae_ckpt)
+    sd_model = model.to(opt.device)
+
+    # sampler
+    if opt.sampler == 'plms':
+        sampler = PLMSSampler(model)
+    elif opt.sampler == 'ddim':
+        sampler = DDIMSampler(model)
+    else:
+        raise NotImplementedError
+
+    return sd_model, sampler
 
 
 class DDIMSampler(object):

@@ -3,7 +3,7 @@ import torch
 from paint.bgutils import target_removing
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 # calculate IoU between SAM & SEEM
-from seem.masks import middleware
+from seem.masks import middleware, quiery_middleware
 from PIL import Image
 from einops import repeat, rearrange
 
@@ -28,7 +28,7 @@ def remove_target(opt, target_noun, tasks=['Text'], mask_generator=None):
     sam_masks = mask_generator.generate(np.array(img))
     print(f'sam pieces num: {len(sam_masks)}')
 
-    res, seem_masks, target_mask = middleware(opt, img, target_noun, tasks=tasks, remove_mask=True)
+    res, seem_masks, seem_box = query_middleware(opt, img, target_noun)
     print(f'type(seem_masks) = {type(seem_masks)}, seem_masks.shape = {seem_masks.shape}')
     img = img.resize((ab64(res.shape[1]), ab64(res.shape[0])))
     # res = cv2.resize(res, img.size)
@@ -73,6 +73,7 @@ def Remove_Me(opt, target_noun, remove_mask=False):
 
     img_pil = Image.open(opt.in_dir).convert('RGB')
     *_, target_mask = middleware(opt, img_pil, target_noun, remove_mask=True)
+    # mask = 1 / mask = 0 => no edit ???
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil,
                                   ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask)
     removed_np = np.array(removed_pil)
@@ -83,12 +84,14 @@ def Remove_Me(opt, target_noun, remove_mask=False):
         Ablation: SEEM / SAM never perfectly fit the edge, which means mask hardly cover the whole object.
     """
     cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
-    return removed_np, f'./static-inpaint/{opt.out_name}'
+    if remove_mask:
+        return removed_np, target_mask, target_box, f'./static-inpaint/{opt.out_name}'
+    else: return removed_np, f'./static-inpaint/{opt.out_name}'
 
 
 def Remove_Me_SEEM(opt, target_noun, mask_generator=None, label_done=None):
-    img_np, img_dragged, img_obj, img_mask, img_pil, label_done = remove_target(opt=opt, \
-          target_noun=target_noun, mask_generator=mask_generator, task=['Text', 'Panoptic'], label_done=label_done)
+    img_np, img_dragged, img_obj, img_mask, img_pil, label_done = remove_target(opt=opt,
+            target_noun=target_noun, mask_generator=mask_generator, task=['Text', 'Panoptic'], label_done=label_done)
 
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil, ori_shape=img_pil.size)
     removed_np = np.array(removed_pil)

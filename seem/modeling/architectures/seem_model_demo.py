@@ -256,7 +256,6 @@ class GeneralizedSEEM(nn.Module):
         images = [(x - self.pixel_mean) / self.pixel_std for x in images] # batch norm
         images = ImageList.from_tensors(images, self.size_divisibility)
 
-
         queries_grounding = None
         features = self.backbone(images.tensor)
         mask_features, transformer_encoder_features, multi_scale_features = self.sem_seg_head.pixel_decoder.forward_features(features)
@@ -264,6 +263,7 @@ class GeneralizedSEEM(nn.Module):
         extra = {}
         if 'text' in batched_inputs[0]:
             gtext = self.sem_seg_head.predictor.lang_encoder.get_text_token_embeddings(batched_inputs[0]['text'], name='grounding', token=False, norm=False)
+            print(f'gtext.keys() = {gtext.keys()}')
             token_emb = gtext['token_emb']
             tokens = gtext['tokens']
             query_emb = token_emb[tokens['attention_mask'].bool()]

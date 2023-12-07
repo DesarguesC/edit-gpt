@@ -9,6 +9,7 @@ import torch
 from prompt.item import Label
 from prompt.guide import get_response
 from jieba import re
+from seem.masks import middleware
 
 
 def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[tuple]):
@@ -50,7 +51,10 @@ def preprocess_image2mask(opt, img: Image):
 def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None, edit_agent=None):
     # assert mask_generator != None, 'mask_generator not initialized'
     assert edit_agent != None, 'no edit agent!'
-    removed_np, _ = RM(opt, old_noun)
+    img_pil = Image.open(opt.in_dir).convert('RGB')
+
+
+    removed_np, target_mask, target_box, *_ = RM(opt, old_noun, remove_mask=True)
     removed_pil = Image.fromarray(removed_np)
     seg_res, objects_masks_list = preprocess_image2mask(opt, removed_pil)
     
@@ -79,19 +83,19 @@ def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None
     """
         e.g. new_noun = 'cat'
     """
-    edit_prompt = "Objects: " + series + "; New: " + new_nou
+    edit_prompt = "Objects: " + series + "; New: " + new_noun
     new = get_response(edit_agent, edit_prompt)
     print(new)
-    new = new.strip('[').strip(']')
-    w_h = re.split('[{}(),]', new)
-    w, h = w_h
+    w_h = re.split('[{}(),]', new.strip('[').strip(']'))
+    w, h = w_h # gain new target noun sizes (w,h)
     print(w, h)
-
-
 
     # TODO: <1> create LIST
     # TODO: <2> apply an agent to generate [new_noun, (x,y,w,h)] ~ [mask]
     # TODO: <3> add some prompts to generate an image (restore required) for new_noun (via diffusion) and extract [mask, box] via SEEM
     # TODO: <4> rescale the mask and the box
     # TODO: <5> Paint-by-Example using the [mask, image] above
+
+
+
 
