@@ -82,7 +82,7 @@ def query_middleware(opt, image: Image, reftxt: str):
     pred_masks_pos = (F.interpolate(pred_masks_pos[None,], image_size[-2:], mode='bilinear')[0,:,:data['height'],:data['width']] > 0.0).float().cpu().numpy()
     # mask queried from text
 
-    pred_box_pos = ?
+    pred_box_pos = <?>
 
     demo = visual.draw_panoptic_seg(mask_all.cpu(), category)  # rgb Image
     res = demo.get_image()

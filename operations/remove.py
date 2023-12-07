@@ -72,7 +72,7 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
 def Remove_Me(opt, target_noun, remove_mask=False):
 
     img_pil = Image.open(opt.in_dir).convert('RGB')
-    *_, target_mask = middleware(opt, img_pil, target_noun, remove_mask=True)
+    *_, target_mask = middleware(opt, img_pil, target_noun)
     # mask = 1 / mask = 0 => no edit ???
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil,
                                   ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask)
