@@ -10,7 +10,7 @@ from prompt.item import Label
 from prompt.guide import get_response
 from jieba import re
 from seem.masks import middleware
-from ldm.inference_base import diffusion_inference
+from ldm.inference_base import diffusion_inference, get_sd_models, 
 from basicsr.utils import tensor2img
 
 

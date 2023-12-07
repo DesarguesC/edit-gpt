@@ -3,9 +3,10 @@ from omegaconf import OmegaConf
 
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.plms import PLMSSampler
-from ldm.modules.encoders.adapter import Adapter, StyleAdapter, Adapter_light
-from ldm.modules.extra_condition.api import ExtraCondition
 from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict
+
+DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, ' \
+                          'fewer digits, cropped, worst quality, low quality'
 
 PROMPT_BASE = ', 8K, highly detailed, expressively clear, high resolution'
 
@@ -67,7 +68,7 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     parser.add_argument(
         '--sd_ckpt',
         type=str,
-        default='models/sd-v1-5.ckpt',
+        default='../autodl-tmp/v1-5-pruned.ckpt',
         help='path to checkpoint of stable diffusion model, both .ckpt and .safetensor are supported',
     )
 
@@ -81,7 +82,7 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     parser.add_argument(
         '--sd_config',
         type=str,
-        default='configs/sd-v1-inference.yaml',
+        default='./configs/sd-v1-inference.yaml',
         help='path to config which constructs SD model',
     )
 

@@ -95,7 +95,7 @@ if 'replace' in sorted_class:
     """
     # TODO: replace has no need of an agent; original mask and box is necessary!
     add_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
-    yes = add_agemt.get_response(add_agent, add_first_ask)
+    yes = get_response(add_agent, add_first_ask)
     print(yes)
     replace_target(opt, old_noun, new_noun, mask_generator, edit_agent=add_agent)
 
