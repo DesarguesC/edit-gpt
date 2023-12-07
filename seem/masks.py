@@ -90,18 +90,33 @@ def query_middleware(opt, image: Image, reftxt: str):
     return Image.fromarray(res), pred_masks_pos, pred_box_pos
 
 
-def middleware(opt, image: Image, reftxt: str, visual_mode=True):
-    # image: target removed PIL image
-
+def middleware(opt, image: Image, diffusion_image: Image, visual_mode=True):
+    """
+        image: target not removed PIL image
+        only to create Panoptic segmentation
+    """
     cfg = load_opt_from_config_files([opt.seem_cfg])
     cfg['device'] = opt.device
     seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
     with torch.no_grad():
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
+
+    res, lists = gain_panoptic_seg(seem_model, image)
+    dif_res, dif_lists = gain_panoptic_seg(seem_model, diffusion_image)
+
+    print('exit from middleware')
+    exit(0)
+
+    return res, lists, dif_res, dif_lists
+
+
+
+def gain_panoptic_seg(seem_model, image: Image, visual_mode=True):
+
     image_ori = transform(image)
     width, height = image_ori.size
     image_ori = np.asarray(image_ori)
-    images = torch.from_numpy(image_ori.copy()).permute(2,0,1).cuda()
+    images = torch.from_numpy(image_ori.copy()).permute(2, 0, 1).cuda()
 
     if visual_mode:
         visual = Visualizer(image_ori, metadata=metadata)
@@ -113,8 +128,8 @@ def middleware(opt, image: Image, reftxt: str, visual_mode=True):
     seem_model.model.task_switch['grounding'] = False
     seem_model.model.task_switch['audio'] = False
     seem_model.model.task_switch['grounding'] = True
-
-    data['text'] = [reftxt]
+    seem_model.model.task_switch['bbox'] = True
+    # data['text'] = [reftxt]
     batch_inputs = [data]
 
     # if 'Panoptic' in tasks:
@@ -122,14 +137,19 @@ def middleware(opt, image: Image, reftxt: str, visual_mode=True):
     results, mask_box_dict = seem_model.model.evaluate_all(batch_inputs)
     mask_all, category, masks_list = results[-1]['panoptic_seg']
 
-    assert len(category) == len(masks_list), f'len(category) = {len(category)}, len(masks_list) = {len(masks_list)}'
-    object_mask_list = [ {
-        'name': metadata.stuff_classes[category[i]['category_id']],
-        'mask': masks_list[i]
-    }  for i in range(len(category)) ]
+    box_list = results[-1]['instances'].pred_boxes
+    print(f'type(box_list) = {type(box_list)}')
+    print(f'box_list = {box_list}')
+    print(f'len(box_list) = {len(box_list)}')
 
-    demo = visual.draw_panoptic_seg(mask_all.cpu(), category) # rgb Image
+    assert len(category) == len(masks_list), f'len(category) = {len(category)}, len(masks_list) = {len(masks_list)}'
+    object_mask_list = [{
+        'name': metadata.stuff_classes[category[i]['category_id']],
+        'mask': masks_list[i],
+        'box': box_list[i]
+    } for i in range(len(category))]
+
+    demo = visual.draw_panoptic_seg(mask_all.cpu(), category)  # rgb Image
     res = demo.get_image()
 
     return Image.fromarray(res), object_mask_list
-

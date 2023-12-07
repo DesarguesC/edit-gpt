@@ -209,3 +209,63 @@ def seed_everything(seed: int=0):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
+
+def fix_cond_shapes(model, prompt_condition, uc):
+    if uc is None:
+        return prompt_condition, uc
+    global null_cond
+    if null_cond is None:
+        null_cond = model.get_learned_conditioning([""])
+    while prompt_condition.shape[1] > uc.shape[1]:
+        uc = torch.cat((uc, null_cond.repeat((uc.shape[0], 1, 1))), axis=1)
+    while prompt_condition.shape[1] < uc.shape[1]:
+        prompt_condition = torch.cat((prompt_condition, null_cond.repeat((prompt_condition.shape[0], 1, 1))), axis=1)
+    return prompt_condition, uc
+
+
+def load_model_from_config(config, ckpt, vae_ckpt=None, verbose=False):
+    print(f"Loading model from {ckpt}")
+    sd = read_state_dict(ckpt)
+    model = instantiate_from_config(config.model)
+    m, u = model.load_state_dict(sd, strict=False)
+    if len(m) > 0 and verbose:
+        print("missing keys:")
+        print(m)
+    if len(u) > 0 and verbose:
+        print("unexpected keys:")
+        print(u)
+
+    if 'anything' in ckpt.lower() and vae_ckpt is None:
+        vae_ckpt = 'models/anything-v4.0.vae.pt'
+
+    if vae_ckpt is not None and vae_ckpt != 'None':
+        print(f"Loading vae model from {vae_ckpt}")
+        vae_sd = torch.load(vae_ckpt, map_location="cpu")
+        if "global_step" in vae_sd:
+            print(f"Global Step: {vae_sd['global_step']}")
+        sd = vae_sd["state_dict"]
+        m, u = model.first_stage_model.load_state_dict(sd, strict=False)
+        if len(m) > 0 and verbose:
+            print("missing keys:")
+            print(m)
+        if len(u) > 0 and verbose:
+            print("unexpected keys:")
+            print(u)
+
+    model.cuda()
+    model.eval()
+    return model
+
+
+def read_state_dict(checkpoint_file, print_global_state=False):
+    _, extension = os.path.splitext(checkpoint_file)
+    if extension.lower() == ".safetensors":
+        pl_sd = load_file(checkpoint_file, device='cpu')
+    else:
+        pl_sd = torch.load(checkpoint_file, map_location='cpu')
+
+    if print_global_state and "global_step" in pl_sd:
+        print(f"Global Step: {pl_sd['global_step']}")
+
+    sd = get_state_dict_from_checkpoint(pl_sd)
+    return sd

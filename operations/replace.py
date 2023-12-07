@@ -10,6 +10,8 @@ from prompt.item import Label
 from prompt.guide import get_response
 from jieba import re
 from seem.masks import middleware
+from ldm.inference_base import diffusion_inference
+from basicsr.utils import tensor2img
 
 
 def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[tuple]):
@@ -40,9 +42,11 @@ def match_sam_box(mask: np.array, sam_list: list[tuple]):
     return bbox, sam_list
 
 
-def preprocess_image2mask(opt, img: Image):
+def preprocess_image2mask(opt, img: Image, diffusion_image: Image):
+    if not isinstance(diffusion_image, Image):
+        diffusion_image = Image.fromarray(diffusion_image)
     # deal with the image removed target noun
-    res_all, objects_masks_list = middleware(opt=opt, image=img, reftxt=None, tasks=[])
+    res_all, objects_masks_list = middleware(opt=opt, image=img, diffusion_image=diffusion_image)
     res_all.save('./tmp/panoptic-seg.png')
     return res_all, objects_masks_list
 
@@ -52,6 +56,12 @@ def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None
     # assert mask_generator != None, 'mask_generator not initialized'
     assert edit_agent != None, 'no edit agent!'
     img_pil = Image.open(opt.in_dir).convert('RGB')
+    opt.W, opt.H = img_pil.size
+    sd_model, sd_sampler = get_sd_models(opt)
+    diffusion_image = diffusion_inference(opt, new_noun, sd_model, sd_sampler)
+    diffusion_pil = Image.fromarray(tensor2img(diffusion_image))
+    seg_res, objects_masks_list = preprocess_image2mask(opt, img_pil, diffusion_pil)
+
 
 
     removed_np, target_mask, target_box, *_ = RM(opt, old_noun, remove_mask=True)
