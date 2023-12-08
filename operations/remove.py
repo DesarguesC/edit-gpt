@@ -73,9 +73,10 @@ def Remove_Me(opt, target_noun, remove_mask=False, mask=None):
 
     img_pil = Image.open(opt.in_dir).convert('RGB')
     target_mask = None
-    if remove_mask and mask == None:
-        _, target_mask, _ = query_middleware(opt, img_pil, target_noun)
-    elif mask != None:
+    if not remove_mask and (mask is None):
+        res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
+        cv2.imwrite(f'./static-inpaint/res-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
+    elif mask is not None:
         target_mask = mask
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil,
                                   ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask if remove_mask else None)

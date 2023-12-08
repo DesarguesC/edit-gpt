@@ -18,9 +18,9 @@ import subprocess
 from PIL import Image
 import random
 
-t = []
-t.append(transforms.Resize(512, interpolation=Image.BICUBIC))
-transform = transforms.Compose(t)
+# t = []
+# t.append(transforms.Resize(512, interpolation=Image.BICUBIC))
+# transform = transforms.Compose(t)
 metadata = MetadataCatalog.get('coco_2017_train_panoptic')
 all_classes = [name.replace('-other','').replace('-merged','') for name in COCO_PANOPTIC_CLASSES] + ["others"]
 colors_list = [(np.array(color['color'])/255).tolist() for color in COCO_CATEGORIES] + [[1, 1, 1]]
@@ -47,9 +47,9 @@ def query_middleware(opt, image: Image, reftxt: str):
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"],
                                                                                  is_eval=True)
     # get text-image mask
-    image_ori = transform(image)
-    width, height = image_ori.size
-    image_ori = np.asarray(image_ori)
+    # image_ori = transform(image)
+    width, height = image.size
+    image_ori = np.asarray(image)
     images = torch.from_numpy(image_ori.copy()).permute(2, 0, 1).cuda()
     data = {"image": images, "height": height, "width": width}
     visual = Visualizer(image_ori, metadata=metadata)
@@ -59,6 +59,7 @@ def query_middleware(opt, image: Image, reftxt: str):
     seem_model.model.task_switch['grounding'] = False
     seem_model.model.task_switch['audio'] = False
     seem_model.model.task_switch['grounding'] = True
+    # seem_model.model.task_switch['bbox'] = True
 
     data['text'] = [reftxt]
     batch_inputs = [data]
@@ -111,9 +112,10 @@ def middleware(opt, image: Image, visual_mode=True):
 
 def gain_panoptic_seg(seem_model, image: Image, visual_mode=True):
 
-    image_ori = transform(image)
-    width, height = image_ori.size
-    image_ori = np.asarray(image_ori)
+    # image_ori = transform(image)
+    print(image.size)
+    width, height = image.size
+    image_ori = np.asarray(image)
     images = torch.from_numpy(image_ori.copy()).permute(2, 0, 1).cuda()
 
     if visual_mode:
@@ -126,7 +128,7 @@ def gain_panoptic_seg(seem_model, image: Image, visual_mode=True):
     seem_model.model.task_switch['grounding'] = False
     seem_model.model.task_switch['audio'] = False
     seem_model.model.task_switch['grounding'] = True
-    seem_model.model.task_switch['bbox'] = True
+    # seem_model.model.task_switch['bbox'] = True
     # data['text'] = [reftxt]
     batch_inputs = [data]
 

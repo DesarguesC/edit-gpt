@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 # from utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog as mt
-import torch
+import torch, cv2
 from torch import autocast
 from prompt.item import Label
 from prompt.guide import get_response
@@ -70,11 +70,12 @@ def generate_example(opt, new_noun) -> Image:
     with torch.inference_mode(),  sd_model.ema_scope(), autocast('cuda'):
         seed_everything(opt.seed)
         diffusion_image = diffusion_inference(opt, new_noun, sd_model, sd_sampler)
-        diffusion_image = tensor2img(diffusion_iamge)
+        diffusion_image = tensor2img(diffusion_image)
         cv2.imwrite('./static/ref.jpg', diffusion_image)
+        print(f'example saved at \'./static/ref.jpg\'')
         diffusion_image = cv2.cvtColor(diffusion_image, cv2.COLOR_BGR2RGB)
     
-    return Image.fromarray(diffusion_iamge) # pil
+    return Image.fromarray(diffusion_image) # pil
 
 
 def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None, edit_agent=None):
@@ -91,9 +92,10 @@ def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None
     # old_noun
     _, mask_1, _ = query_middleware(opt, img_pil, old_noun) # not sure if it can get box for single target
     
-    rm_img = RM(opt, old_noun, remove_mask=True, mask=mask_1)
-    res, panoptic_list = middleware(opt, rm_img)
+    rm_img, *_ = RM(opt, old_noun, remove_mask=True, mask=mask_1)
+    rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
     
+    res, panoptic_list = middleware(opt, rm_img)
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
     
     print('exit before rescaling')

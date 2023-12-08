@@ -174,7 +174,7 @@ def get_sd_models(opt):
 def diffusion_inference(opt, new_target, model, sampler, **kwargs):
     # get text embedding
     # model.to(torch.float32)
-    c = model.get_learned_conditioning(['a kind of  ' + new_target + PROMPT_BASE])
+    c = model.get_learned_conditioning(['a/an  ' + new_target + PROMPT_BASE])
     if opt.scale != 1.0:
         uc = model.get_learned_conditioning([opt.neg_prompt])
     else:
