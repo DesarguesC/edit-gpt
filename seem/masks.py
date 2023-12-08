@@ -34,10 +34,12 @@ from seem.demo.seem.tasks import *
 
 
 def query_middleware(opt, image: Image, reftxt: str):
-    # target-noun => mask & box
-
-    # image: removed pil image
-    # reftxt: query target text
+    """
+        only query mask&box for single target-noun
+        
+        image: removed pil image
+        reftxt: query target text
+    """
     cfg = load_opt_from_config_files([opt.seem_cfg])
     cfg['device'] = opt.device
     seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
@@ -90,7 +92,7 @@ def query_middleware(opt, image: Image, reftxt: str):
     return Image.fromarray(res), pred_masks_pos, pred_box_pos
 
 
-def middleware(opt, image: Image, diffusion_image: Image, visual_mode=True):
+def middleware(opt, image: Image, visual_mode=True):
     """
         image: target not removed PIL image
         only to create Panoptic segmentation
@@ -102,13 +104,9 @@ def middleware(opt, image: Image, diffusion_image: Image, visual_mode=True):
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
 
     res, lists = gain_panoptic_seg(seem_model, image)
-    dif_res, dif_lists = gain_panoptic_seg(seem_model, diffusion_image)
-
-    print('exit from middleware')
-    exit(0)
-
-    return res, lists, dif_res, dif_lists
-
+    # dif_res, dif_lists = gain_panoptic_seg(seem_model, diffusion_image)
+    
+    return res, lists
 
 
 def gain_panoptic_seg(seem_model, image: Image, visual_mode=True):

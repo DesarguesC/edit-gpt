@@ -6,13 +6,14 @@ import numpy as np
 # from utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog as mt
 import torch
+from torch import autocast
 from prompt.item import Label
 from prompt.guide import get_response
 from jieba import re
-from seem.masks import middleware
-from ldm.inference_base import diffusion_inference, get_sd_models, 
+from seem.masks import middleware, query_middleware
+from ldm.inference_base import diffusion_inference, get_sd_models
 from basicsr.utils import tensor2img
-
+from pytorch_lightning import seed_everything
 
 def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[tuple]):
     # masks: segmentation gained from SEEM
@@ -42,27 +43,67 @@ def match_sam_box(mask: np.array, sam_list: list[tuple]):
     return bbox, sam_list
 
 
-def preprocess_image2mask(opt, img: Image, diffusion_image: Image):
-    if not isinstance(diffusion_image, Image):
-        diffusion_image = Image.fromarray(diffusion_image)
+def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Image):
+    
+    """
+        img => original image
+        diffusion_img => example image
+        
+        TODO: query
+            
+            1. img (original image): query <old_noun> => (box_1, mask_1)
+            2. remove <old_noun> from original image => rm_img
+            3. rm_img (removed image): Panoptic => object-list
+            4. diffusion_img: query <new_noun> => (box_2, mask_2)
+            5. GPT3.5: rescale (box_2, mask_2) according to object-list
+            6. Paint-by-Example: paint [difusion_img] to [rm_img], constrained by [mask_2]
+    """
+    
     # deal with the image removed target noun
     res_all, objects_masks_list = middleware(opt=opt, image=img, diffusion_image=diffusion_image)
     res_all.save('./tmp/panoptic-seg.png')
     return res_all, objects_masks_list
 
+
+def generate_example(opt, new_noun) -> Image:
+    sd_model, sd_sampler = get_sd_models(opt)
+    with torch.inference_mode(),  sd_model.ema_scope(), autocast('cuda'):
+        seed_everything(opt.seed)
+        diffusion_image = diffusion_inference(opt, new_noun, sd_model, sd_sampler)
+        diffusion_image = tensor2img(diffusion_iamge)
+        cv2.imwrite('./static/ref.jpg', diffusion_image)
+        diffusion_image = cv2.cvtColor(diffusion_image, cv2.COLOR_BGR2RGB)
     
+    return Image.fromarray(diffusion_iamge) # pil
+
 
 def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None, edit_agent=None):
     # assert mask_generator != None, 'mask_generator not initialized'
     assert edit_agent != None, 'no edit agent!'
     img_pil = Image.open(opt.in_dir).convert('RGB')
+    
     opt.W, opt.H = img_pil.size
-    sd_model, sd_sampler = get_sd_models(opt)
-    diffusion_image = diffusion_inference(opt, new_noun, sd_model, sd_sampler)
-    diffusion_pil = Image.fromarray(tensor2img(diffusion_image))
-    seg_res, objects_masks_list = preprocess_image2mask(opt, img_pil, diffusion_pil)
+    opt.W, opt.H = ab64(opt.W), ab64(opt.H)
+    img_pil.resize((opt.W, opt.H))
+    
+    diffusion_pil = generate_example(opt, new_noun)
+     
+    # old_noun
+    _, mask_1, _ = query_middleware(opt, img_pil, old_noun) # not sure if it can get box for single target
+    
+    rm_img = RM(opt, old_noun, remove_mask=True, mask=mask_1)
+    res, panoptic_list = middleware(opt, rm_img)
+    
+    _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
+    
+    print('exit before rescaling')
+    exit(0)
+    
+    
+    # seg_res, objects_masks_list = preprocess_image2mask(opt, img_pil, diffusion_pil)
 
-
+    print('exit from replace_target')
+    eixt(0)
 
     removed_np, target_mask, target_box, *_ = RM(opt, old_noun, remove_mask=True)
     removed_pil = Image.fromarray(removed_np)

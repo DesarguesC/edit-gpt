@@ -210,6 +210,9 @@ def seed_everything(seed: int=0):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
 
+    
+null_cond = None
+    
 def fix_cond_shapes(model, prompt_condition, uc):
     if uc is None:
         return prompt_condition, uc
@@ -222,6 +225,35 @@ def fix_cond_shapes(model, prompt_condition, uc):
         prompt_condition = torch.cat((prompt_condition, null_cond.repeat((prompt_condition.shape[0], 1, 1))), axis=1)
     return prompt_condition, uc
 
+
+def get_state_dict_from_checkpoint(pl_sd):
+    pl_sd = pl_sd.pop("state_dict", pl_sd)
+    pl_sd.pop("state_dict", None)
+
+    sd = {}
+    for k, v in pl_sd.items():
+        new_key = transform_checkpoint_dict_key(k)
+
+        if new_key is not None:
+            sd[new_key] = v
+
+    pl_sd.clear()
+    pl_sd.update(sd)
+
+    return pl_sd
+
+checkpoint_dict_replacements = {
+    'cond_stage_model.transformer.text_model.embeddings.': 'cond_stage_model.transformer.embeddings.',
+    'cond_stage_model.transformer.text_model.encoder.': 'cond_stage_model.transformer.encoder.',
+    'cond_stage_model.transformer.text_model.final_layer_norm.': 'cond_stage_model.transformer.final_layer_norm.',
+}
+
+def transform_checkpoint_dict_key(k):
+    for text, replacement in checkpoint_dict_replacements.items():
+        if k.startswith(text):
+            k = replacement + k[len(text):]
+
+    return k
 
 def load_model_from_config(config, ckpt, vae_ckpt=None, verbose=False):
     print(f"Loading model from {ckpt}")
