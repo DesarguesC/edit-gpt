@@ -86,7 +86,7 @@ def target_removing(
 
     rmtxt = 'remove the ' + target_noun
     mask = torch.tensor(mask, dtype=torch.float32, requires_grad=False) if remove_mask and mask is not None else None
-    pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0, mask=mask)
+    pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0, mask=(1.-mask) if mask is not None else None)
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed
 

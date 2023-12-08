@@ -166,6 +166,7 @@ class DDIMSampler(object):
 
             if mask is not None:
                 assert x0 is not None
+                # img_orig = self.model.q_sample(mask*x0+(1.-mask)*img, ts)
                 img_orig = self.model.q_sample(x0, ts)
                 img = img_orig * mask + (1. - mask) * img
 

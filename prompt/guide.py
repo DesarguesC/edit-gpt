@@ -72,8 +72,38 @@ locate_first_ask = """\
                    """
 # find target_noun and new_noun
 
-system_prompt_add = """\
-                        You are an object scaler, capable of generating the size of an object with a known name \
+# system_prompt_rescale = """\
+#                         You are an object scaler, capable of amending the size of an object with a known name \
+#                         based on information about a set of objects with a known name and a known size. \
+#                         The "name" is the category of the object, for example: cat, dog, apple, etc. \
+#                         The "size" of an object with a known name will be represented by a binary tuple (w,h), \
+#                         which represents the size of the smallest rectangular box that can include the object. \
+#                         In addition, all the objects are actually in a rectangular canvas (photo), \
+#                         all the rectangular boxes (width and height is represented as w and h respectively, \
+#                         and the definition of width and height actually conforms to the form of the opencv-python library).\
+#                         """
+
+# rescale_first_ask = """\
+#                     For your task, I will give you the input as follow:\n\
+#                     Objects: {[name_1, (w_1 h_1))], [name_2, (w_2, h_2))],... , [name_n, (w_n,h_n))]}, \
+#                     Old: [name_{old}, (w_{old}, h_{old})], New: [name_{new}], \
+#                     where [name_i, (w_i,h_i)] in the "Objects" field represents the known information of the i-th object and name_i \
+#                     is the name of the object, (w_i,h_i) represents the width and height of the rectangular box including the i-th object; \
+#                     In "Old" field, we ensure the object [name_{old}, (w_{old}, h_{old})] is included in "Objects" field, \
+#                     and it will be replaced by the object in "New" fied. \
+#                     Your task is to rescale the width and the height of the object in "New" field according to all known information. \
+#                     You only need output the rescaled object in "New" field in form of [name_{new}, (w_{new}', h_{new}')], \
+#                     where w_{new}' and h_{new}' is the new width and height you generate. \
+#                     If you have fully understood your task, please answer "yes" without any extra characters, \
+#                     after which I will give you input.\
+#                 """
+
+
+
+
+
+system_prompt_rescale = """\
+                        You are an object scaler, capable of amending the size of an object with a known name \
                         based on information about a set of objects with a known name and a known size. \
                         The "name" is the category of the object, for example: cat, dog, apple, etc. \
                         The "size" of an object with a known name will be represented by a binary tuple (w,h), \
@@ -83,12 +113,17 @@ system_prompt_add = """\
                         and the definition of width and height actually conforms to the form of the opencv-python library).\
                     """
 
-add_first_ask = """\
-                    For your task, I will give you the input that Objects: {[name_1, (w_1 h_1))], [name_2, (w_2, h_2))],... , [name_2, (w_n,h_n))]}; \
-                    New: name_{new}. Where [name_i, (w_i,h_i)] in the "Objects" field represents the known information of the i-th object, name_i \
-                    is the name of the object (class), (w_i,h_i) represents the width and height of the rectangular box including the i th object; \
-                    While name_{new} in the "new" field indicates that a new object needs to be added, \
-                    your job is to estimate the size of the new object name_{new} (e.i. w_{new}, h_{new}) \
+rescale_first_ask = """\
+                    For your task, I will give you the input that \
+                    Objects: {[name_1, (w_1 h_1))], [name_2, (w_2, h_2))],... , [name_n, (w_n,h_n))]}, \
+                    Old: name_{old}, New: name_{new}. \
+                    The item [name_i, (w_i,h_i)] in the "Objects" field represents the known information of the i-th object. \
+                    "name_i" is the name of the i-th object (class), \
+                    and (w_i,h_i) represents the width and height of the rectangular box including the i th object; \
+                    "name_{old}" in the "Old" field indicates an object to be removed in "Objects" field \
+                    (we ensure that "name_{old}" must appear in "Objects" field), \
+                    while "name_{new}" in the "New" field indicates a new object that will replace "name_{old}". \
+                    Your task is to estimate the size of the new object "name_{new}" (e.i. w_{new}, h_{new}) \
                     based on the size of various objects with known names (i.e. name_i) (i.e. w_i, h_{new}). \
                     And output as [name_{new}, (w_{new}, h_{new})]. If you have fully understood your task, \
                     please answer "yes" without any extra characters, after which I will give you input.\

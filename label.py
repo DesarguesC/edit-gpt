@@ -16,8 +16,6 @@ api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
 engine='gpt-3.5-turbo'
 
-from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
-from segment_anything import SamPredictor, sam_model_registry
 import cv2
 from operations.remove import Remove_Me
 from operations.replace import replace_target
@@ -73,11 +71,6 @@ if 'remove' in sorted_class:
     # TODO: recover the scenery for img_dragged in mask
 
 
-sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
-sam.to(device=opt.device)
-mask_generator = SamAutomaticMaskGenerator(sam)
-
-
 if 'replace' in sorted_class:
     # find the target -> remove -> recover the scenery -> add the new
     noun_replace_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy)
@@ -94,10 +87,10 @@ if 'replace' in sorted_class:
     Remove the <replace_target>
     """
     # TODO: replace has no need of an agent; original mask and box is necessary!
-    add_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
-    yes = get_response(add_agent, add_first_ask)
+    rescale_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
+    yes = get_response(rescale_agent, rescale_first_ask)
     print(yes)
-    replace_target(opt, old_noun, new_noun, mask_generator, edit_agent=add_agent)
+    replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent)
 
     
     print('exit')

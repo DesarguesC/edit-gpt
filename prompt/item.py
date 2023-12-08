@@ -26,18 +26,23 @@ class Label():
         out = out + "}"
         return out
 
-    def get_str_part(self, objectss_masks_list: list[dict]):
+    def get_str_part(self, objects_masks_list: list[dict]):
         # get [name, (w,h)]
-        length = len(objectss_masks_list)
+        length = len(objects_masks_list)
         out = "{"
         for idx in range(length):
-            bb = objectss_masks_list[idx]
+            bb = objects_masks_list[idx]
             name = bb['name']
             *_, w, h = bb['bbox']
             item = f'[{name}, ({w},{h})]'
-            out = ot + item + (', ' if idx < length - 1 else '')
+            out = out + item + (', ' if idx < length - 1 else '')
         out = out + "}"
         return out
+    
+    def get_str_rescale(self, old_noun, new_noun, panoptic_dict):
+        Objects = self.get_str_part(panoptic_dict)
+        return f'Objects: {Objects}, Old: {old_noun}, New: {new_noun}'
+        
 
     def __str__(self):
         out = "{"

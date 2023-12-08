@@ -14,6 +14,9 @@ from seem.masks import middleware, query_middleware
 from ldm.inference_base import diffusion_inference, get_sd_models
 from basicsr.utils import tensor2img
 from pytorch_lightning import seed_everything
+from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
+from segment_anything import SamPredictor, sam_model_registry
+
 
 def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[tuple]):
     # masks: segmentation gained from SEEM
@@ -37,10 +40,9 @@ def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[t
 def match_sam_box(mask: np.array, sam_list: list[tuple]):
     if isinstance(mask, torch.Tensor):
         mask = mask.cpu().detach().numpy()
-    box_idx = np.argmax(np.sum([mask * sam_[1] for sam_ in sam_list]))
+    box_idx = np.argmax(np.sum([mask.squeeze() * sam_[1].squeeze() for sam_ in sam_list]))
     bbox = sam_list[box_idx][0]
-    del sam_list[box_idx]
-    return bbox, sam_list
+    return bbox
 
 
 def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Image):
@@ -74,18 +76,18 @@ def generate_example(opt, new_noun) -> Image:
         cv2.imwrite('./static/ref.jpg', diffusion_image)
         print(f'example saved at \'./static/ref.jpg\'')
         diffusion_image = cv2.cvtColor(diffusion_image, cv2.COLOR_BGR2RGB)
-    
+    del sd_model, sd_sampler
     return Image.fromarray(diffusion_image) # pil
 
 
-def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None, edit_agent=None):
+def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
     # assert mask_generator != None, 'mask_generator not initialized'
     assert edit_agent != None, 'no edit agent!'
     img_pil = Image.open(opt.in_dir).convert('RGB')
     
     opt.W, opt.H = img_pil.size
     opt.W, opt.H = ab64(opt.W), ab64(opt.H)
-    img_pil.resize((opt.W, opt.H))
+    img_pil = img_pil.resize((opt.W, opt.H))
     
     diffusion_pil = generate_example(opt, new_noun)
      
@@ -95,8 +97,35 @@ def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None
     rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=True)
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
     
-    res, panoptic_list = middleware(opt, rm_img)
+    res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
+    
+    sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+    sam.to(device=opt.device)
+    mask_generator = SamAutomaticMaskGenerator(sam)
+    
+    mask_box_list = mask_generator.generate(np.array(img_pil))
+    print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
+    sam_seg_list = [(u['bbox'], u['segmentation']) for u in mask_box_list]
+    box_1 = match_sam_box(mask_1, sam_seg_list) # old noun
+    bbox_list = [match_sam_box(x['mask'], sam_seg_list) for x in panoptic_dict]
+    # assert len(panoptic_dict['mask']) == len(panoptic['name'])
+    # edit_agent: rescale agent
+    print(box_1)
+    print(bbox_list)
+        
+    box_name_list = [{
+        'name': panoptic_dict[i]['name'],
+        'bbox': bbox_list[i]
+    } for i in range(len(bbox_list))]
+    box_name_list.append({
+        'name': old_noun,
+        'bbox': box_1
+    })
+    
+    question = Label().get_str_rescale(old_noun, new_noun, box_name_list)
+    ans = get_response(edit_agent, question)
+    print(ans)
     
     print('exit before rescaling')
     exit(0)

@@ -137,16 +137,17 @@ def gain_panoptic_seg(seem_model, image: Image, visual_mode=True):
     results, mask_box_dict = seem_model.model.evaluate_all(batch_inputs)
     mask_all, category, masks_list = results[-1]['panoptic_seg']
 
-    box_list = results[-1]['instances'].pred_boxes
-    print(f'type(box_list) = {type(box_list)}')
-    print(f'box_list = {box_list}')
-    print(f'len(box_list) = {len(box_list)}')
+    # box_list = results[-1]['instances'].pred_boxes
+    # print(f'type(box_list) = {type(box_list)}')
+    # print(f'box_list = {box_list}')
+    # print(f'len(box_list) = {len(box_list)}')
+    # bb = mask_box_dict['boxes'] # key: masks, boxes
+    # print(f'a box: {bb}')
 
     assert len(category) == len(masks_list), f'len(category) = {len(category)}, len(masks_list) = {len(masks_list)}'
     object_mask_list = [{
         'name': metadata.stuff_classes[category[i]['category_id']],
-        'mask': masks_list[i],
-        'box': box_list[i]
+        'mask': masks_list[i]
     } for i in range(len(category))]
 
     demo = visual.draw_panoptic_seg(mask_all.cpu(), category)  # rgb Image

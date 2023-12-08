@@ -69,9 +69,10 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
     return np.array(removed_pil), label_done
 
 
-def Remove_Me(opt, target_noun, remove_mask=False, mask=None):
+def Remove_Me(opt, target_noun, remove_mask=False, mask=None, resize=True):
 
     img_pil = Image.open(opt.in_dir).convert('RGB')
+    img_pil = img_pil.resize((opt.W, opt.H))
     target_mask = None
     if remove_mask and (mask is None):
         res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
@@ -82,7 +83,9 @@ def Remove_Me(opt, target_noun, remove_mask=False, mask=None):
                                   ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask if remove_mask else None)
     removed_np = np.array(removed_pil)
     
-    # print(f'removed_np.shape = {removed_np.shape}, img_mask.shape = {img_mask.shape}')
+    # target_mask = repeat(rearrange(target_mask, 'c h w -> h w c'), '... 1 -> ... c', c=3)
+    # print(f'target_mask.shape = {target_mask.shape}, removed_np.shape = {removed_np.shape}')
+    # removed_np = removed_np * target_mask + np.array(img_pil) * (1.-target_mask)
     """
         removed_np = img_np * (1. - img_mask) + removed_np * img_mask # probably not use mask at this step
         TODO: using mask to avoid the unnecessary editing of the image but failed
