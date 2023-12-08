@@ -90,9 +90,9 @@ def replace_target(opt, old_noun, new_noun, mask_generator=None, label_done=None
     diffusion_pil = generate_example(opt, new_noun)
      
     # old_noun
-    _, mask_1, _ = query_middleware(opt, img_pil, old_noun) # not sure if it can get box for single target
+    # res, mask_1, _ = query_middleware(opt, img_pil, old_noun) # not sure if it can get box for single target
     
-    rm_img, *_ = RM(opt, old_noun, remove_mask=True, mask=mask_1)
+    rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=True)
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
     
     res, panoptic_list = middleware(opt, rm_img)
