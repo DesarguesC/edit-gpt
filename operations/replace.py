@@ -184,8 +184,8 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
     target_mask = refactor_mask(box_2, mask_2, box_0)
     print(f'target_mask.shape = {target_mask.shape}')
     
-    paint_by_exmple(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
-    
+    output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
+    cv2.imwrite(output_path, tensor2img(results))
     print('exit before rescaling')
     exit(0)
     

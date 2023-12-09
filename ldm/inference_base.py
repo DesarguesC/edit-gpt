@@ -145,7 +145,7 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     parser.add_argument(
         '--n_samples',
         type=int,
-        default=4,
+        default=1,
         help='# of samples to generate',
     )
 
@@ -174,12 +174,20 @@ def get_sd_models(opt):
 def diffusion_inference(opt, new_target, model, sampler, **kwargs):
     # get text embedding
     # model.to(torch.float32)
-    c = model.get_learned_conditioning(['a photo of ' + new_target + PROMPT_BASE])
-    if opt.scale != 1.0:
-        uc = model.get_learned_conditioning([opt.neg_prompt])
+    if isinstance(new_target, str):
+        c = model.get_learned_conditioning(['a photo of ' + new_target + PROMPT_BASE])
+        if opt.scale != 1.0:
+            uc = model.get_learned_conditioning([opt.neg_prompt])
+        else:
+            uc = None
+        c, uc = fix_cond_shapes(model, c, uc)
     else:
+        # torch.Tensor
         uc = None
-    c, uc = fix_cond_shapes(model, c, uc)
+        if opt.scale != 1.0:
+            uc = model.learnable_vector
+        c = model.get_learned_conditioning(new_target.to(torch.float16))
+        c = model.proj_out(c)
 
     if not hasattr(opt, 'H'):
         opt.H = 512
@@ -189,12 +197,13 @@ def diffusion_inference(opt, new_target, model, sampler, **kwargs):
     samples_latents, _ = sampler.sample(
         S=opt.steps,
         conditioning=c,
-        batch_size=1,
+        batch_size=opt.n_samples,
         shape=shape,
         verbose=False,
         unconditional_guidance_scale=opt.scale,
         unconditional_conditioning=uc,
-        x_T=None,
+        x_T=kwargs['start_code'] if 'start_code' in kwargs.keys() else None,
+        eta=opt.eta,
         cond_tau=opt.cond_tau,
         **kwargs
     )
