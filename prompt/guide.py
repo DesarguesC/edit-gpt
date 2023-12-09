@@ -103,31 +103,58 @@ locate_first_ask = """\
 
 
 system_prompt_rescale = """\
-                        You are an object scaler, capable of amending the size of an object with a known name \
-                        based on information about a set of objects with a known name and a known size. \
-                        The "name" is the category of the object, for example: cat, dog, apple, etc. \
-                        The "size" of an object with a known name will be represented by a binary tuple (w,h), \
-                        which represents the size of the smallest rectangular box that can include the object. \
-                        In addition, all the objects are actually in a rectangular canvas (photo), \
-                        all the rectangular boxes (width and height is represented as w and h respectively, \
-                        and the definition of width and height actually conforms to the form of the opencv-python library).\
+                        You are an object scaler, capable of generating a size and location for an object \
+                        after considering size and location information of objects comprehensively. \
+                        You'll be told a series of (x,y,w,h) messages in the form of bounding boxes, \
+                        each with a name field representing the name of the object in it. \
+                        These bounding boxes and object names are obtained from a picture respectively, \
+                        and now we need to replace one of the objects (for which there should be bounding box) information with a specified object. \
+                        Your task is to generate a reasonable bounding box coordinate for this specified object (new object) \
+                        based on the information entered in the form of bounding box and the corresponding object name. \
+
                     """
 
+                        
+#                         Additionally, form of bounding box inputs can be expalined as follow. For a bounding box (x,y,w,h), 
+                        
+#                         The Name is the category of the object, for example: cat, dog, apple, etc. \
+#                         Size and Location of an object will be represented by a quaternion tuple (x,y,w,h), \
+#                         where x, y represent the coordinates of the point at the top left corner of the canvas (photo) \
+#                         and w, h represents the width and height of the smallest rectangular box that can include the object. \
+#                         In addition, all the objects are actually in a rectangular canvas (photo), \
+#                         all the rectangular boxes (width and height is represented as w and h respectively, \
+#                         and the definition of width and height actually conforms to the form of the opencv-python library).\
+
 rescale_first_ask = """\
-                    For your task, I will give you the input that \
-                    Objects: {[name_1, (w_1 h_1))], [name_2, (w_2, h_2))],... , [name_n, (w_n,h_n))]}, \
-                    Old: name_{old}, New: name_{new}. \
-                    The item [name_i, (w_i,h_i)] in the "Objects" field represents the known information of the i-th object. \
-                    "name_i" is the name of the i-th object (class), \
-                    and (w_i,h_i) represents the width and height of the rectangular box including the i th object; \
-                    "name_{old}" in the "Old" field indicates an object to be removed in "Objects" field \
-                    (we ensure that "name_{old}" must appear in "Objects" field), \
-                    while "name_{new}" in the "New" field indicates a new object that will replace "name_{old}". \
-                    Your task is to estimate the size of the new object "name_{new}" (e.i. w_{new}, h_{new}) \
-                    based on the size of various objects with known names (i.e. name_i) (i.e. w_i, h_{new}). \
-                    And output as [name_{new}, (w_{new}, h_{new})]. If you have fully understood your task, \
-                    please answer "yes" without any extra characters, after which I will give you input.\
-                """
+                        For your task, I will give you the input consist of 3 fields named "Objects", "Old" and "New". The Input is as follow:\n\
+                        Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , [Name_n, (X_n,Y_n), (W_n,H_n))]}\n\
+                        Old: Name_{old}\nNew: Name_{new}\n\
+                        For the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field "Objects", \
+                        Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), \
+                        and (X_i,Y_i), (W_i,H_i) represent the location and size respectively. \
+                        Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, \
+                        where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, 
+                        And (W_i,H_i) represents the width and height of a rectangular box that including the i-th object; \
+                        Name_{old} in the "Old" field indicates an object to be removed in "Objects" field \
+                        (we ensure that Name_{old} must appear in "Objects" field), \
+                        while Name_{new} in the "New" field indicates a new object that will replace Name_{old}. \
+                        Additionally, The coordinate (X_{new}, Y_{new}) in output bounding box is just to fine-tune the position of object named Name_{new} \
+                        and it usually stays the same as input. If you have fully understood your task, \
+                        please answer "yes" and mustn't output any extra characters, after which I will give you input. \
+                        For each term I ask, you should only ouput the result in form of [Name_{new}, (X_{new},Y_{new}), (W_{new}, H_{new})] \
+                        and mustn't output any extra words.
+                    """
+
+                    # Your task is to estimate the size (i.e. w_{new}, h_{new}) and location (i.e. x_{new}, y_{new}) of the new object "name_{new}" \
+                    # based on the size of various objects with known names (i.e. name_i), known size (i.e. w_i, h_i) and known location (i.e., x_i, y_i). \
+                    # As for the result, you should output your estimation in form of [name_{new}, (x_{new}, y_{new}, w_{new}, h_{new})]. \
+
+
+
+                    # 2. Position, indicated by both X_i and Y_i in inputs. '\
+                    #  'If the instruction specifies that the current name_i corresponds to the object that needs to be '\
+                    #  'moved to another place, follow it and amend X_i and Y_i'\
+                    # '(If no position editing then keep them the same). \
 
 # system_prompt_replcace: 你是一个物体缩放器，能够根据一系列已知名字、已知大小的物体的信息，生成一个已知名字的物体的大小。“名字”即物体的类别，例如：猫，狗，苹果，等等。
 #                         已知名字的物体的“大小”将用一个二元tuple (w,h)表示，这表示一个能够将物体包括在内的最小的矩形框的大小。另外，所有的物体其实在一张长方形画布（照片）中，

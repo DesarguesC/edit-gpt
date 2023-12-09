@@ -8,7 +8,7 @@ from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict
 DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, ' \
                           'fewer digits, cropped, worst quality, low quality'
 
-PROMPT_BASE = ', 8K, highly detailed, expressively clear, high resolution'
+PROMPT_BASE = 'full body shot, 8K, highly detailed, expressively clear, high resolution'
 
 def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     """get the base argument parser for inference scripts"""
@@ -174,7 +174,7 @@ def get_sd_models(opt):
 def diffusion_inference(opt, new_target, model, sampler, **kwargs):
     # get text embedding
     # model.to(torch.float32)
-    c = model.get_learned_conditioning(['a/an  ' + new_target + PROMPT_BASE])
+    c = model.get_learned_conditioning(['a photo of ' + new_target + PROMPT_BASE])
     if opt.scale != 1.0:
         uc = model.get_learned_conditioning([opt.neg_prompt])
     else:

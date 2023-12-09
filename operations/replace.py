@@ -7,6 +7,7 @@ import numpy as np
 from detectron2.data import MetadataCatalog as mt
 import torch, cv2
 from torch import autocast
+from torch.nn import functional as F
 from prompt.item import Label
 from prompt.guide import get_response
 from jieba import re
@@ -38,10 +39,12 @@ def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[t
     return seem_dict
 
 def match_sam_box(mask: np.array, sam_list: list[tuple]):
+    pointer = sam_list
     if isinstance(mask, torch.Tensor):
         mask = mask.cpu().detach().numpy()
-    box_idx = np.argmax(np.sum([mask.squeeze() * sam_[1].squeeze() for sam_ in sam_list]))
+    box_idx = np.argmax(np.sum([mask.squeeze() * sam_[1].squeeze() / (np.abs(np.sum(mask)-sam_[2])+1) for sam_ in pointer]))
     bbox = sam_list[box_idx][0]
+    del pointer[box_idx]
     return bbox
 
 
@@ -65,6 +68,28 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
     res_all, objects_masks_list = middleware(opt=opt, image=img, diffusion_image=diffusion_image)
     res_all.save('./tmp/panoptic-seg.png')
     return res_all, objects_masks_list
+
+
+def refactor_mask(box_1, mask_1, box_2):
+    """
+        mask_1 is in box_1
+        TODO: refactor mask_1 into box_2 (tend to get smaller)
+    """
+    mask_2 = torch.zero_likes(mask_1)
+    x1, y1, w1, h1 = box_1
+    x2, y2, w2, h2 = box_2
+    valid_mask = 1. * mask_1[x1:x1+w1][y1:y1+h1]
+    valid_mask = F.interpolate(
+        valid_mask,
+        size=(w2, h2),
+        mode='bilinear',
+        align_corners=False
+    )
+    valid_mask[valid_mask>0.5] = 1
+    valid_mask[valid_mask<=0.5] = 0
+    mask_2[x2:x2+w2][y2:y2+h2] = valid_mask
+    return mask_2
+
 
 
 def generate_example(opt, new_noun) -> Image:
@@ -105,15 +130,14 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
     mask_generator = SamAutomaticMaskGenerator(sam)
     
     mask_box_list = mask_generator.generate(np.array(img_pil))
-    print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
-    sam_seg_list = [(u['bbox'], u['segmentation']) for u in mask_box_list]
+    mask_box_list = sorted(mask_box_list, key=(lambda x: x['area']), reverse=True)
+    # print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
+    sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
     box_1 = match_sam_box(mask_1, sam_seg_list) # old noun
     bbox_list = [match_sam_box(x['mask'], sam_seg_list) for x in panoptic_dict]
-    # assert len(panoptic_dict['mask']) == len(panoptic['name'])
-    # edit_agent: rescale agent
     print(box_1)
     print(bbox_list)
-        
+       
     box_name_list = [{
         'name': panoptic_dict[i]['name'],
         'bbox': bbox_list[i]
@@ -123,9 +147,26 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
         'bbox': box_1
     })
     
+    diffusion_mask_box_list = sorted(mask_generator.generate(np.array(diffusion_pil)), key=(lambda x: x['area']), reverse=True)
+    box_2 = match_sam_box(mask_2, [(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list])
+    
+    
+    
+    
     question = Label().get_str_rescale(old_noun, new_noun, box_name_list)
+    print(f'question: {question}')
     ans = get_response(edit_agent, question)
-    print(ans)
+    print(f'ans: {ans}')
+    
+    box_0 = ans.split('[')[-1].split(']')[0]
+    print(f'box_0 = {box_0}')
+    
+    new_noun, x, y, w, h = box_0.split(',')
+    print(f'new_noun, x, y, w,  h = {new_noun}, {x}, {y}, {w}, {h}')
+    
+    
+    
+    
     
     print('exit before rescaling')
     exit(0)
