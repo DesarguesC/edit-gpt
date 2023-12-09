@@ -333,16 +333,16 @@ class DDPM(pl.LightningModule):
         else:
             x = batch[k]
             if isinstance(x, list):
-        return x
+                return x
 
-    if len(x.shape) == 3:
-        x = x[..., None]
-    # x = rearrange(x, 'b h w c -> b c h w')
-    x = x.to(memory_format=torch.contiguous_format).float()
-    mask = mask.to(memory_format=torch.contiguous_format).float()
-    inpaint = inpaint.to(memory_format=torch.contiguous_format).float()
-    reference = reference.to(memory_format=torch.contiguous_format).float()
-    return x, inpaint, mask, reference
+        if len(x.shape) == 3:
+            x = x[..., None]
+        # x = rearrange(x, 'b h w c -> b c h w')
+        x = x.to(memory_format=torch.contiguous_format).float()
+        mask = mask.to(memory_format=torch.contiguous_format).float()
+        inpaint = inpaint.to(memory_format=torch.contiguous_format).float()
+        reference = reference.to(memory_format=torch.contiguous_format).float()
+        return x, inpaint, mask, reference
 
 
 def shared_step(self, batch):
