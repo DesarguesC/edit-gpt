@@ -1,0 +1,7 @@
+TODO: 2023-12-10
+
+可能得把inst-paint和paint-by-example的ldm模块分离开来
+这部分结束基本就OK了，一天不知道能不能做完。
+
+replace.py中最后生成的mask部分还有点问题
+
