@@ -154,8 +154,31 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
     test_model_kwargs['inpaint_image'] = z_inpaint
     test_model_kwargs['inpaint_mask'] = Resize([z_inpaint.shape[-2], z_inpaint.shape[-1]])(
         test_model_kwargs['inpaint_mask'])
-    x_samples_ddim = diffusion_inference(opt, new_target=ref_tensor, model=model,
-                            sampler=sampler, start_code=start_code, test_model_kwargs=test_model_kwargs)
+    
+    uc = None
+    if opt.scale != 1.0:
+        uc = model.learnable_vector
+    c = model.get_learned_conditioning(new_target.to(torch.float16))
+    c = model.proj_out(c)
+    
+    shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
+    
+    samples_ddim, _ = sampler.sample(
+        S=opt.steps,
+        conditioning=c,
+        batch_size=opt.n_samples,
+        shape=shape,
+        verbose=False,
+        unconditional_guidance_scale=opt.scale,
+        unconditional_conditioning=uc,
+        x_T=start_code,
+        test_model_kwargs=test_model_kwargs,
+    )
+    x_samples_ddim = model.decode_first_stage(samples_ddim)
+    x_samples_ddim = torch.clamp((x_samples_ddim + 1.) / 2., min=0., max=1.)
+    
+    # diffusion_inference(opt, new_target=ref_tensor, model=model,
+                            # sampler=sampler, start_code=start_code, test_model_kwargs=test_model_kwargs)
     # cv2.imwrite(output_path, tensor2img(x_samples_ddim))
     return output_path, x_samples_ddim
 

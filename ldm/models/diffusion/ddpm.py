@@ -334,6 +334,7 @@ class DDPM(pl.LightningModule):
             x = batch[k]
             if isinstance(x, list):
                 return x
+            
 
         if len(x.shape) == 3:
             x = x[..., None]

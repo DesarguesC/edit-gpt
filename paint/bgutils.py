@@ -13,11 +13,6 @@ to_tensor = ToTensor()
 inpaint_config_path = './configs/latent-diffusion/gqa-inpaint-ldm-vq-f8-256x256.yaml'
 inpaint_model_base_path = './inst-paint'
 
-
-
-
-
-
 def load_inpaint_model(
     ckpt_base_path = inpaint_model_base_path, config_path = inpaint_config_path, device='cuda'
 ):

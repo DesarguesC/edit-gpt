@@ -172,8 +172,8 @@ class DDIMSampler(object):
             x = torch.cat([x, kwargs['inpaint_image'], kwargs['inpaint_mask']],dim=1)
         elif 'rest' in kwargs:
             x = torch.cat((x, kwargs['rest']), dim=1)
-        else:
-            raise Exception("kwargs must contain either 'test_model_kwargs' or 'rest' key")
+        # else:
+            # raise Exception("kwargs must contain either 'test_model_kwargs' or 'rest' key")
         if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
             e_t = self.model.apply_model(x, t, c)
         else:

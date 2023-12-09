@@ -103,7 +103,8 @@ if 'locate' in sorted_class:
     noun_locate_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
     a = get_response(noun_locate_agent, locate_first_ask)
     print(a)
-
+    
+    # <locate, add> & <locate move>
 
     exit(0)
 
