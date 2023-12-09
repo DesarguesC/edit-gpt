@@ -1,6 +1,7 @@
 from operations.remove import Remove_Me as RM
 from seem.masks import middleware
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
+from paint.example import paint_by_example
 from PIL import Image
 import numpy as np
 # from utils.visualizer import Visualizer
@@ -17,6 +18,7 @@ from basicsr.utils import tensor2img
 from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
+from einops import repeat, rearrange
 
 
 def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[tuple]):
@@ -75,19 +77,29 @@ def refactor_mask(box_1, mask_1, box_2):
         mask_1 is in box_1
         TODO: refactor mask_1 into box_2 (tend to get smaller)
     """
-    mask_2 = torch.zero_likes(mask_1)
+    mask_1 = torch.tensor(mask_1, dtype=torch.float32)
+    mask_2 = torch.zeros_like(mask_1)
+    print(f'mask_1.shape = {mask_1.shape}')
+    
     x1, y1, w1, h1 = box_1
     x2, y2, w2, h2 = box_2
-    valid_mask = 1. * mask_1[x1:x1+w1][y1:y1+h1]
+    
+    print(f'x1, y1, w1, h1 = {x1}, {y1}, {w1}, {h1}')
+    print(f'x2, y2, w2, h2 = {x2}, {y2}, {w2}, {h2}')
+    
+    valid_mask = mask_1[:, x1:x1+w1, y1:y1+h1]
+    valid_mask = rearrange(valid_mask, 'c h w -> 1 c h w')
+    print(f'valid_mask.shape = {valid_mask.shape}')
     valid_mask = F.interpolate(
         valid_mask,
         size=(w2, h2),
         mode='bilinear',
         align_corners=False
     )
-    valid_mask[valid_mask>0.5] = 1
-    valid_mask[valid_mask<=0.5] = 0
-    mask_2[x2:x2+w2][y2:y2+h2] = valid_mask
+    valid_mask[valid_mask>0.5] = 1.
+    valid_mask[valid_mask<=0.5] = 0.
+    mask_2[:, x2:x2+w2, y2:y2+h2] = valid_mask
+    
     return mask_2
 
 
@@ -151,22 +163,28 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
     box_2 = match_sam_box(mask_2, [(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list])
     
     
-    
-    
     question = Label().get_str_rescale(old_noun, new_noun, box_name_list)
     print(f'question: {question}')
     ans = get_response(edit_agent, question)
     print(f'ans: {ans}')
     
     box_0 = ans.split('[')[-1].split(']')[0]
+    punctuation = re.compile('[^\w\s]+')
+    box_0 = re.split(punctuation, box_0)
+    box_0 = [x for x in box_0 if x!= ' ' and x!='']
     print(f'box_0 = {box_0}')
+    print(f'len(box_0) = {len(box_0)}') # length = 5
     
-    new_noun, x, y, w, h = box_0.split(',')
-    print(f'new_noun, x, y, w,  h = {new_noun}, {x}, {y}, {w}, {h}')
+    new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
+    new_noun, x, y, w, h = new_noun.strip(), x.strip(), y.strip(), w.strip(), h.strip()
+    print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
     
+    box_0 = (int(x), int(y), int(w), int(h))
+    print(f'box_0 = {box_0}')
+    target_mask = refactor_mask(box_2, mask_2, box_0)
+    print(f'target_mask.shape = {target_mask.shape}')
     
-    
-    
+    paint_by_exmple(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
     
     print('exit before rescaling')
     exit(0)

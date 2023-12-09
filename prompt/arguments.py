@@ -23,6 +23,10 @@ def get_args():
     parser.add_argument('--seem_ckpt', default='../autodl-tmp/seem_focall_v0.pt', help='path to origin SEEM ckpt')
     parser.add_argument('--inpaint_folder', default='../autodl-tmp/models/gqa_inpaint', help='path to origin gqa_inpaint ckpt folder')
     parser.add_argument('--inpaint_config', default='./paint/inpaint.yaml', help='path to amended gqa_inpaint config path')
+    
+    parser.add_argument('--example_config', default='./configs/v1.yaml', help='config path to Paint-by-Example')
+    parser.add_argument('--example_ckpt', default='../autodl-tmp/model.ckpt', help='ckpt path to Paint-by-Example')
+    
     # parser.add_argument('--sampler', default='DDIM', help='the method for sampling')
     # parser.add_argument('--sd_config', default='./config/', help='your stable diffusion model config')
     # parser.add_argument('--sd_ckpt', default='../autodl-tmp/sd-v1-5.ckpt', help='your stable diffusion model checkpoints')

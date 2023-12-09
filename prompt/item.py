@@ -67,5 +67,5 @@ def get_replace_tuple(replace_tupple: str):
     replace_tupple = replace_tupple.strip(')')
     replace_tupple = replace_tupple.split(',')
     print(f'len replace_tuple = {len(replace_tupple)}')
-    return (replace_tupple[0], replace_tupple[1])
+    return (replace_tupple[0].strip(), replace_tupple[1].strip())
 
