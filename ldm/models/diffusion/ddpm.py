@@ -32,6 +32,10 @@ def disabled_train(self, mode=True):
     does not change anymore."""
     return self
 
+
+def uniform_on_device(r1, r2, shape, device):
+    return (r1 - r2) * torch.rand(*shape, device=device) + r2
+
 class DDPM(pl.LightningModule):
     # DDPM with Gaussian diffusion in image space.
     def __init__(self,
@@ -59,6 +63,7 @@ class DDPM(pl.LightningModule):
                  conditioning_key=None,
                  parameterization="eps", # All assuming fixed variance schedules
                  scheduler_config=None,
+                 use_positional_encodings=False,
                  learn_logvar=False,
                  logvar_init=0.
                  ):
