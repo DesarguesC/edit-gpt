@@ -7,6 +7,8 @@ import numpy as np
 from omegaconf import OmegaConf
 import importlib
 from ldm.util import instantiate_from_config
+from torch.nn import functional as F
+from einops import repeat, rearrange
 
 to_tensor = ToTensor()
 
@@ -59,6 +61,8 @@ def target_removing(
         opt, target_noun: str, image: Image, model=None, resize_shape: Tuple[int, int] = (256, 256),
         ori_shape: Tuple[int, int] = (512, 512), recovery=True, center_crop=False, remove_mask=False, mask=None
 ) -> Image:
+    # print(f'start => image.size = {image.size}')
+    # print(f'start => mask.shape = {mask.shape}')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # ori_shape => image.shape
     model = load_inpaint_model(ckpt_base_path=opt.inpaint_folder, config_path=opt.inpaint_config, device=device) if model==None else model
@@ -81,6 +85,17 @@ def target_removing(
 
     rmtxt = 'remove the ' + target_noun
     mask = torch.tensor(mask, dtype=torch.float32, requires_grad=False) if remove_mask and mask is not None else None
+    mask = repeat(mask, '1 ... -> c ...', c=4)[None].to(device)
+    # print(f'mask.shape = {mask.shape}')
+    h, w = resize_shape
+    mask = F.interpolate(
+        mask,
+        size=(h//opt.f, w//opt.f),
+        mode='bilinear',
+        align_corners=False
+    )
+    mask[mask < 0.5] = 0.
+    mask[mask >= 0.5] = 1.
     pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0, mask=(1.-mask) if mask is not None else None)
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed

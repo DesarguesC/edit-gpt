@@ -80,24 +80,25 @@ def refactor_mask(box_1, mask_1, box_2):
     """
     mask_1 = torch.tensor(mask_1, dtype=torch.float32)
     mask_2 = torch.zeros_like(mask_1)
-    print(f'box_1 = {box_1}, mask_1.shape = {mask_1.shape}, box_2 = {box_2}, mask_2.shape = {mask_2.shape}')
+    # print(f'box_1 = {box_1}, mask_1.shape = {mask_1.shape}, box_2 = {box_2}, mask_2.shape = {mask_2.shape}')
     x1, y1, w1, h1 = box_1
     x2, y2, w2, h2 = box_2
-    valid_mask = mask_1[:, x1:x1+w1, y1:y1+h1]
+    valid_mask = mask_1[:, y1:y1+h1, x1:x1+w1]
     valid_mask = rearrange(valid_mask, 'c h w -> 1 c h w')
-    print(f'valid_mask.shape = {valid_mask.shape}')
+    # print(f'valid_mask.shape = {valid_mask.shape}')
     resized_valid_mask = F.interpolate(
         valid_mask,
-        size=(w2, h2),
+        size=(h2, w2),
         mode='bilinear',
         align_corners=False
-    )
-    resized_valid_mask[valid_mask>0.5] = 1.
-    resized_valid_mask[valid_mask<=0.5] = 0.
-    print(f'resized_valid_mask.shape = {resized_valid_mask.shape}')
+    ).squeeze()
+    resized_valid_mask[resized_valid_mask>0.5] = 1.
+    resized_valid_mask[resized_valid_mask<=0.5] = 0.
+    # print(f'resized_valid_mask.shape = {resized_valid_mask.shape}')
     # x = mask_2[:, x2:x2+w2, y2:y2+h2]
-    print(f'part: mask_2[:, x2:x2+w2, y2:y2+h2].shape = {mask_2[:, x2:x2+w2, y2:y2+h2].shape}')
-    mask_2[:, x2:x2+w2, y2:y2+h2] = resized_valid_mask
+    # print(f'x2:x2+w2 -> {x2}:{x2+w2}, y2:y2+h2 -> {y2}:{y2+h2}')
+    # print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}')
+    mask_2[:, y2:y2+h2, x2:x2+w2] = resized_valid_mask
     
     return mask_2
 
@@ -124,8 +125,6 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
     opt.W, opt.H = img_pil.size
     opt.W, opt.H = ab64(opt.W), ab64(opt.H)
     img_pil = img_pil.resize((opt.W, opt.H))
-    
-    diffusion_pil = generate_example(opt, new_noun)
      
     # old_noun
     # res, mask_1, _ = query_middleware(opt, img_pil, old_noun) # not sure if it can get box for single target
@@ -134,6 +133,7 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
     
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
+    diffusion_pil = generate_example(opt, new_noun)
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
     
     sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)

@@ -83,9 +83,8 @@ def Remove_Me(opt, target_noun, remove_mask=False, mask=None, resize=True):
                                   ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask if remove_mask else None)
     removed_np = np.array(removed_pil)
     
-    # target_mask = repeat(rearrange(target_mask, 'c h w -> h w c'), '... 1 -> ... c', c=3)
-    # print(f'target_mask.shape = {target_mask.shape}, removed_np.shape = {removed_np.shape}')
-    # removed_np = removed_np * target_mask + np.array(img_pil) * (1.-target_mask)
+    # TODO: use part of rm_image, cropped in bbox, to cover the original image
+    
     """
         removed_np = img_np * (1. - img_mask) + removed_np * img_mask # probably not use mask at this step
         TODO: using mask to avoid the unnecessary editing of the image but failed
