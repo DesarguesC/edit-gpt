@@ -137,7 +137,7 @@ def refactor_mask(box_1, mask_1, box_2):
     # print(f'x2:x2+w2 -> {x2}:{x2+w2}, y2:y2+h2 -> {y2}:{y2+h2}')
     # print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}')
     mask_2[:, y2:y2+h2, x2:x2+w2] = resized_valid_mask
-    mask_2 = repeat(rearrange(mask_2, 'b h w -> b 1 h w'), 'b 1 h w -> b c h w', c=3)
+    mask_2 = repeat(rearrange(mask_2, 'b h w -> b 1 h w'), 'b 1 h w -> b c h w', c=1)
 
     return mask_2
 
