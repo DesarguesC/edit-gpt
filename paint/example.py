@@ -13,22 +13,21 @@ from pytorch_lightning import seed_everything
 from torch import autocast
 from contextlib import contextmanager, nullcontext
 import torchvision
-from pldm.util import instantiate_from_config
+from pldm.util import instantiate_from_config, load_model_from_config
 from pldm.models.diffusion.ddim import DDIMSampler
 from pldm.models.diffusion.plms import PLMSSampler
 
-from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
+# from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
 from transformers import AutoFeatureExtractor
 from torchvision.transforms import Resize
 
-wm = "Paint-by-Example"
-wm_encoder = WatermarkEncoder()
-wm_encoder.set_watermark('bytes', wm.encode('utf-8'))
-safety_model_id = "CompVis/stable-diffusion-safety-checker"
-safety_feature_extractor = AutoFeatureExtractor.from_pretrained(safety_model_id)
-safety_checker = StableDiffusionSafetyChecker.from_pretrained(safety_model_id)
+# wm = "Paint-by-Example"
+# wm_encoder = WatermarkEncoder()
+# wm_encoder.set_watermark('bytes', wm.encode('utf-8'))
+# safety_model_id = "CompVis/stable-diffusion-safety-checker"
+# safety_feature_extractor = AutoFeatureExtractor.from_pretrained(safety_model_id)
+# safety_checker = StableDiffusionSafetyChecker.from_pretrained(safety_model_id)
 
-from pldm.util import load_model_from_config
 
 
 
@@ -120,53 +119,57 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
     start_code = None
     if opt.fixed_code:
         start_code = torch.randn([opt.n_samples, opt.C, opt.H // opt.f, opt.W // opt.f], device=device)
-
-    image_tensor = get_tensor()(base_img.convert('RGB')).unsqueeze(0)
-
-    mask[mask < 0.5] = 0.
-    mask[mask >= 0.5] = 1.
-    mask_tensor = mask.to(torch.float32)
-    assert mask_tensor.shape[-2:] == (opt.H, opt.W), f'mask_tensor.shape = {mask_tensor.shape}'
-
-    ref_p = ref_img.convert('RGB').resize((opt.W,opt.H))
-    ref_tensor = get_tensor_clip()(ref_p).unsqueeze(0).to(device)
-
-    print(f'image_tensor.shape = {image_tensor.shape}, mask_tensor.shape = {mask.shape}, ref_tensor.shape = {ref_tensor.shape}')
-    # 可能得跑一下原始的paint-by-example看大小
-    inpaint_image = image_tensor * mask_tensor
-
-    test_model_kwargs = {
-        'inpaint_mask': mask_tensor.to(device),
-        'inpaint_image': inpaint_image.to(device)
-    }
-
-    z_inpaint = model.encode_first_stage(test_model_kwargs['inpaint_image'])
-    z_inpaint = model.get_first_stage_encoding(z_inpaint).detach()
-    test_model_kwargs['inpaint_image'] = z_inpaint
-    test_model_kwargs['inpaint_mask'] = Resize([z_inpaint.shape[-2], z_inpaint.shape[-1]])(
-        test_model_kwargs['inpaint_mask'])
     
-    uc = None
-    if opt.scale != 1.0:
-        uc = model.learnable_vector
-    c = model.get_learned_conditioning(ref_tensor.to(torch.float16))
-    c = model.proj_out(c)
-    
-    shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
-    
-    samples_ddim, _ = sampler.sample(
-        S=opt.steps,
-        conditioning=c,
-        batch_size=opt.n_samples,
-        shape=shape,
-        verbose=False,
-        unconditional_guidance_scale=opt.scale,
-        unconditional_conditioning=uc,
-        x_T=start_code,
-        test_model_kwargs=test_model_kwargs,
-    )
-    x_samples_ddim = model.decode_first_stage(samples_ddim)
-    x_samples_ddim = torch.clamp((x_samples_ddim + 1.) / 2., min=0., max=1.)
+    precision_scope = autocast if opt.precision == "autocast" else nullcontext
+    with torch.no_grad():
+        with precision_scope("cuda"):
+            with model.ema_scope():
+                
+                image_tensor = get_tensor()(base_img.convert('RGB')).unsqueeze(0)
+                mask[mask < 0.5] = 0.
+                mask[mask >= 0.5] = 1.
+                mask_tensor = mask.to(torch.float32)
+                assert mask_tensor.shape[-2:] == (opt.H, opt.W), f'mask_tensor.shape = {mask_tensor.shape}'
+
+                ref_p = ref_img.convert('RGB').resize((224,224))
+                ref_tensor = get_tensor_clip()(ref_p).unsqueeze(0).to(device)
+
+                print(f'image_tensor.shape = {image_tensor.shape}, mask_tensor.shape = {mask.shape}, ref_tensor.shape = {ref_tensor.shape}')
+                # 可能得跑一下原始的paint-by-example看大小
+                inpaint_image = image_tensor * mask_tensor
+
+                test_model_kwargs = {
+                    'inpaint_mask': mask_tensor.to(device),
+                    'inpaint_image': inpaint_image.to(device)
+                }
+
+                z_inpaint = model.encode_first_stage(test_model_kwargs['inpaint_image'])
+                z_inpaint = model.get_first_stage_encoding(z_inpaint).detach()
+                test_model_kwargs['inpaint_image'] = z_inpaint
+                test_model_kwargs['inpaint_mask'] = Resize([z_inpaint.shape[-2], z_inpaint.shape[-1]])(
+                    test_model_kwargs['inpaint_mask'])
+
+                uc = None
+                if opt.scale != 1.0:
+                    uc = model.learnable_vector
+                c = model.get_learned_conditioning(ref_tensor.to(torch.float16))
+                c = model.proj_out(c)
+
+                shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
+
+                samples_ddim, _ = sampler.sample(
+                    S=opt.steps,
+                    conditioning=c,
+                    batch_size=opt.n_samples,
+                    shape=shape,
+                    verbose=False,
+                    unconditional_guidance_scale=opt.scale,
+                    unconditional_conditioning=uc,
+                    x_T=start_code,
+                    test_model_kwargs=test_model_kwargs,
+                )
+                x_samples_ddim = model.decode_first_stage(samples_ddim)
+                x_samples_ddim = torch.clamp((x_samples_ddim + 1.) / 2., min=0., max=1.)
     
     return output_path, x_samples_ddim
 

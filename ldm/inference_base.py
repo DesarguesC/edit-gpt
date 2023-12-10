@@ -154,17 +154,29 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         default=1,
         help='# of samples to generate',
     )
+    
     parser.add_argument(
         '--ddim_eta',
         type=float,
         default=0.0,
         help="ddim eta (eta=0.0 corresponds to deterministic sampling)"
     )
+    
     parser.add_argument(
         '--fixed_code',
         action='store_true',
         help="if enabled, uses the same starting code across samples"
     )
+    
+    parser.add_argument(
+        '--precision',
+        type=str,
+        help="evaluate at this precision",
+        choices=["full", "autocast"],
+        default="autocast"
+    )
+    
+    
 
     return parser
 
@@ -203,6 +215,7 @@ def diffusion_inference(opt, new_target, model, sampler, **kwargs):
     if not hasattr(opt, 'H'):
         opt.H = 512
         opt.W = 512
+    
     shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
     
     samples_latents, _ = sampler.sample(
