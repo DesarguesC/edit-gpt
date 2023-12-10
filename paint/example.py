@@ -14,9 +14,9 @@ from pytorch_lightning import seed_everything
 from torch import autocast
 from contextlib import contextmanager, nullcontext
 import torchvision
-from ldm.util import instantiate_from_config
-from ldm.models.diffusion.ddim import DDIMSampler
-from ldm.models.diffusion.plms import PLMSSampler
+from pldm.util import instantiate_from_config
+from pldm.models.diffusion.ddim import DDIMSampler
+from pldm.models.diffusion.plms import PLMSSampler
 
 from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
 from transformers import AutoFeatureExtractor
@@ -30,7 +30,6 @@ safety_feature_extractor = AutoFeatureExtractor.from_pretrained(safety_model_id)
 safety_checker = StableDiffusionSafetyChecker.from_pretrained(safety_model_id)
 
 from ldm.util import load_model_from_config
-from ldm.inference_base import diffusion_inference
 
 
 
@@ -106,7 +105,6 @@ def get_tensor_clip(normalize=True, toTensor=True):
     return torchvision.transforms.Compose(transform_list)
 
 
-
 def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base_img: Image = None):
     seed_everything(opt.seed)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -142,13 +140,6 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
         'inpaint_image': inpaint_image.to(device)
     }
 
-    uc = None
-    if opt.scale != 1.0:
-        uc = model.learnable_vector
-    c = model.get_learned_conditioning(ref_tensor.to(torch.float16))
-    c = model.proj_out(c)
-
-    inpaint_mask = test_model_kwargs['inpaint_mask']
     z_inpaint = model.encode_first_stage(test_model_kwargs['inpaint_image'])
     z_inpaint = model.get_first_stage_encoding(z_inpaint).detach()
     test_model_kwargs['inpaint_image'] = z_inpaint
@@ -158,7 +149,7 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
     uc = None
     if opt.scale != 1.0:
         uc = model.learnable_vector
-    c = model.get_learned_conditioning(new_target.to(torch.float16))
+    c = model.get_learned_conditioning(ref_tensor.to(torch.float16))
     c = model.proj_out(c)
     
     shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
