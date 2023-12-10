@@ -1,6 +1,6 @@
 model:
   base_learning_rate: 1.0e-05
-  target: ldm.models.diffusion.ddpm.LatentDiffusion
+  target: pldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.00085
     linear_end: 0.0120
@@ -19,7 +19,7 @@ model:
     use_ema: False
 
     scheduler_config: # 10000 warmup steps
-      target: ldm.lr_scheduler.LambdaLinearScheduler
+      target: pldm.lr_scheduler.LambdaLinearScheduler
       params:
         warm_up_steps: [ 10000 ]
         cycle_lengths: [ 10000000000000 ] # incredibly large number to prevent corner cases
@@ -28,7 +28,7 @@ model:
         f_min: [ 1. ]
 
     unet_config:
-      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
+      target: pldm.modules.diffusionmodules.openaimodel.UNetModel
       params:
         image_size: 32 # unused
         in_channels: 9
@@ -46,7 +46,7 @@ model:
         add_conv_in_front_of_unet: False
 
     first_stage_config:
-      target: ldm.models.autoencoder.AutoencoderKL
+      target: pldm.models.autoencoder.AutoencoderKL
       params:
         embed_dim: 4
         monitor: val/rec_loss
@@ -69,7 +69,7 @@ model:
           target: torch.nn.Identity
 
     cond_stage_config:
-      target: ldm.modules.encoders.modules.FrozenCLIPImageEmbedder
+      target: pldm.modules.encoders.modules.FrozenCLIPImageEmbedder
 
 data:
   target: main.DataModuleFromConfig
@@ -77,21 +77,21 @@ data:
       batch_size: 4
       wrap: False
       train:
-          target: ldm.data.open-images.OpenImageDataset
+          target: pldm.data.open-images.OpenImageDataset
           params:
               state: train
               dataset_dir: dataset/open-images
               arbitrary_mask_percent: 0.5
               image_size: 512
       validation:
-          target: ldm.data.open-images.OpenImageDataset
+          target: pldm.data.open-images.OpenImageDataset
           params:
               state: validation
               dataset_dir: dataset/open-images 
               arbitrary_mask_percent: 0.5
               image_size: 512
       test:
-          target: ldm.data.open-images.OpenImageDataset
+          target: pldm.data.open-images.OpenImageDataset
           params:
               state: test
               dataset_dir: dataset/open-images
