@@ -226,7 +226,7 @@ def diffusion_inference(opt, new_target, model, sampler, **kwargs):
         verbose=False,
         unconditional_guidance_scale=opt.scale,
         unconditional_conditioning=uc,
-        x_T=kwargs['start_code'] if 'start_code' in kwargs.keys() else None,
+        x_T=None,
         eta=opt.ddim_eta,
         cond_tau=opt.cond_tau,
     )
