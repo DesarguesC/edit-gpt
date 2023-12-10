@@ -75,30 +75,29 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
 def refactor_mask(box_1, mask_1, box_2):
     """
         mask_1 is in box_1
-        TODO: refactor mask_1 into box_2 (tend to get smaller)
+        reshape mask_1 into box_2, as mask_2, return
+        TODO: refactor mask_1 into box_2 (tend to get smaller ?)
     """
     mask_1 = torch.tensor(mask_1, dtype=torch.float32)
     mask_2 = torch.zeros_like(mask_1)
-    print(f'mask_1.shape = {mask_1.shape}')
-    
+    print(f'box_1 = {box_1}, mask_1.shape = {mask_1.shape}, box_2 = {box_2}, mask_2.shape = {mask_2.shape}')
     x1, y1, w1, h1 = box_1
     x2, y2, w2, h2 = box_2
-    
-    print(f'x1, y1, w1, h1 = {x1}, {y1}, {w1}, {h1}')
-    print(f'x2, y2, w2, h2 = {x2}, {y2}, {w2}, {h2}')
-    
     valid_mask = mask_1[:, x1:x1+w1, y1:y1+h1]
     valid_mask = rearrange(valid_mask, 'c h w -> 1 c h w')
     print(f'valid_mask.shape = {valid_mask.shape}')
-    valid_mask = F.interpolate(
+    resized_valid_mask = F.interpolate(
         valid_mask,
         size=(w2, h2),
         mode='bilinear',
         align_corners=False
     )
-    valid_mask[valid_mask>0.5] = 1.
-    valid_mask[valid_mask<=0.5] = 0.
-    mask_2[:, x2:x2+w2, y2:y2+h2] = valid_mask
+    resized_valid_mask[valid_mask>0.5] = 1.
+    resized_valid_mask[valid_mask<=0.5] = 0.
+    print(f'resized_valid_mask.shape = {resized_valid_mask.shape}')
+    # x = mask_2[:, x2:x2+w2, y2:y2+h2]
+    print(f'part: mask_2[:, x2:x2+w2, y2:y2+h2].shape = {mask_2[:, x2:x2+w2, y2:y2+h2].shape}')
+    mask_2[:, x2:x2+w2, y2:y2+h2] = resized_valid_mask
     
     return mask_2
 
@@ -172,15 +171,13 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
     punctuation = re.compile('[^\w\s]+')
     box_0 = re.split(punctuation, box_0)
     box_0 = [x for x in box_0 if x!= ' ' and x!='']
-    print(f'box_0 = {box_0}')
-    print(f'len(box_0) = {len(box_0)}') # length = 5
+    # print(f'box_0 = {box_0}')
+    # print(f'len(box_0) = {len(box_0)}') # length = 5
     
     new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
     new_noun, x, y, w, h = new_noun.strip(), x.strip(), y.strip(), w.strip(), h.strip()
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
-    
     box_0 = (int(x), int(y), int(w), int(h))
-    print(f'box_0 = {box_0}')
     target_mask = refactor_mask(box_2, mask_2, box_0)
     print(f'target_mask.shape = {target_mask.shape}')
     
