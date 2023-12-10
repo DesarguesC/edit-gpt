@@ -1,5 +1,5 @@
+import re
 from prompt.guide import *
-import clip
 from prompt.util import get_image_from_box as get_img
 from prompt.item import Label, get_replace_tuple
 import torch
@@ -19,6 +19,7 @@ engine='gpt-3.5-turbo'
 import cv2
 from operations.remove import Remove_Me
 from operations.replace import replace_target
+from operations.locate import create_location
 
 opt = get_args()
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -26,33 +27,17 @@ opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 
 noun_list = []
 label_done = Label()
-
-# cut_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_cut, proxy=net_proxy)
 class_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_sort, proxy=net_proxy)
 
-
-
-# edit_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_edit, proxy=net_proxy)
-
 a1 = get_response(class_agent, first_ask_sort)
-
-# a3 = get_response(edit_agent, first_ask_edit)
-# print(a1, a3)
-# print(a1, a2, a3)
 
 sorted_class = get_response(class_agent, opt.edit_txt)
 print(f'sorted class: <{sorted_class}>')
 
-
-
-
-
 prompt_list = []
 location = str(label_done)
 edit_his = []
-
 TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
-
 
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery
@@ -70,7 +55,6 @@ if 'remove' in sorted_class:
     # Recover_Scenery_For(img_dragged)
     # TODO: recover the scenery for img_dragged in mask
 
-
 if 'replace' in sorted_class:
     # find the target -> remove -> recover the scenery -> add the new
     noun_replace_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy)
@@ -80,9 +64,6 @@ if 'replace' in sorted_class:
     print(f'replace_tuple = {replace_tuple}')
     old_noun, new_noun = get_replace_tuple(replace_tuple)
     print(f'old_noun = {old_noun}, new_noun = {new_noun}')
-    
-    # label_done = Remove_Me(opt, replace_target)
-    
     """
     Remove the <replace_target>
     """
@@ -100,11 +81,15 @@ if 'replace' in sorted_class:
 
 if 'locate' in sorted_class:
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
-    noun_locate_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
-    a = get_response(noun_locate_agent, locate_first_ask)
-    print(a)
-    
-    # <locate, add> & <locate move>
+    locate_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
+    ans = get_response(locate_agent, locate_first_ask)
+    print(ans)
+    ans = re.split('[(),]', ans)
+    ans = [x for x in ans if x!='' and x!=' ']
+    print(f'len(ans) = {len(ans)}')
+    target, destination = ans[0], ans[1]
+    create_location(opt, target, destination, edit_agent=locate_agent)
+
 
     exit(0)
 

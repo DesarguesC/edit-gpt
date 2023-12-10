@@ -101,7 +101,42 @@ def target_removing(
     return pil_removed
 
 
+def match_sam_box(mask: np.array, sam_list: list[tuple]):
+    pointer = sam_list
+    if isinstance(mask, torch.Tensor):
+        mask = mask.cpu().detach().numpy()
+    box_idx = np.argmax(np.sum([mask.squeeze() * sam_[1].squeeze() / (np.abs(np.sum(mask)-sam_[2])+1) for sam_ in pointer]))
+    bbox = sam_list[box_idx][0]
+    del pointer[box_idx]
+    return bbox
 
+def refactor_mask(box_1, mask_1, box_2):
+    """
+        mask_1 is in box_1
+        reshape mask_1 into box_2, as mask_2, return
+        TODO: refactor mask_1 into box_2 (tend to get smaller ?)
+    """
+    mask_1 = torch.tensor(mask_1, dtype=torch.float32)
+    mask_2 = torch.zeros_like(mask_1)
+    # print(f'box_1 = {box_1}, mask_1.shape = {mask_1.shape}, box_2 = {box_2}, mask_2.shape = {mask_2.shape}')
+    x1, y1, w1, h1 = box_1
+    x2, y2, w2, h2 = box_2
+    valid_mask = mask_1[:, y1:y1 + h1, x1:x1 + w1]
+    valid_mask = rearrange(valid_mask, 'c h w -> 1 c h w')
+    # print(f'valid_mask.shape = {valid_mask.shape}')
+    resized_valid_mask = F.interpolate(
+        valid_mask,
+        size=(h2, w2),
+        mode='bilinear',
+        align_corners=False
+    ).squeeze()
+    resized_valid_mask[resized_valid_mask > 0.5] = 1.
+    resized_valid_mask[resized_valid_mask <= 0.5] = 0.
+    # print(f'resized_valid_mask.shape = {resized_valid_mask.shape}')
+    # x = mask_2[:, x2:x2+w2, y2:y2+h2]
+    # print(f'x2:x2+w2 -> {x2}:{x2+w2}, y2:y2+h2 -> {y2}:{y2+h2}')
+    # print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}')
+    mask_2[:, y2:y2 + h2, x2:x2 + w2] = resized_valid_mask
 
-
+    return mask_2
 
