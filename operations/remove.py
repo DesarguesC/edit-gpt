@@ -1,13 +1,12 @@
 import numpy as np
-import torch
+import torch, cv2
 from paint.bgutils import target_removing
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 # calculate IoU between SAM & SEEM
 from seem.masks import middleware, query_middleware
 from PIL import Image
 from einops import repeat, rearrange
-
-import cv2
+from paint.bgutils import match_sam_box
 
 
 transform = lambda x: repeat(rearrange(x, 'h w -> h w 1'), '... 1 -> ... b', b=3)
@@ -69,7 +68,7 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
     return np.array(removed_pil), label_done
 
 
-def Remove_Me(opt, target_noun, remove_mask=False, mask=None, resize=True):
+def Remove_Me(opt, target_noun, remove_mask=False, mask=None, mask_generator=None, resize=True):
 
     img_pil = Image.open(opt.in_dir).convert('RGB')
     img_pil = img_pil.resize((opt.W, opt.H))
@@ -81,7 +80,20 @@ def Remove_Me(opt, target_noun, remove_mask=False, mask=None, resize=True):
         target_mask = mask
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil,
                                   ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask if remove_mask else None)
+
     removed_np = np.array(removed_pil)
+
+    if not remove_mask:
+        assert mask_generator != None, 'no mask generator'
+        list_ = mask_generator(np.array(img_pil))
+        _, target_mask, _ = query_middleware(opt, img_pil, target_noun)
+        box = match_sam_box(target_mask, list_)
+        x, y, w, h = box
+        img_ori = np.array(img_pil)
+        img_ori[:, y:y+h, x:x+w] = removed_np
+        removed_np = img_ori
+
+
     
     # TODO: use part of rm_image, cropped in bbox, to cover the original image
     
