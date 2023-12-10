@@ -121,7 +121,7 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
     if opt.fixed_code:
         start_code = torch.randn([opt.n_samples, opt.C, opt.H // opt.f, opt.W // opt.f], device=device)
 
-    image_tensor = get_tensor()(base_img.conver('RGB')).unsqueeze(0)
+    image_tensor = get_tensor()(base_img.convert('RGB')).unsqueeze(0)
 
     mask[mask < 0.5] = 0.
     mask[mask >= 0.5] = 1.
@@ -131,7 +131,8 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
     ref_p = ref_img.convert('RGB').resize((opt.W,opt.H))
     ref_tensor = get_tensor_clip()(ref_p).unsqueeze(0).to(device)
 
-    print(f'image_tensor.shape = {image_tensor.shape}, mask_tensor.shape = {mask.shape}')
+    print(f'image_tensor.shape = {image_tensor.shape}, mask_tensor.shape = {mask.shape}, ref_tensor.shape = {ref_tensor.shape}')
+    # 可能得跑一下原始的paint-by-example看大小
     inpaint_image = image_tensor * mask_tensor
 
     test_model_kwargs = {

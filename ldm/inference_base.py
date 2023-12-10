@@ -141,6 +141,12 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         type=int,
         default=42,
     )
+    
+    parser.add_argument(
+        "--plms",
+        action='store_true',
+        help="use plms sampling",
+    )
 
     parser.add_argument(
         '--n_samples',
