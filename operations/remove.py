@@ -78,20 +78,32 @@ def Remove_Me(opt, target_noun, remove_mask=False, mask=None, mask_generator=Non
         cv2.imwrite(f'./static-inpaint/res-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
     elif mask is not None:
         target_mask = mask
+    elif not remove_mask:
+        res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
+        
+        from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
+        from segment_anything import SamPredictor, sam_model_registry
+        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+        sam.to(device=opt.device)
+        mask_generator = SamAutomaticMaskGenerator(sam)
+        
+        list_ = mask_generator.generate(np.array(img_pil))
+        
+    
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil,
                                   ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask if remove_mask else None)
-
     removed_np = np.array(removed_pil)
-
+    img_ori = np.array(img_pil)
+    assert removed_np.shape == img_ori.shape, f'removed_np.shape = {removed_np.shape}, img_ori.shape = {img_ori.shape}'
     if not remove_mask:
-        assert mask_generator != None, 'no mask generator'
-        list_ = mask_generator(np.array(img_pil))
-        _, target_mask, _ = query_middleware(opt, img_pil, target_noun)
         box = match_sam_box(target_mask, list_)
         x, y, w, h = box
-        img_ori = np.array(img_pil)
-        img_ori[:, y:y+h, x:x+w] = removed_np
+        
+        print(f'remove_mask = {remove_mask}, box = {box}, removed_np.shape = {removed_np.shape}')
+        img_ori[:, y:y+h, x:x+w] = removed_np[:, y:y+h, x:x+w]
         removed_np = img_ori
+    
+        
 
 
     

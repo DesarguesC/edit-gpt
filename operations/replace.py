@@ -94,7 +94,7 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
     # old_noun
     # res, mask_1, _ = query_middleware(opt, img_pil, old_noun) # not sure if it can get box for single target
     
-    rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=True)
+    rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=False)
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
     
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
