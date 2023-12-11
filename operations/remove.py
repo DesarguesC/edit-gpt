@@ -6,6 +6,7 @@ from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 from seem.masks import middleware, query_middleware
 from PIL import Image
 from einops import repeat, rearrange
+from paint.bgutils import refactor_mask, match_sam_box
 
 import cv2
 
@@ -18,7 +19,17 @@ def find_box_idx(mask: np.array, box_list: list[tuple]):
     return np.argmax(np.array(cdot))
 
 
-        
+      
+def box_replace(ori_img, rm_img, target_box):
+    assert ori_img.shape == rm_img.shape, f'ori_img.shape = {ori_img.shape}, rm_img.shape = {rm_img.shape}'
+    x, y, w, h = target_box
+    print(f'x, y, w, h = {target_box}')
+    # if len(rm_img.shape) == 4:
+        # rm_img[:, y:y+h, x:x+w] = ori_img[:, y:y+h, x:x+h]
+    # else:
+    rm_img[:, y:y+h, x:x+w] = ori_img[:, y:y+h, x:x+h]
+    return rm_img
+    
 
 def remove_target(opt, target_noun, tasks=['Text'], mask_generator=None):
     assert mask_generator != None, 'mask_generator not initialized.'
@@ -69,27 +80,45 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
     return np.array(removed_pil), label_done
 
 
-def Remove_Me(opt, target_noun, remove_mask=False, mask=None, resize=True):
+def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=True):
 
     img_pil = Image.open(opt.in_dir).convert('RGB')
+    opt.W, opt.H = img_pil.size
+    opt.W, opt.H = ab64(opt.W), ab64(opt.H)
     img_pil = img_pil.resize((opt.W, opt.H))
+    
     target_mask = None
-    if remove_mask and (mask is None):
+    if remove_mask:
         res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
         cv2.imwrite(f'./static-inpaint/res-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
-    elif mask is not None:
-        target_mask = mask
+    
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil,
-                                  ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask if remove_mask else None)
+                                  ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask)
     removed_np = np.array(removed_pil)
     
     # TODO: use part of rm_image, cropped in bbox, to cover the original image
-    
     """
         removed_np = img_np * (1. - img_mask) + removed_np * img_mask # probably not use mask at this step
         TODO: using mask to avoid the unnecessary editing of the image but failed
         Ablation: SEEM / SAM never perfectly fit the edge, which means mask hardly cover the whole object.
     """
+    if replace_box:
+        assert target_mask is not None, 'None target_mask'
+        from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
+        from segment_anything import SamPredictor, sam_model_registry
+        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+        sam.to(device=opt.device)
+        mask_generator = SamAutomaticMaskGenerator(sam)
+        
+        mask_box_list = mask_generator.generate(np.array(img_pil))
+        mask_box_list = sorted(mask_box_list, key=(lambda x: x['area']), reverse=True)
+        # print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
+        
+        box_ = match_sam_box(target_mask, [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list])
+        
+        removed_np = box_replace(ori_img=np.array(img_pil), rm_img=removed_np, target_box=box_)
+        
+    
     cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
     if remove_mask:
         return removed_np, target_mask, f'./static-inpaint/{opt.out_name}'

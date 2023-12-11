@@ -47,7 +47,7 @@ if 'remove' in sorted_class:
     target_noun = get_response(noun_remove_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
     
-    *_, save_path = Remove_Me(opt, target_noun, remove_mask=True)
+    *_, save_path = Remove_Me(opt, target_noun, remove_mask=True, replace_box=True)
     
     print(f'removed. saved in: {save_path}')
     print('exit from remove')
