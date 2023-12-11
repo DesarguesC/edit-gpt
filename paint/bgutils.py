@@ -105,7 +105,10 @@ def match_sam_box(mask: np.array, sam_list: list[tuple]):
     pointer = sam_list
     if isinstance(mask, torch.Tensor):
         mask = mask.cpu().detach().numpy()
-    box_idx = np.argmax(np.sum([mask.squeeze() * sam_[1].squeeze() / (np.abs(np.sum(mask)-sam_[2])+1) for sam_ in pointer]))
+    box_idx = np.argmax([
+        np.sum(mask.squeeze() * sam_[1].squeeze()) / np.sum(mask) for sam_ in pointer
+    ])
+    # box_idx = np.argmax([np.sum(mask.squeeze() * sam_[1].squeeze()) / (np.abs(np.sum(mask)-sam_[2])+1) for sam_ in pointer])
     bbox = sam_list[box_idx][0]
     del pointer[box_idx]
     return bbox

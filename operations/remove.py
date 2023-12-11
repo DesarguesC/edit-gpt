@@ -21,14 +21,15 @@ def find_box_idx(mask: np.array, box_list: list[tuple]):
 
       
 def box_replace(ori_img, rm_img, target_box):
+    cv2.imwrite(f'./static-inpaint/directRM.jpg', cv2.cvtColor(np.uint8(rm_img), cv2.COLOR_RGB2BGR))
     assert ori_img.shape == rm_img.shape, f'ori_img.shape = {ori_img.shape}, rm_img.shape = {rm_img.shape}'
+    print(f'ori_img.shape = {ori_img.shape}, rm_img.shape = {rm_img.shape}')
+    assert ori_img.shape[-1] in [3,4] and rm_img.shape[-1] in [3,4]
     x, y, w, h = target_box
     print(f'x, y, w, h = {target_box}')
-    # if len(rm_img.shape) == 4:
-        # rm_img[:, y:y+h, x:x+w] = ori_img[:, y:y+h, x:x+h]
-    # else:
-    rm_img[:, y:y+h, x:x+w] = ori_img[:, y:y+h, x:x+h]
-    return rm_img
+    # zeros = np.zeros_like(ori_img)
+    ori_img[y:y+h, x:x+w, :] = rm_img[y:y+h, x:x+w, :]
+    return ori_img
     
 
 def remove_target(opt, target_noun, tasks=['Text'], mask_generator=None):
@@ -102,7 +103,9 @@ def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=Tru
         TODO: using mask to avoid the unnecessary editing of the image but failed
         Ablation: SEEM / SAM never perfectly fit the edge, which means mask hardly cover the whole object.
     """
+    box_ = (0,0,removed_np.shape[1],removed_np.shape[0])
     if replace_box:
+        # global removed_np
         assert target_mask is not None, 'None target_mask'
         from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
         from segment_anything import SamPredictor, sam_model_registry
@@ -113,12 +116,13 @@ def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=Tru
         mask_box_list = mask_generator.generate(np.array(img_pil))
         mask_box_list = sorted(mask_box_list, key=(lambda x: x['area']), reverse=True)
         # print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
-        
+        # print(target_mask)
         box_ = match_sam_box(target_mask, [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list])
-        
-        removed_np = box_replace(ori_img=np.array(img_pil), rm_img=removed_np, target_box=box_)
-        
+        # print(f'box_ = {box_}')
     
+    removed_np = box_replace(np.array(img_pil), removed_np, box_)
+        
+    opt.out_name = (opt.out_name + '.jpg') if not opt.out_name.endswith('.jpg') else opt.out_name
     cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
     if remove_mask:
         return removed_np, target_mask, f'./static-inpaint/{opt.out_name}'

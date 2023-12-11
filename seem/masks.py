@@ -59,7 +59,7 @@ def query_middleware(opt, image: Image, reftxt: str):
     seem_model.model.task_switch['grounding'] = False
     seem_model.model.task_switch['audio'] = False
     seem_model.model.task_switch['grounding'] = True
-    seem_model.model.task_switch['bbox'] = True
+    # seem_model.model.task_switch['bbox'] = True
 
     data['text'] = [reftxt]
     batch_inputs = [data]
