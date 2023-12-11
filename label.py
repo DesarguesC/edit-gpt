@@ -47,7 +47,7 @@ if 'remove' in sorted_class:
     target_noun = get_response(noun_remove_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
     
-    *_, save_path = Remove_Me(opt, target_noun, remove_mask=True, replace_box=True)
+    *_, save_path = Remove_Me(opt, target_noun, remove_mask=True, replace_box=opt.replace_box)
     
     print(f'removed. saved in: {save_path}')
     print('exit from remove')
@@ -71,7 +71,7 @@ if 'replace' in sorted_class:
     rescale_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
     yes = get_response(rescale_agent, rescale_first_ask)
     print(yes)
-    replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent)
+    replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, replace_box=opt.replace_box)
 
     
     print('exit')

@@ -82,7 +82,7 @@ def generate_example(opt, new_noun) -> Image:
     return Image.fromarray(diffusion_image) # pil
 
 
-def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
+def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, replace_box=False):
     # assert mask_generator != None, 'mask_generator not initialized'
     assert edit_agent != None, 'no edit agent!'
     img_pil = Image.open(opt.in_dir).convert('RGB')
@@ -94,7 +94,7 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None):
     # old_noun
     # res, mask_1, _ = query_middleware(opt, img_pil, old_noun) # not sure if it can get box for single target
     
-    rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=True)
+    rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=True, replace_box=replace_box)
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
     
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask

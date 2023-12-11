@@ -10,6 +10,16 @@ DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fin
 
 PROMPT_BASE = 'full body shot, 8K, highly detailed, expressively clear, high resolution'
 
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     """get the base argument parser for inference scripts"""
     # parser = argparse.ArgumentParser()
@@ -176,7 +186,12 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         default="autocast"
     )
     
-    
+    parser.add_argument(
+        '--replace_box',
+        type=str2bool,
+        help="whether to replace removed image in box",
+        default=False
+    )
 
     return parser
 
