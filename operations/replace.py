@@ -97,15 +97,15 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     # res, mask_1, _ = query_middleware(opt, img_pil, old_noun) # not sure if it can get box for single target
     
     rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=True, replace_box=replace_box)
-    rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
+    rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR)).convert('RGB')
     
-    rm_img.save(f'./static-inpaint/res-{opt.out_name}') # SAVE_TEST
+    # rm_img.save(f'./static-inpaint/res-{opt.out_name}') # SAVE_TEST
     
     
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
     diffusion_pil = generate_example(opt, new_noun, use_adapter=opt.use_adapter, ori_img=img_pil)
     
-    diffusion_pil.save('./static/ref.jpg') # SAVE_TEST
+    # diffusion_pil.save('./static/ref.jpg') # SAVE_TEST
     
     # TODO: add conditional condition to diffusion via ControlNet
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
@@ -154,6 +154,9 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     box_0 = (int(x), int(y), int(w), int(h))
     target_mask = refactor_mask(box_2, mask_2, box_0)
     print(f'target_mask.shape = {target_mask.shape}')
+    
+    cv2.imwrite(f'./outputs/mask-{opt.out_name}', cv2.cvtColor(rearrange(repeat(target_mask.squeeze(0), '1 ... -> c ...', c=3), 'c h w -> h w c'), cv2.COLOR_BGR2RGB))
+    # SAVE_MASK_TEST
     
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
     # results = rearrange(results.cpu().detach().numpy(), '1 c h w -> h w c')

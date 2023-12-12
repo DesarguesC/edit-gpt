@@ -21,7 +21,7 @@ def find_box_idx(mask: np.array, box_list: list[tuple]):
 
       
 def box_replace(ori_img, rm_img, target_box):
-    cv2.imwrite(f'./static-inpaint/directRM.jpg', cv2.cvtColor(np.uint8(rm_img), cv2.COLOR_RGB2BGR))
+    # cv2.imwrite(f'./static-inpaint/directRM.jpg', cv2.cvtColor(np.uint8(rm_img), cv2.COLOR_RGB2BGR))
     assert ori_img.shape == rm_img.shape, f'ori_img.shape = {ori_img.shape}, rm_img.shape = {rm_img.shape}'
     print(f'ori_img.shape = {ori_img.shape}, rm_img.shape = {rm_img.shape}')
     assert ori_img.shape[-1] in [3,4] and rm_img.shape[-1] in [3,4]
@@ -121,9 +121,10 @@ def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=Tru
         # print(f'box_ = {box_}')
     
     removed_np = box_replace(np.array(img_pil), removed_np, box_)
+    removed_np = cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR)
         
     opt.out_name = (opt.out_name + '.jpg') if not opt.out_name.endswith('.jpg') else opt.out_name
-    cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
+    cv2.imwrite(f'./static-inpaint/{opt.out_name}', removed_np)
     if remove_mask:
         return removed_np, target_mask, f'./static-inpaint/{opt.out_name}'
     else: return removed_np, f'./static-inpaint/{opt.out_name}'
