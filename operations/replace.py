@@ -41,9 +41,6 @@ def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[t
         del sam_list[box_idx]
     return seem_dict
 
-
-
-
 def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Image):
     
     """
@@ -64,10 +61,6 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
     res_all, objects_masks_list = middleware(opt=opt, image=img, diffusion_image=diffusion_image)
     res_all.save('./tmp/panoptic-seg.png')
     return res_all, objects_masks_list
-
-
-
-
 
 def generate_example(opt, new_noun) -> Image:
     sd_model, sd_sampler = get_sd_models(opt)
@@ -126,7 +119,6 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     diffusion_mask_box_list = sorted(mask_generator.generate(np.array(diffusion_pil)), key=(lambda x: x['area']), reverse=True)
     box_2 = match_sam_box(mask_2, [(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list])
     
-    
     question = Label().get_str_rescale(old_noun, new_noun, box_name_list)
     print(f'question: {question}')
     ans = get_response(edit_agent, question)
@@ -147,58 +139,9 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     print(f'target_mask.shape = {target_mask.shape}')
     
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
-    cv2.imwrite(output_path, tensor2img(results))
-    print('exit before rescaling')
+    # results = rearrange(results.cpu().detach().numpy(), '1 c h w -> h w c')
+    # print(f'results.shape = {results.shape}')
+    cv2.imwrite(output_path, cv2.cvtColor(tensor2img(results), cv2.COLOR_BGR2RGB)) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
+    print('exit from replace')
     exit(0)
     
-    
-    # seg_res, objects_masks_list = preprocess_image2mask(opt, img_pil, diffusion_pil)
-
-    print('exit from replace_target')
-    eixt(0)
-
-    removed_np, target_mask, target_box, *_ = RM(opt, old_noun, remove_mask=True)
-    removed_pil = Image.fromarray(removed_np)
-    seg_res, objects_masks_list = preprocess_image2mask(opt, removed_pil)
-    
-    sam_masks = mask_generator.generate(np.array(seg_res))
-    sam_list = [(box_['bbox'], box_['segmentation']) for box_ in sam_masks]
-    print(f'a box: {sam_list[0][0]}')
-    
-    for i in range(len(objects_masks_list)):
-        mask_ = objects_masks_list[i]['mask']
-        objects_masks_list[i]['bbox'], sam_list = match_sam_box(mask_, sam_list)
-    
-    """
-        objects_masks_list = [
-            {'name': ..., 'mask': ..., 'bbox': ...},
-            ...
-        ]
-    
-    """
-    # print('exit')
-    # exit(0)
-    
-    # TODO: <0> create [name, (x,y,w,h)] list to ask GPT-3.5 and arrange a place for [new_noun, (x,y,w,h)]
-    series = Label().get_str_part(objects_masks_list)
-    print(series)
-    # from revChatGPT.V3 import Chatbot # add new_noun via edit_agent
-    """
-        e.g. new_noun = 'cat'
-    """
-    edit_prompt = "Objects: " + series + "; New: " + new_noun
-    new = get_response(edit_agent, edit_prompt)
-    print(new)
-    w_h = re.split('[{}(),]', new.strip('[').strip(']'))
-    w, h = w_h # gain new target noun sizes (w,h)
-    print(w, h)
-
-    # TODO: <1> create LIST
-    # TODO: <2> apply an agent to generate [new_noun, (x,y,w,h)] ~ [mask]
-    # TODO: <3> add some prompts to generate an image (restore required) for new_noun (via diffusion) and extract [mask, box] via SEEM
-    # TODO: <4> rescale the mask and the box
-    # TODO: <5> Paint-by-Example using the [mask, image] above
-
-
-
-

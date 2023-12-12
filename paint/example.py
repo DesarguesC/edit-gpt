@@ -128,14 +128,13 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
                 image_tensor = get_tensor()(base_img.convert('RGB')).unsqueeze(0)
                 mask[mask < 0.5] = 0.
                 mask[mask >= 0.5] = 1.
-                mask_tensor = mask.to(torch.float32)
+                mask_tensor = 1. - mask.to(torch.float32)
                 assert mask_tensor.shape[-2:] == (opt.H, opt.W), f'mask_tensor.shape = {mask_tensor.shape}'
 
                 ref_p = ref_img.convert('RGB').resize((224,224))
                 ref_tensor = get_tensor_clip()(ref_p).unsqueeze(0).to(device)
 
                 print(f'image_tensor.shape = {image_tensor.shape}, mask_tensor.shape = {mask.shape}, ref_tensor.shape = {ref_tensor.shape}')
-                # 可能得跑一下原始的paint-by-example看大小
                 inpaint_image = image_tensor * mask_tensor
 
                 test_model_kwargs = {
@@ -147,7 +146,7 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
                 z_inpaint = model.get_first_stage_encoding(z_inpaint).detach()
                 test_model_kwargs['inpaint_image'] = z_inpaint
                 test_model_kwargs['inpaint_mask'] = Resize([z_inpaint.shape[-2], z_inpaint.shape[-1]])(
-                    test_model_kwargs['inpaint_mask'])
+                                                                                test_model_kwargs['inpaint_mask'])
 
                 uc = None
                 if opt.scale != 1.0:
