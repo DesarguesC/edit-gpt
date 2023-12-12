@@ -81,7 +81,7 @@ def generate_example(opt, new_noun, use_adapter=False, ori_img: Image = None) ->
         print(f'example saved at \'./static/ref.jpg\'')
         diffusion_image = cv2.cvtColor(diffusion_image, cv2.COLOR_BGR2RGB)
     del sd_model, sd_sampler
-    return Image.fromarray(diffusion_image) # pil
+    return Image.fromarray(np.uint8(diffusion_image)).convert('RGB') # pil
 
 
 def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, replace_box=False):
@@ -99,8 +99,14 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=True, replace_box=replace_box)
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
     
+    rm_img.save(f'./static-inpaint/res-{opt.out_name}') # SAVE_TEST
+    
+    
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
-    diffusion_pil = generate_example(opt, new_noun, use_adapter=opt.use_adapter, ori_img=np.array(img_pil))
+    diffusion_pil = generate_example(opt, new_noun, use_adapter=opt.use_adapter, ori_img=img_pil)
+    
+    diffusion_pil.save('./static/ref.jpg') # SAVE_TEST
+    
     # TODO: add conditional condition to diffusion via ControlNet
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
     
@@ -108,8 +114,8 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     sam.to(device=opt.device)
     mask_generator = SamAutomaticMaskGenerator(sam)
     
-    mask_box_list = mask_generator.generate(np.array(img_pil))
-    mask_box_list = sorted(mask_box_list, key=(lambda x: x['area']), reverse=True)
+    mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), \
+                                                                key=(lambda x: x['area']), reverse=True)
     # print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
     sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
     box_1 = match_sam_box(mask_1, sam_seg_list) # old noun
@@ -126,7 +132,8 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
         'bbox': box_1
     })
     
-    diffusion_mask_box_list = sorted(mask_generator.generate(np.array(diffusion_pil)), key=(lambda x: x['area']), reverse=True)
+    diffusion_mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), \
+                                                                         key=(lambda x: x['area']), reverse=True)
     box_2 = match_sam_box(mask_2, [(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list])
     
     question = Label().get_str_rescale(old_noun, new_noun, box_name_list)

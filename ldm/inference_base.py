@@ -1,17 +1,15 @@
-import torch, argparse
+import torch, argparse, cv2
 from omegaconf import OmegaConf
 from PIL import Image
-from ldm.models.diffusion.ddim import DDIMSampler
-from ldm.models.diffusion.plms import PLMSSampler
-from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict
+import numpy as np
+from enum import Enum, unique
 
-import argparse, torch
-from omegaconf import OmegaConf
-
+from basicsr.utils import img2tensor
+from torch import autocast
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.plms import PLMSSampler
 from ldm.modules.encoders.adapter import Adapter, StyleAdapter, Adapter_light
-from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict
+from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict, resize_numpy_image
 
 
 DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, ' \
@@ -236,7 +234,7 @@ def get_adapter(opt):
     adapter['cond_weight'] = opt.cond_weight # cond_weight = 1.0
 
     adapter['model'] = Adapter(
-        cin=64 * get_cond_ch(cond_type),
+        cin=64 * 3, # sketch / canny: 64 * 1
         channels=[320, 640, 1280, 1280][:4],
         nums_rb=2,
         ksize=1,
@@ -295,10 +293,7 @@ def process_depth_cond(opt, cond_image: Image = None, cond_model = None) -> torc
         return cond_iamge
     if (opt.W, opt.H) != cond_image.size:
         cond_image = cond_image.resize((opt.W, opt.H))
-    if isinstance(cond_image, str):
-        depth = cv2.imread(cond_image)
-    else:
-        depth = cv2.cvtColor(np.array(cond_image), cv2.COLOR_RGB2BGR)
+    depth = cv2.cvtColor(np.array(cond_image), cv2.COLOR_RGB2BGR)
     # depth = resize_numpy_image(depth, max_resolution=opt.max_resolution, resize_short_edge=opt.resize_short_edge)
     # opt.H, opt.W = depth.shape[:2]
     depth = img2tensor(depth).unsqueeze(0) / 127.5 - 1.0

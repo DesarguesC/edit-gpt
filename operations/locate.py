@@ -42,7 +42,7 @@ def create_location(opt, target, destination, edit_agent=None):
     sam.to(device=opt.device)
     mask_generator = SamAutomaticMaskGenerator(sam)
 
-    mask_box_list = mask_generator.generate(np.array(img_pil))
+    mask_box_list = mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR))
     mask_box_list = sorted(mask_box_list, key=(lambda x: x['area']), reverse=True)
 
     sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
