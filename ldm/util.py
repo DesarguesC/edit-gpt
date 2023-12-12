@@ -212,7 +212,22 @@ def seed_everything(seed: int=0):
 
     
 null_cond = None
-    
+
+def resize_numpy_image(image, max_resolution=512 * 512, resize_short_edge=None):
+    h, w = image.shape[:2]
+    if resize_short_edge is not None:
+        k = resize_short_edge / min(h, w)
+    else:
+        k = max_resolution / (h * w)
+        k = k**0.5
+    h = int(np.round(h * k / 64)) * 64
+    w = int(np.round(w * k / 64)) * 64
+    image = cv2.resize(image, (w, h), interpolation=cv2.INTER_LANCZOS4)
+    return image
+
+
+
+
 def fix_cond_shapes(model, prompt_condition, uc):
     if uc is None:
         return prompt_condition, uc

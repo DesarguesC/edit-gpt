@@ -26,7 +26,11 @@ def get_args():
     # paint-by-example
     parser.add_argument('--example_config', default='./configs/v1.yaml', help='config path to Paint-by-Example')
     parser.add_argument('--example_ckpt', default='../autodl-tmp/model.ckpt', help='ckpt path to Paint-by-Example')
-    
+
+    parser.add_argument('--adapter_path', default='../autodl-tmp/t2iadapter/t2iadapter_depth_sd15v2.pth', help='ckpt path to stable adapter')
+    # test different adapter type ? seg / depth / keypose / openpose is ok. To fit sd1.5, we use depth first
+
+
     # parser.add_argument('--sampler', default='DDIM', help='the method for sampling')
     # parser.add_argument('--sd_config', default='./config/', help='your stable diffusion model config')
     # parser.add_argument('--sd_ckpt', default='../autodl-tmp/sd-v1-5.ckpt', help='your stable diffusion model checkpoints')

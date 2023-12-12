@@ -663,7 +663,7 @@ class LatentDiffusion(DDPM):
                 c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
         return self.p_losses(x, c, t, *args, **kwargs)
 
-    def apply_model(self, x_noisy, t, cond, index=None):
+    def apply_model(self, x_noisy, t, cond, adapter_features=None, append_to_context=None, index=None):
         # self.model.conditioning_key is not hybrid
         if not isinstance(cond, dict):
             if not isinstance(cond, list):
@@ -671,7 +671,7 @@ class LatentDiffusion(DDPM):
             key = 'c_concat' if self.model.conditioning_key == 'concat' else 'c_crossattn'
             cond = {key: cond}
 
-        x_recon = self.model(x_noisy, t, **cond, index=index)
+        x_recon = self.model(x_noisy, t, adapter_features=None, append_to_context=None, **cond, index=index)
 
         if isinstance(x_recon, tuple):
             return x_recon[0]
@@ -1029,7 +1029,7 @@ class DiffusionWrapper(pl.LightningModule):
         else:
             self.attn_dict = None
 
-    def forward(self, x, t, c_concat: list = None, c_crossattn: list = None, c_mask: list = None, index=None):
+    def forward(self, x, t, c_concat: list = None, c_crossattn: list = None, c_mask: list = None, index=None, **kwargs):
         if self.keep_attn_maps:
             assert index is not None
             if index not in self.attn_dict:
@@ -1037,18 +1037,18 @@ class DiffusionWrapper(pl.LightningModule):
             else:
                 raise Exception("Attention maps of the current time index has already been assigned.")
         if self.conditioning_key is None:
-            out = self.diffusion_model(x, t)
+            out = self.diffusion_model(x, t, **kwargs)
         elif self.conditioning_key == 'concat':
             if not isinstance(c_concat, list):
                 c_concat = [c_concat]
             xc = torch.cat([x] + c_concat, dim=1)
-            out = self.diffusion_model(xc, t)
+            out = self.diffusion_model(xc, t, **kwargs)
         elif self.conditioning_key == 'crossattn':
             cc = torch.cat(c_crossattn, 1)
             if self.keep_attn_maps:
-                out = self.diffusion_model(x, t, context=cc, attn_dict=self.attn_dict[index])
+                out = self.diffusion_model(x, t, context=cc, attn_dict=self.attn_dict[index], **kwargs)
             else:
-                out = self.diffusion_model(x, t, context=cc)
+                out = self.diffusion_model(x, t, context=cc, **kwargs)
         elif self.conditioning_key == 'hybrid':
             if not isinstance(c_concat, list):
                 c_concat = [c_concat]
@@ -1057,9 +1057,9 @@ class DiffusionWrapper(pl.LightningModule):
             xc = torch.cat([x] + c_concat, dim=1)
             cc = torch.cat(c_crossattn, 1)
             if self.keep_attn_maps:
-                out = self.diffusion_model(xc, t, context=cc, attn_dict=self.attn_dict[index])
+                out = self.diffusion_model(xc, t, context=cc, attn_dict=self.attn_dict[index], **kwargs)
             else:
-                out = self.diffusion_model(xc, t, context=cc)
+                out = self.diffusion_model(xc, t, context=cc, **kwargs)
         else:
             raise NotImplementedError()
         return out

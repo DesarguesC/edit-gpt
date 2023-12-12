@@ -14,7 +14,7 @@ from prompt.item import Label
 from prompt.guide import get_response
 from jieba import re
 from seem.masks import middleware, query_middleware
-from ldm.inference_base import diffusion_inference, get_sd_models
+from ldm.inference_base import *
 from basicsr.utils import tensor2img
 from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
@@ -58,15 +58,24 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
     """
     
     # deal with the image removed target noun
-    res_all, objects_masks_list = middleware(opt=opt, image=img, diffusion_image=diffusion_image)
+    res_all, objects_masks_list = middleware(opt=opt, image=img, diffusion_image=diffusion_img)
     res_all.save('./tmp/panoptic-seg.png')
     return res_all, objects_masks_list
 
-def generate_example(opt, new_noun) -> Image:
+def generate_example(opt, new_noun, use_adapter=False, ori_img: Image = None) -> Image:
     sd_model, sd_sampler = get_sd_models(opt)
+    # ori_img: for depth condition generating
+    adapter_features, append_to_context = None, None
+    if use_adapter:
+        # load adapter model to create adapter_features & append_to_context
+        adapter, cond_model = get_adapter(opt), get_cond_model(opt)
+        depth_cond = process_depth_cond(opt, ori_img, cond_model)
+        adapter_features, append_to_context = get_adapter_feature(depth_cond, adapter)
+
     with torch.inference_mode(),  sd_model.ema_scope(), autocast('cuda'):
         seed_everything(opt.seed)
-        diffusion_image = diffusion_inference(opt, new_noun, sd_model, sd_sampler)
+        diffusion_image = diffusion_inference(opt, new_noun, sd_model, sd_sampler, \
+                                adapter_features=adapter_features, append_to_context=append_to_context)
         diffusion_image = tensor2img(diffusion_image)
         cv2.imwrite('./static/ref.jpg', diffusion_image)
         print(f'example saved at \'./static/ref.jpg\'')
@@ -91,7 +100,8 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
     
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
-    diffusion_pil = generate_example(opt, new_noun)
+    diffusion_pil = generate_example(opt, new_noun, use_adapter=opt.use_adapter, ori_img=np.array(img_pil))
+    # TODO: add conditional condition to diffusion via ControlNet
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
     
     sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)

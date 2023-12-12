@@ -1,9 +1,18 @@
 import torch, argparse
 from omegaconf import OmegaConf
-
+from PIL import Image
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.plms import PLMSSampler
 from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict
+
+import argparse, torch
+from omegaconf import OmegaConf
+
+from ldm.models.diffusion.ddim import DDIMSampler
+from ldm.models.diffusion.plms import PLMSSampler
+from ldm.modules.encoders.adapter import Adapter, StyleAdapter, Adapter_light
+from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict
+
 
 DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, ' \
                           'fewer digits, cropped, worst quality, low quality'
@@ -193,6 +202,13 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         default=False
     )
 
+    parser.add_argument(
+        '--use_adapter',
+        type=str2bool,
+        help="whether to use the control-net adapters",
+        default=False
+    )
+
     return parser
 
 
@@ -215,7 +231,27 @@ def get_sd_models(opt):
 
     return sd_model, sampler
 
-def diffusion_inference(opt, new_target, model, sampler, **kwargs):
+def get_adapter(opt):
+    adapter = {}
+    adapter['cond_weight'] = opt.cond_weight # cond_weight = 1.0
+
+    adapter['model'] = Adapter(
+        cin=64 * get_cond_ch(cond_type),
+        channels=[320, 640, 1280, 1280][:4],
+        nums_rb=2,
+        ksize=1,
+        sk=True,
+        use_conv=False).to(opt.device)
+
+    adapter['model'].load_state_dict(torch.load(opt.adapter_path))
+    return adapter
+
+def get_cond_model(opt):
+    from ldm.modules.extra_condition.midas.api import MiDaSInference
+    model = MiDaSInference(model_type='dpt_hybrid').to(opt.device)  # get cond model
+    return model
+
+def diffusion_inference(opt, new_target, model, sampler, adapter_features=None, append_to_context=None, **kwargs):
     # get text embedding
     # model.to(torch.float32)
     
@@ -243,10 +279,57 @@ def diffusion_inference(opt, new_target, model, sampler, **kwargs):
         unconditional_conditioning=uc,
         x_T=kwargs['start_code'] if 'start_code' in kwargs.keys() else None,
         eta=opt.ddim_eta,
-        cond_tau=opt.cond_tau,
+        adapter_features=adapter_features,
+        append_to_context=append_to_context,
+        cond_tau=opt.cond_tau
     )
 
     x_samples = model.decode_first_stage(samples_latents)
     x_samples = torch.clamp((x_samples + 1.0) / 2.0, min=0.0, max=1.0)
 
     return x_samples
+
+
+def process_depth_cond(opt, cond_image: Image = None, cond_model = None) -> torch.Tensor:
+    if cond_model is None:
+        return cond_iamge
+    if (opt.W, opt.H) != cond_image.size:
+        cond_image = cond_image.resize((opt.W, opt.H))
+    if isinstance(cond_image, str):
+        depth = cv2.imread(cond_image)
+    else:
+        depth = cv2.cvtColor(np.array(cond_image), cv2.COLOR_RGB2BGR)
+    # depth = resize_numpy_image(depth, max_resolution=opt.max_resolution, resize_short_edge=opt.resize_short_edge)
+    # opt.H, opt.W = depth.shape[:2]
+    depth = img2tensor(depth).unsqueeze(0) / 127.5 - 1.0
+    depth = cond_model(depth.to(opt.device)).repeat(1, 3, 1, 1)
+    depth -= torch.min(depth)
+    depth /= torch.max(depth)
+
+    return depth
+
+def get_adapter_feature(inputs, adapters):
+    ret_feat_map = None
+    ret_feat_seq = None
+    if not isinstance(inputs, list):
+        inputs = [inputs]
+        adapters = [adapters]
+
+    for input, adapter in zip(inputs, adapters):
+        cur_feature = adapter['model'](input)
+        if isinstance(cur_feature, list):
+            if ret_feat_map is None:
+                ret_feat_map = list(map(lambda x: x * adapter['cond_weight'], cur_feature))
+            else:
+                ret_feat_map = list(map(lambda x, y: x + y * adapter['cond_weight'], ret_feat_map, cur_feature))
+        else:
+            if ret_feat_seq is None:
+                ret_feat_seq = cur_feature * adapter['cond_weight']
+            else:
+                ret_feat_seq = torch.cat([ret_feat_seq, cur_feature * adapter['cond_weight']], dim=1)
+
+    return ret_feat_map, ret_feat_seq
+
+
+
+
