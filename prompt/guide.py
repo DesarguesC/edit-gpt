@@ -1,6 +1,14 @@
 from revChatGPT.V3 import Chatbot
 import time
 
+"""
+    Remove, Replace 作为两个单独的状态，后面一个包括位置移动、大小修改、对象内容修改（ip2p）  【对象修改是否需要？还是我就做好位置、大小这些】
+    
+"""
+
+
+
+
 system_prompt_sort = """\
                         You are an expert in text categorization, and I will input text for you to categorize. \
                         Note that the text I entered has an editing nature, which is an editing instruction for the picture, \
@@ -48,6 +56,9 @@ replace_first_ask = """\
                         because there may not be only one zebra. If you have understood your task, \
                         please answer "yes" in the round without any extra characters, after which I will give you input and ask you to judge.
                    """
+# 在已知的信息的位置列中，要将Old对象替换为New对象，需要为New生成一个新的bbox格式的数据。请从以下几个方面考虑：
+# 1.相对大小->New的大小(w,h)，根据已知的输入对象区域. 2.相对位置->New的位置(x,y)，注意(x,y)表示bounding box左下角的点坐标【我们以照片的左下角为坐标原点，向右为x正方向，向上为y正方向，这部分讲清楚空间位置】....
+
 
 
 system_prompt_locate = """\
@@ -69,7 +80,15 @@ locate_first_ask = """\
                         please output in the form of "(A,B)". If you have understood your task, \
                         please answer "yes" in the round without any extra characters, \
                         after which I will give you input and ask you to judge. \
-                   """
+                   """ # <locate>
+
+# <resize the object>
+
+
+# Other -> ip2p
+
+
+
 # find target_noun and new_noun
 
 # system_prompt_rescale = """\

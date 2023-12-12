@@ -153,9 +153,11 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
     box_0 = (int(x), int(y), int(w), int(h))
     target_mask = refactor_mask(box_2, mask_2, box_0)
+    target_mask[target_mask >= 0.5] = 1.
+    target_mask[target_mask < 0.5] = 0.
     print(f'target_mask.shape = {target_mask.shape}')
     
-    cv2.imwrite(f'./outputs/mask-{opt.out_name}', cv2.cvtColor(rearrange(repeat(target_mask.squeeze(0), '1 ... -> c ...', c=3), 'c h w -> h w c'), cv2.COLOR_BGR2RGB))
+    cv2.imwrite(f'./outputs/mask-{opt.out_name}', cv2.cvtColor(np.uint8(rearrange(repeat(target_mask.squeeze(0), '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
     # SAVE_MASK_TEST
     
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
