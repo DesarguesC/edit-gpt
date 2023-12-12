@@ -138,6 +138,6 @@ def Remove_Me_SEEM(opt, target_noun, mask_generator=None, label_done=None):
     removed_np = np.array(removed_pil)
     print(f'removed_np.shape = {removed_np.shape}, img_mask.shape = {img_mask.shape}')
 
-    cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR))
+    cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_BGR2RGB))
 
     return removed_np, label_done
