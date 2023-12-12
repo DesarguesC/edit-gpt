@@ -74,7 +74,7 @@ def create_location(opt, target, destination, edit_agent=None):
     np_img = np.array(img_pil)
     print(f'np_img.shape = {np_img.shape}')
     x0, y0, w0, h0 = box_target
-    Ref_Image = cv2.cvtColor(np_img[:, y0:y0+h0, x0:x0+w0], cv2.COLOR_BGR2RGB)
+    Ref_Image = cv2.cvtColor(np_img[y0:y0+h0, x0:x0+w0, :], cv2.COLOR_BGR2RGB)
     output_path, x_sample_ddim = paint_by_example(opt, mask_destination, Image.fromarray(Ref_Image), img_pil)
     cv2.imwrite(output_path, tensor2img(x_sample_ddim))
 
