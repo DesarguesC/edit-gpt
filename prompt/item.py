@@ -26,6 +26,16 @@ class Label():
         out = out + "}"
         return out
 
+    def get_str_location(self, box_mame_list, edit_txt):
+        # box_name_list[-1] used as a hint for GPT
+        out = ""
+        assert len(box_mame_list) > 1, f'abnormal length of the box_name_list, box_name_list: {box_mame_list}'
+        list_ = "Objects: " + self.get_str_part(box_mame_list[0:-1])
+        edit_ = "Edit-Text: " + edit_txt
+        hint_ = "Hint: " + self.get_str_part(box_mame_list[-1])
+        return list_ + '\n' + edit_ + '\n' + hint_
+
+
     def get_str_part(self, objects_masks_list: list[dict]):
         # get [name, (w,h)]
         length = len(objects_masks_list)

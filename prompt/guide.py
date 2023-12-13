@@ -59,6 +59,7 @@ replace_first_ask = """\
 # 在已知的信息的位置列中，要将Old对象替换为New对象，需要为New生成一个新的bbox格式的数据。请从以下几个方面考虑：
 # 1.相对大小->New的大小(w,h)，根据已知的输入对象区域. 2.相对位置->New的位置(x,y)，注意(x,y)表示bounding box左下角的点坐标【我们以照片的左下角为坐标原点，向右为x正方向，向上为y正方向，这部分讲清楚空间位置】....
 
+# TODO: Note that Old-noun & New-noun can be same, tell GPT to adjust the location(x,y) and size(w,h) of the bounding box
 
 
 system_prompt_locate = """\

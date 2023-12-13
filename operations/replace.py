@@ -98,7 +98,7 @@ def generate_example(opt, new_noun, use_adapter=False, ori_img: Image = None, de
     return Image.fromarray(np.uint8(diffusion_image)).convert('RGB') # pil
 
 
-def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, replace_box=False):
+def replace_target(opt, old_noun, new_noun, edit_agent=None, replace_box=False):
     # assert mask_generator != None, 'mask_generator not initialized'
     assert edit_agent != None, 'no edit agent!'
     img_pil = Image.open(opt.in_dir).convert('RGB')
@@ -109,16 +109,9 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     
     rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=True, replace_box=replace_box)
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR)).convert('RGB')
-    
-    # rm_img.save(f'./static-inpaint/res-{opt.out_name}') # SAVE_TEST
-    
-    
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
-    
+
     diffusion_pil = generate_example(opt, new_noun, use_adapter=opt.use_adapter, ori_img=img_pil, depth_mask=mask_1)
-    
-    # diffusion_pil.save('./static/ref.jpg') # SAVE_TEST
-    
     # TODO: add conditional condition to diffusion via ControlNet
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
     
@@ -156,12 +149,9 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     box_0 = ans.split('[')[-1].split(']')[0]
     punctuation = re.compile('[^\w\s]+')
     box_0 = re.split(punctuation, box_0)
-    box_0 = [x for x in box_0 if x!= ' ' and x!='']
-    # print(f'box_0 = {box_0}')
-    # print(f'len(box_0) = {len(box_0)}') # length = 5
+    box_0 = [x.strip() for x in box_0 if x!= ' ' and x!='']
     
     new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
-    new_noun, x, y, w, h = new_noun.strip(), x.strip(), y.strip(), w.strip(), h.strip()
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
     box_0 = (int(x), int(y), int(w), int(h))
     target_mask = refactor_mask(box_2, mask_2, box_0)

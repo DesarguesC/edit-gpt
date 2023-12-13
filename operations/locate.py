@@ -21,36 +21,34 @@ from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamP
 from segment_anything import SamPredictor, sam_model_registry
 from einops import repeat, rearrange
 
-def create_location(opt, target, destination, edit_agent=None):
+def create_location(opt, target, edit_agent=None):
     assert edit_agent != None, 'no edit agent'
-    # move the target to the destination
+    # move the target to the destination, editing via GPT (tell the bounding box)
     img_pil = Image.open(opt.in_dir).convert('RGB')
-
     opt.W, opt.H = img_pil.size
     opt.W, opt.H = ab64(opt.W), ab64(opt.H)
     img_pil = img_pil.resize((opt.W, opt.H))
-
-    # remove the target, get the mask (for bbox searching via SAM)
-    rm_img, target_mask, _ = RM(opt, target, remove_mask=True)
-    rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
-
-    res, panoptic_dict = middleware(opt, rm_img)  # key: name, mask
-    # _, target_mask, _ = query_middleware(opt, img_pil, target)
-    _, destination_mask, _ = query_middleware(opt, img_pil, destination)
+    # resize and prepare the original image
 
     sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
     sam.to(device=opt.device)
     mask_generator = SamAutomaticMaskGenerator(sam)
-
-    mask_box_list = mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR))
-    mask_box_list = sorted(mask_box_list, key=(lambda x: x['area']), reverse=True)
-
+    # prepare SAM, matched via SEEM
+    mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), \
+                           key=(lambda x: x['area']), reverse=True)
     sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
-    box_target = match_sam_box(target_mask, sam_seg_list)  # target box
-    box_destination = match_sam_box(destination_mask, sam_seg_list)
+
+
+    # remove the target, get the mask (for bbox searching via SAM)
+    rm_img, target_mask, _ = RM(opt, target, remove_mask=True)
+    rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR)).convert('RGB')
+    res, panoptic_dict = middleware(opt, rm_img)  # key: name, mask
+
+    # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
+    target_box = match_sam_box(target_mask, sam_seg_list)  # target box
     bbox_list = [match_sam_box(x['mask'], sam_seg_list) for x in panoptic_dict]
-    print(box_target)
-    print(bbox_list)
+    print(target_box)
+    print(f'bbox_list: {bbox_list}')
 
     box_name_list = [{
         'name': panoptic_dict[i]['name'],
@@ -58,26 +56,30 @@ def create_location(opt, target, destination, edit_agent=None):
     } for i in range(len(bbox_list))]
     box_name_list.append({
         'name': target,
-        'bbox': box_target
-    })
+        'bbox': target_box
+    }) # as a hint
 
-    # generate a new box where to place the target
-    question = Label().get_str_location(box_name_list, destination)
-    # remain to implement in Label method
+    question = Label().get_str_location(box_name_list, opt.edit_txt) # => [name, (x,y), (w,h)]
     box_ans = get_response(edit_agent, question)
-    # '[x, y, w, h]'
-    box_ans = box_ans.strip('[').strip(']').split(',')
-    assert len(box_ans) == 4, f'box_ans = {box_ans}'
-    box_ans = (box_ans[0], box_ans[1], box_ans[2], box_ans[3])
-    mask_destination = refactor_mask(box_target, target_mask, box_ans)
+    print(f'box_ans = {box_ans}')
 
-    np_img = np.array(img_pil)
-    print(f'np_img.shape = {np_img.shape}')
-    x0, y0, w0, h0 = box_target
-    Ref_Image = cv2.cvtColor(np_img[y0:y0+h0, x0:x0+w0, :], cv2.COLOR_BGR2RGB)
-    output_path, x_sample_ddim = paint_by_example(opt, mask_destination, Image.fromarray(Ref_Image), img_pil)
+    # deal with the answer, procedure is the same as in replace.py
+    box_ans = box_ans.split('[')[-1].split(']')[0]
+    punctuation = re.compile('[^\w\s]+')
+    box_ans = [x.strip() for x in re.split(punctuation, box_ans) if x != ' ' and x != '']
+    x, y, w, h = int(box_ans[1]), int(box_ans[2]), int(box_ans[3]), int(box_ans[4])
+    box_0 = (x, y, w, h)
+    destination_mask = refactor_mask(target_box, target_mask, box_0)
+
+    Ref_Image = cv2.cvtColor(np.array(img_pil)[y:y+h, x:x+w, :], cv2.COLOR_RGB2BGR)
+    cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(Ref_Image, cv2.COLOR_BGR2RGB))
+    # SAVE_TEST
+    print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
+    Ref_Image = Ref_Image * target_mask
+    output_path, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(Ref_Image), img_pil)
     cv2.imwrite(output_path, tensor2img(x_sample_ddim))
 
     print('exit from create_location')
     exit(0)
+
 
