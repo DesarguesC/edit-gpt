@@ -663,7 +663,7 @@ class LatentDiffusion(DDPM):
                 c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
         return self.p_losses(x, c, t, *args, **kwargs)
 
-    def apply_model(self, x_noisy, t, cond, adapter_features=None, append_to_context=None, index=None):
+    def apply_model(self, x_noisy, t, cond, index=None, adapter_features=None, append_to_context=None, **kwargs):
         # self.model.conditioning_key is not hybrid
         if not isinstance(cond, dict):
             if not isinstance(cond, list):
@@ -671,7 +671,8 @@ class LatentDiffusion(DDPM):
             key = 'c_concat' if self.model.conditioning_key == 'concat' else 'c_crossattn'
             cond = {key: cond}
 
-        x_recon = self.model(x_noisy, t, adapter_features=None, append_to_context=None, **cond, index=index)
+        x_recon = self.model(x_noisy, t, **cond, index=index, adapter_features=adapter_features, append_to_context=append_to_context, **kwargs)
+        # DiffusionWrapper
 
         if isinstance(x_recon, tuple):
             return x_recon[0]

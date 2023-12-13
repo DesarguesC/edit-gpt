@@ -15,7 +15,7 @@ from prompt.guide import get_response
 from jieba import re
 from seem.masks import middleware, query_middleware
 from ldm.inference_base import *
-from basicsr.utils import tensor2img
+from basicsr.utils import tensor2img, img2tensor
 from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
@@ -67,11 +67,18 @@ def generate_example(opt, new_noun, use_adapter=False, ori_img: Image = None) ->
     # ori_img: for depth condition generating
     adapter_features, append_to_context = None, None
     if use_adapter:
+        print('-'*9 + 'Generating via Adapter' + '-'*9)
         # load adapter model to create adapter_features & append_to_context
         adapter, cond_model = get_adapter(opt), get_cond_model(opt)
         depth_cond = process_depth_cond(opt, ori_img, cond_model)
+        cv2.imwrite(f'./static/depth_cond.jpg', tensor2img(depth_cond))
         adapter_features, append_to_context = get_adapter_feature(depth_cond, adapter)
-
+    if isinstance(adapter_features, list):
+        print(len(adapter_features))
+    else:
+        print(adapter_features)
+    print(append_to_context)
+    
     with torch.inference_mode(),  sd_model.ema_scope(), autocast('cuda'):
         seed_everything(opt.seed)
         diffusion_image = diffusion_inference(opt, new_noun, sd_model, sd_sampler, \
@@ -92,9 +99,6 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     opt.W, opt.H = img_pil.size
     opt.W, opt.H = ab64(opt.W), ab64(opt.H)
     img_pil = img_pil.resize((opt.W, opt.H))
-     
-    # old_noun
-    # res, mask_1, _ = query_middleware(opt, img_pil, old_noun) # not sure if it can get box for single target
     
     rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=True, replace_box=replace_box)
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR)).convert('RGB')
@@ -103,6 +107,7 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     
     
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
+    
     diffusion_pil = generate_example(opt, new_noun, use_adapter=opt.use_adapter, ori_img=img_pil)
     
     # diffusion_pil.save('./static/ref.jpg') # SAVE_TEST
@@ -157,13 +162,14 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     target_mask[target_mask < 0.5] = 0.
     print(f'target_mask.shape = {target_mask.shape}')
     
-    cv2.imwrite(f'./outputs/mask-{opt.out_name}', cv2.cvtColor(np.uint8(rearrange(repeat(target_mask.squeeze(0), '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
+    cv2.imwrite(f'./outputs/mask-{opt.out_name}', cv2.cvtColor(np.uint8(255. * \
+                                        rearrange(repeat(target_mask.squeeze(0), '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
     # SAVE_MASK_TEST
     
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
     # results = rearrange(results.cpu().detach().numpy(), '1 c h w -> h w c')
     # print(f'results.shape = {results.shape}')
-    cv2.imwrite(output_path, cv2.cvtColor(tensor2img(results), cv2.COLOR_BGR2RGB)) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
+    cv2.imwrite(output_path, tensor2img(results)) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
     print('exit from replace')
     exit(0)
     

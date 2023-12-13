@@ -82,7 +82,8 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
 
 
 def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=True):
-
+    print('-'*9 + 'Removing' + '-'*9)
+    
     img_pil = Image.open(opt.in_dir).convert('RGB')
     opt.W, opt.H = img_pil.size
     opt.W, opt.H = ab64(opt.W), ab64(opt.H)
