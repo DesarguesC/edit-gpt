@@ -62,7 +62,7 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
     res_all.save('./tmp/panoptic-seg.png')
     return res_all, objects_masks_list
 
-def generate_example(opt, new_noun, use_adapter=False, ori_img: Image = None) -> Image:
+def generate_example(opt, new_noun, use_adapter=False, ori_img: Image = None, depth_mask=None) -> Image:
     sd_model, sd_sampler = get_sd_models(opt)
     # ori_img: for depth condition generating
     adapter_features, append_to_context = None, None
@@ -71,6 +71,13 @@ def generate_example(opt, new_noun, use_adapter=False, ori_img: Image = None) ->
         # load adapter model to create adapter_features & append_to_context
         adapter, cond_model = get_adapter(opt), get_cond_model(opt)
         depth_cond = process_depth_cond(opt, ori_img, cond_model)
+        print(f'depth_cond.shape = {depth_cond.shape}, depth_mask.shape = {depth_mask.shape}')
+        depth_mask = torch.cat([torch.from_numpy(depth_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
+        # depth_mask = repeat(torch.from_numpy(depth_mask), 'b h w -> b c h w', c=3).to(opt.device)
+        if depth_mask is not None:
+            depth_mask[depth_mask < 0.5] = 0.05
+            depth_mask[depth_mask >= 0.5] = 0.95
+            depth_cond = depth_cond * (depth_mask * 0.8) # 1 - depth_mask ?
         cv2.imwrite(f'./static/depth_cond.jpg', tensor2img(depth_cond))
         adapter_features, append_to_context = get_adapter_feature(depth_cond, adapter)
     if isinstance(adapter_features, list):
@@ -108,7 +115,7 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
     
-    diffusion_pil = generate_example(opt, new_noun, use_adapter=opt.use_adapter, ori_img=img_pil)
+    diffusion_pil = generate_example(opt, new_noun, use_adapter=opt.use_adapter, ori_img=img_pil, depth_mask=mask_1)
     
     # diffusion_pil.save('./static/ref.jpg') # SAVE_TEST
     
@@ -137,7 +144,7 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
         'bbox': box_1
     })
     
-    diffusion_mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), \
+    diffusion_mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), \
                                                                          key=(lambda x: x['area']), reverse=True)
     box_2 = match_sam_box(mask_2, [(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list])
     
@@ -158,8 +165,11 @@ def replace_target(opt, old_noun, new_noun, label_done=None, edit_agent=None, re
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
     box_0 = (int(x), int(y), int(w), int(h))
     target_mask = refactor_mask(box_2, mask_2, box_0)
-    target_mask[target_mask >= 0.5] = 1.
-    target_mask[target_mask < 0.5] = 0.
+    
+    target_mask[target_mask >= 0.5] = 0.95
+    target_mask[target_mask < 0.5] = 0.05
+    
+    
     print(f'target_mask.shape = {target_mask.shape}')
     
     cv2.imwrite(f'./outputs/mask-{opt.out_name}', cv2.cvtColor(np.uint8(255. * \
