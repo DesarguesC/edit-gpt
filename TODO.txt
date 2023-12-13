@@ -1,7 +1,7 @@
-TODO: 2023-12-10
+TODO: 2023-12-13
 
-可能得把inst-paint和paint-by-example的ldm模块分离开来
-这部分结束基本就OK了，一天不知道能不能做完。
-
-replace.py中最后生成的mask部分还有点问题
+1. 更改guide.py中locate所需的prompt，要求在guide.py中system_prompt_locate变量附近已经写了，输入格式如Label类中的get_str_locate定义，输出依然是[name, (x,y), (w,h)]格式
+2. 给remove部分的ddpm.inpaint增加一个style的adapter，adapter输入为ori-image
+3. 考虑优化remove的ddpm.inpaint的模式，使用掩码让他只修改对应部分，在此之前需要先弄清楚paint-by-example掩码之外不修改的功能是如何在ddpm中实现的
+4. stable-diffusion 2.1 / stable-diffusion xl
 
