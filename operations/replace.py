@@ -11,7 +11,7 @@ import torch, cv2
 from torch import autocast
 from torch.nn import functional as F
 from prompt.item import Label
-from prompt.guide import get_response
+from prompt.guide import get_response, get_bot, system_prompt_expand
 from jieba import re
 from seem.masks import middleware, query_middleware
 from ldm.inference_base import *
@@ -62,7 +62,7 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
     res_all.save('./tmp/panoptic-seg.png')
     return res_all, objects_masks_list
 
-def generate_example(opt, new_noun, use_adapter=False, ori_img: Image = None, depth_mask=None) -> Image:
+def generate_example(opt, new_noun, expand_agent=None, use_adapter=False, ori_img: Image = None, depth_mask=None) -> Image:
     sd_model, sd_sampler = get_sd_models(opt)
     # ori_img: for depth condition generating
     adapter_features, append_to_context = None, None
@@ -88,8 +88,8 @@ def generate_example(opt, new_noun, use_adapter=False, ori_img: Image = None, de
     
     with torch.inference_mode(),  sd_model.ema_scope(), autocast('cuda'):
         seed_everything(opt.seed)
-        diffusion_image = diffusion_inference(opt, new_noun, sd_model, sd_sampler, \
-                                adapter_features=adapter_features, append_to_context=append_to_context)
+        diffusion_image = diffusion_inference(opt, new_noun, sd_model, sd_sampler, adapter_features=adapter_features, \
+                                              append_to_context=append_to_context, prompt_expand_bot=expand_agent)
         diffusion_image = tensor2img(diffusion_image)
         cv2.imwrite('./static/ref.jpg', diffusion_image)
         print(f'example saved at \'./static/ref.jpg\'')
@@ -98,7 +98,7 @@ def generate_example(opt, new_noun, use_adapter=False, ori_img: Image = None, de
     return Image.fromarray(np.uint8(diffusion_image)).convert('RGB') # pil
 
 
-def replace_target(opt, old_noun, new_noun, edit_agent=None, replace_box=False):
+def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None, replace_box=False):
     # assert mask_generator != None, 'mask_generator not initialized'
     assert edit_agent != None, 'no edit agent!'
     img_pil = Image.open(opt.in_dir).convert('RGB')
@@ -111,7 +111,7 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, replace_box=False):
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR)).convert('RGB')
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
 
-    diffusion_pil = generate_example(opt, new_noun, use_adapter=opt.use_adapter, ori_img=img_pil, depth_mask=mask_1)
+    diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, use_adapter=opt.use_adapter, ori_img=img_pil, depth_mask=mask_1)
     # TODO: add conditional condition to diffusion via ControlNet
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
     

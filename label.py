@@ -28,7 +28,6 @@ opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 noun_list = []
 label_done = Label()
 class_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_sort, proxy=net_proxy)
-
 a1 = get_response(class_agent, first_ask_sort)
 
 sorted_class = get_response(class_agent, opt.edit_txt)
@@ -71,7 +70,8 @@ if 'replace' in sorted_class:
     rescale_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
     yes = get_response(rescale_agent, rescale_first_ask)
     print(yes)
-    replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, replace_box=opt.replace_box)
+    diffusion_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
+    replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, expand_agent=diffusion_agent, replace_box=opt.replace_box)
 
     
     print('exit')

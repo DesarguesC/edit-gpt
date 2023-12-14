@@ -336,3 +336,21 @@ def get_response(chatbot, asks):
             continue
         print('finish')
         return answer
+
+system_prompt_expand = """\
+                        You are a prompt expander, expert in text expansion. Now you'll receive a prompt relative to \
+                        text-driven image generation via Diffusion Models. That means your mission is to expand the \
+                        prompt to much more elaborate one. The input will be a prompt starting with \
+                        "a/an photo of ...", your task is to specify and expand the prompt to let diffusion make sense \
+                        of the prompt so that diffusion can be driven to generate images with high quality and high resolution.
+                       """
+first_ask_expand = """\
+                        For each input you received, you are only to output the expanded prompt without any other \
+                        character. You mustn't output any extra characters except the expanded prompt. If you've \
+                        made sense your task, please answer me \'yes\' and do not output any extra character, either. \
+                        After this I'll give you input prompts.
+                   """
+
+
+
+

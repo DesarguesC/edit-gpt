@@ -10,7 +10,7 @@ from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.plms import PLMSSampler
 from ldm.modules.encoders.adapter import Adapter, StyleAdapter, Adapter_light
 from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict, resize_numpy_image
-
+from prompt.guide import get_response, first_ask_expand
 
 DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, ' \
                           'fewer digits, cropped, worst quality, low quality'
@@ -25,7 +25,6 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
-
 
 def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     """get the base argument parser for inference scripts"""
@@ -209,7 +208,6 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
 
     return parser
 
-
 def get_sd_models(opt):
     """
     build stable diffusion model, sampler
@@ -249,11 +247,17 @@ def get_cond_model(opt):
     model = MiDaSInference(model_type='dpt_hybrid').to(opt.device)  # get cond model
     return model
 
-def diffusion_inference(opt, new_target, model, sampler, adapter_features=None, append_to_context=None, **kwargs):
+def diffusion_inference(opt, new_target, model, sampler, adapter_features=None, append_to_context=None, prompt_expand_bot=None, **kwargs):
     # get text embedding
     # model.to(torch.float32)
-    
-    c = model.get_learned_conditioning(['a photo of ' + new_target + PROMPT_BASE])
+    prompts = 'a photo of ' + new_target + PROMPT_BASE
+
+    if prompt_expand_bot != None:
+        yes = get_response(prompt_expand_bot, first_ask_expand)
+        print(f'expand answer: {yes}')
+        prompts = get_response(prompt_expand_bot, prompts)
+
+    c = model.get_learned_conditioning([prompts])
     if opt.scale != 1.0:
         uc = model.get_learned_conditioning([opt.neg_prompt])
     else:
