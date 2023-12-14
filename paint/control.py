@@ -3,9 +3,9 @@ import numpy as np
 from basicsr.utils import img2tensor
 from ldm.modules.encoders.adapter import Adapter, StyleAdapter, Adapter_light
 from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict, resize_numpy_image
+from PIL import Image
 
-
-def get_adapter(opt):
+def get_adapter(opt, adapter_type='depth'):
     adapter = {}
     adapter['cond_weight'] = opt.cond_weight # cond_weight = 1.0
 
@@ -17,7 +17,7 @@ def get_adapter(opt):
         sk=True,
         use_conv=False).to(opt.device)
 
-    adapter['model'].load_state_dict(torch.load(opt.adapter_path))
+    adapter['model'].load_state_dict(torch.load(opt.depth_adapter_path if adapter_type=='depth' else opt.style_adapter_path))
     return adapter
 
 

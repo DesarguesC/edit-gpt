@@ -27,7 +27,8 @@ def get_args():
     parser.add_argument('--example_config', default='./configs/v1.yaml', help='config path to Paint-by-Example')
     parser.add_argument('--example_ckpt', default='../autodl-tmp/model.ckpt', help='ckpt path to Paint-by-Example')
 
-    parser.add_argument('--adapter_path', default='../autodl-tmp/t2iadapter/t2iadapter_depth_sd15v2.pth', help='ckpt path to stable adapter')
+    parser.add_argument('--depth_adapter_path', default='../autodl-tmp/t2iadapter/t2iadapter_depth_sd15v2.pth', help='ckpt path to depth adapter')
+    parser.add_argument('--style_adapter_path', default='../autodl-tmp/t2iadapter/coadapter-style-sd15v1.pth', help='ckpt path to style adapter')
     # test different adapter type ? seg / depth / keypose / openpose is ok. To fit sd1.5, we use depth first
 
 
