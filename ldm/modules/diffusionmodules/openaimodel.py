@@ -731,7 +731,6 @@ class UNetModel(nn.Module):
             emb = emb + self.label_emb(y)
 
         h = x.type(self.dtype)
-
         if append_to_context is not None:
             context = torch.cat([context, append_to_context], dim=1)
 

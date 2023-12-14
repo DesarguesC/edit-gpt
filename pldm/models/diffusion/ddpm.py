@@ -937,7 +937,7 @@ class LatentDiffusion(DDPM):
 
         return [rescale_bbox(b) for b in bboxes]
 
-    def apply_model(self, x_noisy, t, cond, return_ids=False):
+    def apply_model(self, x_noisy, t, cond, adapter_features=None, append_to_context=None, return_ids=False, **kwargs):
 
         if isinstance(cond, dict):
             # hybrid case, cond is exptected to be a dict
@@ -1029,7 +1029,7 @@ class LatentDiffusion(DDPM):
             x_recon = fold(o) / normalization
 
         else:
-            x_recon = self.model(x_noisy, t, **cond)
+            x_recon = self.model(x_noisy, t, adapter_features=adapter_features, append_to_context=append_to_context, **cond, **kwargs)
 
         if isinstance(x_recon, tuple) and not return_ids:
             return x_recon[0]
@@ -1464,22 +1464,27 @@ class DiffusionWrapper(pl.LightningModule):
         self.conditioning_key = conditioning_key
         assert self.conditioning_key in [None, 'concat', 'crossattn', 'hybrid', 'adm']
 
-    def forward(self, x, t, c_concat: list = None, c_crossattn: list = None):
+    def forward(self, x, t, c_concat: list = None, c_crossattn: list = None, adapter_features=None, append_to_context=None, **kwargs):
         if self.conditioning_key is None:
-            out = self.diffusion_model(x, t)
+            out = self.diffusion_model(x, t,
+                        adapter_features=adapter_features, append_to_context=append_to_context, **kwargs)
         elif self.conditioning_key == 'concat':
             xc = torch.cat([x] + c_concat, dim=1)
-            out = self.diffusion_model(xc, t)
+            out = self.diffusion_model(xc, t,
+                        adapter_features=adapter_features, append_to_context=append_to_context, **kwargs)
         elif self.conditioning_key == 'crossattn':
             cc = torch.cat(c_crossattn, 1)
-            out = self.diffusion_model(x, t, context=cc)
+            out = self.diffusion_model(x, t, context=cc,
+                        adapter_features=adapter_features, append_to_context=append_to_context, **kwargs)
         elif self.conditioning_key == 'hybrid':
             xc = torch.cat([x] + c_concat, dim=1)
             cc = torch.cat(c_crossattn, 1)
-            out = self.diffusion_model(xc, t, context=cc)
+            out = self.diffusion_model(xc, t, context=cc,
+                        adapter_features=adapter_features, append_to_context=append_to_context, **kwargs)
         elif self.conditioning_key == 'adm':
             cc = c_crossattn[0]
-            out = self.diffusion_model(x, t, y=cc)
+            out = self.diffusion_model(x, t, y=cc,
+                        adapter_features=adapter_features, append_to_context=append_to_context, **kwargs)
         else:
             raise NotImplementedError()
 

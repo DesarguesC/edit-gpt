@@ -1,7 +1,7 @@
 import argparse, os, sys, glob
 import cv2, torch, time, clip
 import numpy as np
-# from basicsr.utils import tensor2img
+from basicsr.utils import tensor2img
 from omegaconf import OmegaConf
 from PIL import Image
 from tqdm import tqdm, trange
@@ -17,22 +17,10 @@ from pldm.util import instantiate_from_config, load_model_from_config
 from pldm.models.diffusion.ddim import DDIMSampler
 from pldm.models.diffusion.plms import PLMSSampler
 
-# from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
 from transformers import AutoFeatureExtractor
 from torchvision.transforms import Resize
+from paint.control import get_adapter, get_adapter_feature, get_style_model, process_style_cond
 
-# wm = "Paint-by-Example"
-# wm_encoder = WatermarkEncoder()
-# wm_encoder.set_watermark('bytes', wm.encode('utf-8'))
-# safety_model_id = "CompVis/stable-diffusion-safety-checker"
-# safety_feature_extractor = AutoFeatureExtractor.from_pretrained(safety_model_id)
-# safety_checker = StableDiffusionSafetyChecker.from_pretrained(safety_model_id)
-
-
-
-# def chunk(it, size):
-#     it = iter(it)
-#     return iter(lambda: tuple(islice(it, size)), ())
 
 def get_tensor_clip(normalize=True, toTensor=True):
     transform_list = []
@@ -55,32 +43,6 @@ def numpy_to_pil(images):
 
     return pil_images
 
-# def put_watermark(img, wm_encoder=None):
-#     if wm_encoder is not None:
-#         img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-#         img = wm_encoder.encode(img, 'dwtDct')
-#         img = Image.fromarray(img[:, :, ::-1])
-#     return img
-
-# def load_replacement(x):
-#     try:
-#         hwc = x.shape
-#         y = Image.open("assets/rick.jpeg").convert("RGB").resize((hwc[1], hwc[0]))
-#         y = (np.array(y)/255.0).astype(x.dtype)
-#         assert y.shape == x.shape
-#         return y
-#     except Exception:
-#         return x
-
-# def check_safety(x_image):
-#     safety_checker_input = safety_feature_extractor(numpy_to_pil(x_image), return_tensors="pt")
-#     x_checked_image, has_nsfw_concept = safety_checker(images=x_image, clip_input=safety_checker_input.pixel_values)
-#     assert x_checked_image.shape[0] == len(has_nsfw_concept)
-#     for i in range(len(has_nsfw_concept)):
-#         if has_nsfw_concept[i]:
-#             x_checked_image[i] = load_replacement(x_checked_image[i])
-#     return x_checked_image, has_nsfw_concept
-
 def get_tensor(normalize=True, toTensor=True):
     transform_list = []
     if toTensor:
@@ -102,7 +64,7 @@ def get_tensor_clip(normalize=True, toTensor=True):
     return torchvision.transforms.Compose(transform_list)
 
 
-def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base_img: Image = None):
+def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base_img: Image = None, use_adapter=False, style_mask=None):
     seed_everything(opt.seed)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
@@ -118,7 +80,24 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
     start_code = None
     if opt.fixed_code:
         start_code = torch.randn([opt.n_samples, opt.C, opt.H // opt.f, opt.W // opt.f], device=device)
-    
+
+    adapter_features = append_to_context = None
+    if use_adapter:
+        print('-' * 9 + 'Example created via Adapter' + '-' * 9)
+        adapter, cond_model = get_adapter(opt), get_style_model(opt)
+        style_cond = process_style_cond(opt, ref_img, cond_model)
+        assert style_mask is not None
+        print(f'style_cond.shape = {style_cond.shape}, style_mask.shape = {style_mask.shape}')
+        if style_mask is not None:
+            style_mask[style_mask < 0.5] = 0.
+            style_mask[style_mask >= 0.5] = 1.
+            # TODO: check if mask smoothing is needed
+            style_cond *= style_mask
+        cv2.imwrite(f'./static/style_cond.jpg', tensor2img(style_cond))
+        adapter_features, append_to_context = get_adapter_feature(style_cond, adapter)
+        # adapter_features got!
+
+
     precision_scope = autocast if opt.precision == "autocast" else nullcontext
     with torch.no_grad():
         with precision_scope("cuda"):
@@ -164,6 +143,8 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
                     unconditional_guidance_scale=opt.scale,
                     unconditional_conditioning=uc,
                     x_T=start_code,
+                    adpater_features=adapter_features,
+                    append_to_context=append_to_context,
                     test_model_kwargs=test_model_kwargs,
                 )
                 x_samples_ddim = model.decode_first_stage(samples_ddim)

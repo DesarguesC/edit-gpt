@@ -849,7 +849,7 @@ class UNetModel(nn.Module):
         self.middle_block.apply(convert_module_to_f32)
         self.output_blocks.apply(convert_module_to_f32)
 
-    def forward(self, x, timesteps=None, context=None, y=None,**kwargs):
+    def forward(self, x, timesteps=None, context=None, y=None, adapter_features=None, append_to_context=None,**kwargs):
         """
         Apply the model to an input batch.
         :param x: an [N x C x ...] Tensor of inputs.
@@ -870,15 +870,24 @@ class UNetModel(nn.Module):
             emb = emb + self.label_emb(y)
 
         h = x.type(self.dtype)
+        if append_to_context is not None:
+            context = torch.cat([context, append_to_context], dim=1)
 
         if self.add_conv_in_front_of_unet:
             for module in self.add_resbolck:
                 h = module(h, emb, context)
-
-        for module in self.input_blocks:
+        adapter_idx = 0
+        for (idx, module) in enumerate(self.input_blocks):
             h = module(h, emb, context)
+            if (idx+1)%3==0 and adapter_features is not None:
+                h = h + adapter_features[adapter_idx]
+                adapter_idx += 1
             hs.append(h)
+
+        if adapter_features is not None:
+            assert len(adapter_features) == adapter_idx, 'Wrong features_adapter'
         h = self.middle_block(h, emb, context)
+
         for module in self.output_blocks:
             h = th.cat([h, hs.pop()], dim=1)
             h = module(h, emb, context)

@@ -73,6 +73,8 @@ class DDIMSampler(object):
                verbose=True,
                x_T=None,
                log_every_t=100,
+               adapter_features=None,
+               append_to_context=None,
                unconditional_guidance_scale=1.,
                unconditional_conditioning=None,
                # this has to come in the same format as the conditioning, # e.g. as encoded tokens, ...
@@ -105,6 +107,8 @@ class DDIMSampler(object):
                                                     corrector_kwargs=corrector_kwargs,
                                                     x_T=x_T,
                                                     log_every_t=log_every_t,
+                                                    adapter_features=adapter_features,
+                                                    append_to_context=append_to_context,
                                                     unconditional_guidance_scale=unconditional_guidance_scale,
                                                     unconditional_conditioning=unconditional_conditioning,
                                                     **kwargs
@@ -117,6 +121,7 @@ class DDIMSampler(object):
                       callback=None, timesteps=None, quantize_denoised=False,
                       mask=None, x0=None, img_callback=None, log_every_t=100,
                       temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None,
+                      adapter_features=None, append_to_context=None,
                       unconditional_guidance_scale=1., unconditional_conditioning=None,**kwargs):
         device = self.model.betas.device
         b = shape[0]
@@ -150,6 +155,7 @@ class DDIMSampler(object):
                                       quantize_denoised=quantize_denoised, temperature=temperature,
                                       noise_dropout=noise_dropout, score_corrector=score_corrector,
                                       corrector_kwargs=corrector_kwargs,
+                                      adapter_features=adapter_features, append_to_context=append_to_context,
                                       unconditional_guidance_scale=unconditional_guidance_scale,
                                       unconditional_conditioning=unconditional_conditioning,**kwargs)
             img, pred_x0 = outs
@@ -165,6 +171,7 @@ class DDIMSampler(object):
     @torch.no_grad()
     def p_sample_ddim(self, x, c, t, index, repeat_noise=False, use_original_steps=False, quantize_denoised=False,
                       temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None,
+                      adapter_features=None, append_to_context=None,
                       unconditional_guidance_scale=1., unconditional_conditioning=None,**kwargs):
         b, *_, device = *x.shape, x.device
         if 'test_model_kwargs' in kwargs:
@@ -177,12 +184,14 @@ class DDIMSampler(object):
         else:
             raise Exception("kwargs must contain either 'test_model_kwargs' or 'rest' key")
         if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
-            e_t = self.model.apply_model(x, t, c)
+            e_t = self.model.apply_model(x, t, c,
+                                    adapter_features=adapter_features, append_to_context=append_to_context, **kwargs)
         else:
             x_in = torch.cat([x] * 2)
             t_in = torch.cat([t] * 2)
             c_in = torch.cat([unconditional_conditioning, c])
-            e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
+            e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in,
+                                    adapter_features=adapter_features, append_to_context=append_to_context, **kwargs).chunk(2)
             e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
 
         if score_corrector is not None:

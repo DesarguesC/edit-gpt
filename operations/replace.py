@@ -15,6 +15,7 @@ from prompt.guide import get_response, get_bot, system_prompt_expand
 from jieba import re
 from seem.masks import middleware, query_middleware
 from ldm.inference_base import *
+from paint.control import get_adapter, get_adapter_feature, get_depth_model, process_depth_cond
 from basicsr.utils import tensor2img, img2tensor
 from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
@@ -69,14 +70,15 @@ def generate_example(opt, new_noun, expand_agent=None, use_adapter=False, ori_im
     if use_adapter:
         print('-'*9 + 'Generating via Adapter' + '-'*9)
         # load adapter model to create adapter_features & append_to_context
-        adapter, cond_model = get_adapter(opt), get_cond_model(opt)
+        adapter, cond_model = get_adapter(opt), get_depth_model(opt)
         depth_cond = process_depth_cond(opt, ori_img, cond_model)
-        print(f'depth_cond.shape = {depth_cond.shape}, depth_mask.shape = {depth_mask.shape}')
+        assert depth_mask is not None
+        # print(f'depth_cond.shape = {depth_cond.shape}, depth_mask.shape = {depth_mask.shape}')
         depth_mask = torch.cat([torch.from_numpy(depth_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
-        # depth_mask = repeat(torch.from_numpy(depth_mask), 'b h w -> b c h w', c=3).to(opt.device)
         if depth_mask is not None:
             depth_mask[depth_mask < 0.5] = 0.05
             depth_mask[depth_mask >= 0.5] = 0.95
+            # TODO: check if mask smoothing is needed
             depth_cond = depth_cond * (depth_mask * 0.8) # 1 - depth_mask ?
         cv2.imwrite(f'./static/depth_cond.jpg', tensor2img(depth_cond))
         adapter_features, append_to_context = get_adapter_feature(depth_cond, adapter)
