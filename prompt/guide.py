@@ -68,33 +68,68 @@ replace_first_ask = """\
 #               {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
 #############################################################################################################################
 
+
+"""(input format)
+    Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , [Name_n, (X_n,Y_n), (W_n,H_n))]}
+    Target: Name
+    Edit-Text: ...
+"""
+
+
 system_prompt_locate = """\
                            You are a text detection master and need to find a specific object in a piece of text. \
-                           You're going to get a text input, you're going to get an object whose position has been moved, \
-                           and you're going to find that position in the text and print out the name of that object in its entirety; \
-                           In addition, you also need to find out where the object has been moved and print the name of that place. \
-                           As for the nouns involved, you need to note: make sure to keep all the modifications about the object. \
-                           You need to print the name of the object being moved without extra space. \
-                           Be careful to keep the modification of the object in the output noun, \
-                           for example if you get an input "move the leftmost zebra to the right lawn", \
-                           you need to output the name of the moved object is "leftmost zebra" instead of just one word "zebra", \
-                           and the location you need to output is "right lawn" instead of just one word "lawn". \
-                           Because there may be more than one zebra or lawn, confusion must be avoided. \
-                           I guarantee that only one object has moved its position.
+                           You're going to get a series texts input in the form of the bellow: \n\
+                           Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , \
+                           [Name_n, (X_n,Y_n), (W_n,H_n))]}\nTarget: Name_n\nEdit-Text: <edit text guidance>\n\
+                           In the input shown above, \
+                           For the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field "Objects", \
+                           Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), \
+                           and (X_i,Y_i), (W_i,H_i) represent the location and size respectively. \
+                           Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, \
+                           where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, 
+                           And (W_i,H_i) represents the width and height of a rectangular box that including the i-th object. \
+                           "Name" in "Target" field also represents a name, the same as in "Objects" field, and we assure \
+                           that Name in "Target" field is equivalent to the "Name_n", which is the same as the name of \
+                           the last item in "Objects" field. Finally, in "Edit-Text" field, you will get the edit prompt. \
+                           Your task is to modify the position and size of the target specified by the "Target" field \
+                           in the "Objects" field. In conclusion, you should edit the position and size information, \
+                           given in "Objects" field, of the target according to the text edit guidance given in \
+                           "Edit-Text" field. 
                        """
 locate_first_ask = """\
-                        You need to output the moved object named A, and B is the name where the object is moved to, so there are two nouns in the output, \
-                        please output in the form of "(A,B)". If you have understood your task, \
-                        please answer "yes" in the round without any extra characters, \
-                        after which I will give you input and ask you to judge. \
-                   """ # <locate>
+                        For your task, you should output your generation of the target bounding box in the form of \
+                        [Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]. "Name_n" represents the name of the target\
+                        (it stays the same!). And coordinates (X_{new},Y_{new}) is the point at the top left corner in \
+                        the edge of the bounding box, while (W_{new},H_{new}) represents the width and height of a \
+                        rectangular box that including the this object(the same definition in bounding box). \
+                        In this way, your task is namely to generate the position and size according to the information \
+                        given and representing them in the form of bounding box.
+                   """
+                    # TODO: consider if it's necessary to list the factors that GPT should take into account.
 
 # <resize the object>
 
 
+# and you
+# 're going to find that position in the text and print out the name of that object in its entirety; \
+# In addition, you also need to find out where the object has been moved and print the name of that place. \
+# As for the nouns involved, you need to note: make sure to keep all the modifications about the object. \
+# You need to print the name of the object being moved without extra space. \
+# Be careful to keep the modification of the object in the output noun, \
+# for example if you get an input "move the leftmost zebra to the right lawn", \
+# you need to output the name of the moved object is "leftmost zebra" instead of just one word "zebra", \
+# and the location you need to output is "right lawn" instead of just one word "lawn". \
+# Because there may be more than one zebra or lawn, confusion must be avoided. \
+# I guarantee that only one object has moved its position.
+
+
+
 # Other -> ip2p
 
-
+# You need to output the moved object named A, and B is the name where the object is moved to, so there are two nouns in the output, \
+#                         please output in the form of "(A,B)". If you have understood your task, \
+#                         please answer "yes" in the round without any extra characters, \
+#                         after which I will give you input and ask you to judge. \
 
 # find target_noun and new_noun
 
