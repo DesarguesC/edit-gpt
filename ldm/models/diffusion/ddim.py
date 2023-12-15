@@ -146,8 +146,7 @@ class DDIMSampler(object):
             if mask is not None:
                 assert x0 is not None
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
-                # print(f'img_orig.shape = {img_orig.shape}, mask.shape = {mask.shape}')
-                img = img_orig * mask + (1. - mask) * img
+                img = img_orig * (1. - mask) + mask * img
                 # check for twice
 
             outs = self.p_sample_ddim(img, cond, ts, index=index, use_original_steps=ddim_use_original_steps,

@@ -96,7 +96,7 @@ def target_removing(
     )
     mask[mask < 0.5] = 0.
     mask[mask >= 0.5] = 1.
-    pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0, mask=(1.-mask) if mask is not None else None)
+    pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0, mask=mask if mask is not None else None)
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed
 
