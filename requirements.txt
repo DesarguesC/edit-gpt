@@ -6,6 +6,7 @@ pillow==9.4.0
 pyyaml==6.0.1
 json_tricks==3.17.3
 pudb
+flask
 datasets==2.8.0
 torchmetrics==0.6.0
 seaborn
@@ -53,7 +54,11 @@ revChatGPT
 streamlit
 scikit-learn==1.3.1
 timm==0.4.12
+hydra-core==1.3.1
 fvcore==0.1.5.post20221221
+einops
 -e git+https://github.com/facebookresearch/segment-anything@main#egg=segment-anything
--e git+https://github.com/arogozhnikov/einops.git@master#egg=einops
--e git+https://github.com/openai/whisper.git@main#egg=whisper
+-e git+https://github.com/MaureenZOU/detectron2-xyz.git@main#egg=detectron2
+-e git+https://github.com/DesarguesC/inst-inpaint.git@main#egg=inst-inpaint
+-e git+https://github.com/DesarguesC/crfill@master#egg=crfill
+-e git+https://github.com/CompVis/taming-transformers@master#egg=taming-transformers
