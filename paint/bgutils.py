@@ -9,6 +9,8 @@ import importlib
 from ldm.util import instantiate_from_config
 from torch.nn import functional as F
 from einops import repeat, rearrange
+from paint.control import *
+
 
 to_tensor = ToTensor()
 
@@ -67,6 +69,9 @@ def target_removing(
     # ori_shape => image.shape
     model = load_inpaint_model(ckpt_base_path=opt.inpaint_folder, config_path=opt.inpaint_config, device=device) if model==None else model
     pil_image_pointer = image
+    
+    # if opt.use_inpaint_adapter:
+    #     # depth
 
     if center_crop:
         width, height = image.size

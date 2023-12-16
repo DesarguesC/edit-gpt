@@ -59,14 +59,6 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        '--cond_inp_type',
-        type=str,
-        default='image',
-        help='the type of the input condition image, take depth T2I as example, the input can be raw image, '
-        'which depth will be calculated, or the input can be a directly a depth map image',
-    )
-
-    parser.add_argument(
         '--sampler',
         type=str,
         default='ddim',
@@ -200,7 +192,14 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        '--use_adapter',
+        '--use_inpaint_adapter',
+        type=str2bool,
+        help="whether to use the control-net adapters",
+        default=True
+    )
+    
+    parser.add_argument(
+        '--use_pbe_adapter',
         type=str2bool,
         help="whether to use the control-net adapters",
         default=False

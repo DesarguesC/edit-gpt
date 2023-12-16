@@ -63,25 +63,43 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
     res_all.save('./tmp/panoptic-seg.png')
     return res_all, objects_masks_list
 
-def generate_example(opt, new_noun, expand_agent=None, use_adapter=False, ori_img: Image = None, depth_mask=None) -> Image:
+def generate_example(opt, new_noun, expand_agent=None, use_adapter=False, ori_img: Image = None, cond_mask=None) -> Image:
     sd_model, sd_sampler = get_sd_models(opt)
     # ori_img: for depth condition generating
     adapter_features, append_to_context = None, None
+    # if use_adapter:
+    #     print('-'*9 + 'Generating via Depth Adapter' + '-'*9)
+    #     # load adapter model to create adapter_features & append_to_context
+    #     adapter, cond_model = get_adapter(opt), get_depth_model(opt)
+    #     depth_cond = process_depth_cond(opt, ori_img, cond_model)
+    #     assert cond_mask is not None
+    #     # print(f'depth_cond.shape = {depth_cond.shape}, cond_mask.shape = {cond_mask.shape}')
+    #     cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
+    #     if cond_mask is not None:
+    #         cond_mask[cond_mask < 0.5] = 0.05
+    #         cond_mask[cond_mask >= 0.5] = 0.95
+    #         # TODO: check if mask smoothing is needed
+    #         depth_cond = depth_cond * (cond_mask * 0.8) # 1 - cond_mask ?
+    #     cv2.imwrite(f'./static/depth_cond.jpg', tensor2img(depth_cond))
+    #     adapter_features, append_to_context = get_adapter_feature(depth_cond, adapter)
     if use_adapter:
-        print('-'*9 + 'Generating via Adapter' + '-'*9)
-        # load adapter model to create adapter_features & append_to_context
-        adapter, cond_model = get_adapter(opt), get_depth_model(opt)
-        depth_cond = process_depth_cond(opt, ori_img, cond_model)
-        assert depth_mask is not None
-        # print(f'depth_cond.shape = {depth_cond.shape}, depth_mask.shape = {depth_mask.shape}')
-        depth_mask = torch.cat([torch.from_numpy(depth_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
-        if depth_mask is not None:
-            depth_mask[depth_mask < 0.5] = 0.05
-            depth_mask[depth_mask >= 0.5] = 0.95
+        print('-'*9 + 'Generating via Style Adapter' + '-'*9)
+        adapter, cond_model = get_adapter(opt), get_style_model(opt)
+        style_cond = process_style_cond(opt, ori_img, cond_model)
+        print(f'style_cond.shape = {style_cond.shape}, cond_mask.shape = {cond_mask.shape}')
+        cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
+        print(f'cond_mask.shape = {cond_mask.shape}')
+        if cond_mask is not None:
+            cond_mask[cond_mask < 0.5] = 0.05
+            cond_mask[cond_mask >= 0.5] = 0.95
             # TODO: check if mask smoothing is needed
-            depth_cond = depth_cond * (depth_mask * 0.8) # 1 - depth_mask ?
-        cv2.imwrite(f'./static/depth_cond.jpg', tensor2img(depth_cond))
-        adapter_features, append_to_context = get_adapter_feature(depth_cond, adapter)
+            style_cond = depth_cond * (style_mask * 0.8) # 1 - cond_mask ?
+            
+        cv2.imwrite(f'./static/style_cond.jpg', tensor2img(style_cond))
+        adapter_features, append_to_context = get_adapter_feature(style_cond, adapter)
+    
+    
+    
     if isinstance(adapter_features, list):
         print(len(adapter_features))
     else:
@@ -113,7 +131,7 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None, 
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR)).convert('RGB')
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
 
-    diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, use_adapter=opt.use_adapter, ori_img=img_pil, depth_mask=mask_1)
+    diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, use_adapter=opt.use_inpaint_adapter, ori_img=img_pil, cond_mask=mask_1)
     # TODO: add conditional condition to diffusion via ControlNet
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
     
@@ -168,7 +186,7 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None, 
                                         rearrange(repeat(target_mask.squeeze(0), '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
     # SAVE_MASK_TEST
     
-    output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
+    output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img, use_adapter=opt.use_pbe_adapter)
     # results = rearrange(results.cpu().detach().numpy(), '1 c h w -> h w c')
     # print(f'results.shape = {results.shape}')
     cv2.imwrite(output_path, tensor2img(results)) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)

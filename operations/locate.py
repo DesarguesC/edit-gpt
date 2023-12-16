@@ -76,7 +76,7 @@ def create_location(opt, target, edit_agent=None):
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
     Ref_Image = Ref_Image * target_mask
-    output_path, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(Ref_Image), img_pil, use_adapter=opt.use_adapter)
+    output_path, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(Ref_Image), img_pil, use_adapter=opt.use_pbe_adapter)
     cv2.imwrite(output_path, tensor2img(x_sample_ddim))
 
     print('exit from create_location')
