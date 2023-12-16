@@ -65,8 +65,46 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
 
 def generate_example(opt, new_noun, expand_agent=None, use_adapter=False, ori_img: Image = None, cond_mask=None) -> Image:
     
-    
-    
+    if opt.use_inpaint_adpater:
+        from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, \
+            AutoencoderKL
+        from diffusers.utils import load_image, make_image_grid
+        from controlnet_aux.lineart import LineartDetector
+        import torch
+
+        # load adapter
+        adapter = T2IAdapter.from_pretrained(
+            "../autodl-tmp/TencentARC/t2i-adapter-lineart-sdxl-1.0", torch_dtype=torch.float16, varient="fp16", local_files_only=True
+        ).to("cuda")
+
+        # load euler_a scheduler
+        model_id = '../autodl-tmp/stabilityai/stable-diffusion-xl-base-1.0'
+        euler_a = EulerAncestralDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler", local_files_only=True)
+        vae = AutoencoderKL.from_pretrained("../autodl-tmp/madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16, local_files_only=True)
+        pipe = StableDiffusionXLAdapterPipeline.from_pretrained(
+            model_id, vae=vae, adapter=adapter, scheduler=euler_a, torch_dtype=torch.float16, variant="fp16", local_files_only=True
+        ).to("cuda")
+        pipe.enable_xformers_memory_efficient_attention()
+
+        line_detector = LineartDetector.from_pretrained("../autodl-tmp/lllyasviel/Annotators", local_files_only=True).to("cuda")
+
+        # image = load_image(url)
+        image = line_detector(
+            ori_img, detect_resolution=384, image_resolution=1024
+        )
+
+        prompt = "Ice dragon roar, 4k photo"
+        negative_prompt = "anime, cartoon, graphic, text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured"
+        gen_images = pipe(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            image=image,
+            num_inference_steps=50,
+            adapter_conditioning_scale=0.8,
+            guidance_scale=7.5,
+        ).images[0]
+        gen_images.save('static/ref.jpg')
+        return gen_images # PIL.Image
     
     sd_model, sd_sampler = get_sd_models(opt)
     # ori_img: for depth condition generating
