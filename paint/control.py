@@ -4,6 +4,9 @@ from basicsr.utils import img2tensor
 from ldm.modules.encoders.adapter import Adapter, StyleAdapter, Adapter_light
 from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict, resize_numpy_image
 from PIL import Image
+from paint.crutils import ab8, ab64
+from torch.nn import functional as F
+from einops import repeat, rearrange
 
 def get_adapter(opt, adapter_type='depth'):
     adapter = {}
@@ -52,10 +55,21 @@ def get_style_model(opt):
 
 
 def process_style_cond(opt, cond_image: Image = None, cond_model=None) -> torch.Tensor:
-    style = Image.fromarray(cond_image)
-    style_for_clip = cond_model['processor'](images=style, return_tensors="pt")['pixel_values']
+    # style = Image.fromarray(cond_image)
+    style_for_clip = cond_model['processor'](images=cond_image, return_tensors="pt")['pixel_values']
     style_feat = cond_model['clip_vision_model'](style_for_clip.to(opt.device))['last_hidden_state']
-
+    
+    _, h, w = style_feat.shape
+    h, w = ab64(h), ab64(w)
+    style_feat = rearrange(style_feat, 'c h w -> 1 c h w')
+    style_feat = F.interpolate(
+        style_feat,
+        size=(h, w),
+        mode='bilinear',
+        align_corners=False
+    )
+    style_feat = rearrange(style_feat, '1 c h w -> c h w')
+    
     return style_feat
 
 

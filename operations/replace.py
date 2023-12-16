@@ -15,7 +15,7 @@ from prompt.guide import get_response, get_bot, system_prompt_expand
 from jieba import re
 from seem.masks import middleware, query_middleware
 from ldm.inference_base import *
-from paint.control import get_adapter, get_adapter_feature, get_depth_model, process_depth_cond
+from paint.control import *
 from basicsr.utils import tensor2img, img2tensor
 from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
@@ -64,6 +64,10 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
     return res_all, objects_masks_list
 
 def generate_example(opt, new_noun, expand_agent=None, use_adapter=False, ori_img: Image = None, cond_mask=None) -> Image:
+    
+    
+    
+    
     sd_model, sd_sampler = get_sd_models(opt)
     # ori_img: for depth condition generating
     adapter_features, append_to_context = None, None
@@ -85,21 +89,19 @@ def generate_example(opt, new_noun, expand_agent=None, use_adapter=False, ori_im
     if use_adapter:
         print('-'*9 + 'Generating via Style Adapter' + '-'*9)
         adapter, cond_model = get_adapter(opt), get_style_model(opt)
-        style_cond = process_style_cond(opt, ori_img, cond_model)
+        print(f'BEFORE: cond_img.size = {ori_img.size}')
+        style_cond = process_style_cond(opt, ori_img, cond_model) # not a image
         print(f'style_cond.shape = {style_cond.shape}, cond_mask.shape = {cond_mask.shape}')
-        cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
-        print(f'cond_mask.shape = {cond_mask.shape}')
-        if cond_mask is not None:
-            cond_mask[cond_mask < 0.5] = 0.05
-            cond_mask[cond_mask >= 0.5] = 0.95
+        # resize mask to the shape of style_cond ?
+        # cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
+        # print(f'cond_mask.shape = {cond_mask.shape}')
+        # if cond_mask is not None:
+            # cond_mask[cond_mask < 0.5] = 0.05
+            # cond_mask[cond_mask >= 0.5] = 0.95
             # TODO: check if mask smoothing is needed
-            style_cond = depth_cond * (style_mask * 0.8) # 1 - cond_mask ?
-            
+        # style_cond = style_cond * (style_mask * 0.8) # 1 - cond_mask ?
         cv2.imwrite(f'./static/style_cond.jpg', tensor2img(style_cond))
         adapter_features, append_to_context = get_adapter_feature(style_cond, adapter)
-    
-    
-    
     if isinstance(adapter_features, list):
         print(len(adapter_features))
     else:
