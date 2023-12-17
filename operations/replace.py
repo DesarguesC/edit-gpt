@@ -1,4 +1,4 @@
-from operations.remove import Remove_Me as RM
+from operations import Remove_Me, Remove_Me_lama
 from seem.masks import middleware
 from paint.crutils import ab8, ab64
 from paint.bgutils import refactor_mask, match_sam_box
@@ -7,7 +7,6 @@ from PIL import Image
 import numpy as np
 # from utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog as mt
-import torch, cv2
 from torch import autocast
 from torch.nn import functional as F
 from prompt.item import Label
@@ -21,6 +20,8 @@ from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
 from einops import repeat, rearrange
+import torch, cv2
+
 
 
 def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[tuple]):
@@ -63,99 +64,87 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
     res_all.save('./tmp/panoptic-seg.png')
     return res_all, objects_masks_list
 
-def generate_example(opt, new_noun, expand_agent=None, use_adapter=False, ori_img: Image = None, cond_mask=None) -> Image:
-    
-    if opt.use_inpaint_adpater:
-        from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, \
-            AutoencoderKL
-        from diffusers.utils import load_image, make_image_grid
+def generate_example(opt, new_noun, expand_agent=None, use_inpaint_adapter=False, ori_img: Image = None, cond_mask=None, use_XL=True) -> Image:
+    opt.XL_base_path = opt.XL_base_path.strip('/')
+    prompts = f'a photo of {new_noun}, {PROMPT_BASE}'
+    if expand_agent != None:
+        yes = get_response(expand_agent, first_ask_expand)
+        print(f'expand answer: {yes}')
+        prompts = f'{prompts}; {get_response(expand_agent, prompts)}'
+    if use_XL:
+        print('-' * 9 + 'Generating via SDXL' + '-' * 9)
+        from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL
         from controlnet_aux.lineart import LineartDetector
-        import torch
-
         # load adapter
         adapter = T2IAdapter.from_pretrained(
-            "../autodl-tmp/TencentARC/t2i-adapter-lineart-sdxl-1.0", torch_dtype=torch.float16, varient="fp16", local_files_only=True
+            f"{opt.XL_base_path}/TencentARC/t2i-adapter-lineart-sdxl-1.0", torch_dtype=torch.float16, varient="fp16", local_files_only=True
         ).to("cuda")
 
         # load euler_a scheduler
-        model_id = '../autodl-tmp/stabilityai/stable-diffusion-xl-base-1.0'
+        model_id = f'{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0'
         euler_a = EulerAncestralDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler", local_files_only=True)
-        vae = AutoencoderKL.from_pretrained("../autodl-tmp/madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16, local_files_only=True)
+        vae = AutoencoderKL.from_pretrained(f"{opt.XL_base_path}/madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16, local_files_only=True)
         pipe = StableDiffusionXLAdapterPipeline.from_pretrained(
             model_id, vae=vae, adapter=adapter, scheduler=euler_a, torch_dtype=torch.float16, variant="fp16", local_files_only=True
         ).to("cuda")
         pipe.enable_xformers_memory_efficient_attention()
+        line_detector = LineartDetector.from_pretrained(f"{opt.XL_base_path}/lllyasviel/Annotators").to("cuda")
 
-        line_detector = LineartDetector.from_pretrained("../autodl-tmp/lllyasviel/Annotators", local_files_only=True).to("cuda")
-
-        # image = load_image(url)
         image = line_detector(
-            ori_img, detect_resolution=384, image_resolution=1024
+            ori_img, detect_resolution=384, image_resolution=opt.H
         )
-
-        prompt = "Ice dragon roar, 4k photo"
-        negative_prompt = "anime, cartoon, graphic, text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured"
+        if cond_mask is not None:
+            print(f'image.shape = {image.shape}, cond_mask.shape = {cond_mask.shape}')
+            image = image * cond_mask
         gen_images = pipe(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
+            prompt=prompts,
+            negative_prompt=DEFAULT_NEGATIVE_PROMPT,
             image=image,
-            num_inference_steps=50,
+            num_inference_steps=opt.steps,
             adapter_conditioning_scale=0.8,
             guidance_scale=7.5,
         ).images[0]
-        gen_images.save('static/ref.jpg')
+
+        gen_images.save('./static/ref.jpg')
+        print(f'example saved at \'./static/ref.jpg\' [sized: {gen_images.size}]')
         return gen_images # PIL.Image
-    
-    sd_model, sd_sampler = get_sd_models(opt)
-    # ori_img: for depth condition generating
-    adapter_features, append_to_context = None, None
-    # if use_adapter:
-    #     print('-'*9 + 'Generating via Depth Adapter' + '-'*9)
-    #     # load adapter model to create adapter_features & append_to_context
-    #     adapter, cond_model = get_adapter(opt), get_depth_model(opt)
-    #     depth_cond = process_depth_cond(opt, ori_img, cond_model)
-    #     assert cond_mask is not None
-    #     # print(f'depth_cond.shape = {depth_cond.shape}, cond_mask.shape = {cond_mask.shape}')
-    #     cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
-    #     if cond_mask is not None:
-    #         cond_mask[cond_mask < 0.5] = 0.05
-    #         cond_mask[cond_mask >= 0.5] = 0.95
-    #         # TODO: check if mask smoothing is needed
-    #         depth_cond = depth_cond * (cond_mask * 0.8) # 1 - cond_mask ?
-    #     cv2.imwrite(f'./static/depth_cond.jpg', tensor2img(depth_cond))
-    #     adapter_features, append_to_context = get_adapter_feature(depth_cond, adapter)
-    if use_adapter:
-        print('-'*9 + 'Generating via Style Adapter' + '-'*9)
-        adapter, cond_model = get_adapter(opt), get_style_model(opt)
-        print(f'BEFORE: cond_img.size = {ori_img.size}')
-        style_cond = process_style_cond(opt, ori_img, cond_model) # not a image
-        print(f'style_cond.shape = {style_cond.shape}, cond_mask.shape = {cond_mask.shape}')
-        # resize mask to the shape of style_cond ?
-        # cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
-        # print(f'cond_mask.shape = {cond_mask.shape}')
-        # if cond_mask is not None:
-            # cond_mask[cond_mask < 0.5] = 0.05
-            # cond_mask[cond_mask >= 0.5] = 0.95
-            # TODO: check if mask smoothing is needed
-        # style_cond = style_cond * (style_mask * 0.8) # 1 - cond_mask ?
-        cv2.imwrite(f'./static/style_cond.jpg', tensor2img(style_cond))
-        adapter_features, append_to_context = get_adapter_feature(style_cond, adapter)
-    if isinstance(adapter_features, list):
-        print(len(adapter_features))
     else:
-        print(adapter_features)
-    print(append_to_context)
-    
-    with torch.inference_mode(),  sd_model.ema_scope(), autocast('cuda'):
-        seed_everything(opt.seed)
-        diffusion_image = diffusion_inference(opt, new_noun, sd_model, sd_sampler, adapter_features=adapter_features, \
-                                              append_to_context=append_to_context, prompt_expand_bot=expand_agent)
-        diffusion_image = tensor2img(diffusion_image)
-        cv2.imwrite('./static/ref.jpg', diffusion_image)
-        print(f'example saved at \'./static/ref.jpg\'')
-        diffusion_image = cv2.cvtColor(diffusion_image, cv2.COLOR_BGR2RGB)
-    del sd_model, sd_sampler
-    return Image.fromarray(np.uint8(diffusion_image)).convert('RGB') # pil
+        print('-'*9 + 'Generating via sd1.5 with T2I-Adapter' + '-'*9)
+        sd_model, sd_sampler = get_sd_models(opt)
+        # ori_img: for depth condition generating
+        adapter_features, append_to_context = None, None
+
+        if use_inpaint_adapter:
+            print('-'*9 + 'Generating via Style Adapter' + '-'*9)
+            adapter, cond_model = get_adapter(opt, cond_type='style'), get_style_model(opt)
+            print(f'BEFORE: cond_img.size = {ori_img.size}')
+            style_cond = process_style_cond(opt, ori_img, cond_model) # not a image
+            print(f'style_cond.shape = {style_cond.shape}, cond_mask.shape = {cond_mask.shape}')
+            # resize mask to the shape of style_cond ?
+            # cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
+            # print(f'cond_mask.shape = {cond_mask.shape}')
+            # if cond_mask is not None:
+                # cond_mask[cond_mask < 0.5] = 0.05
+                # cond_mask[cond_mask >= 0.5] = 0.95
+                # TODO: check if mask smoothing is needed
+            # style_cond = style_cond * (style_mask * 0.8) # 1 - cond_mask ?
+            cv2.imwrite(f'./static/style_cond.jpg', tensor2img(style_cond))
+            adapter_features, append_to_context = get_adapter_feature(style_cond, adapter)
+        if isinstance(adapter_features, list):
+            print(len(adapter_features))
+        else:
+            print(adapter_features)
+        print(append_to_context)
+
+        with torch.inference_mode(), sd_model.ema_scope(), autocast('cuda'):
+            seed_everything(opt.seed)
+            diffusion_image = diffusion_inference(opt, prompts, sd_model, sd_sampler, adapter_features=adapter_features, append_to_context=append_to_context)
+            diffusion_image = tensor2img(diffusion_image)
+            cv2.imwrite('./static/ref.jpg', diffusion_image)
+            print(f'example saved at \'./static/ref.jpg\'')
+            diffusion_image = cv2.cvtColor(diffusion_image, cv2.COLOR_BGR2RGB)
+        del sd_model, sd_sampler
+        return Image.fromarray(np.uint8(diffusion_image)).convert('RGB') # pil
 
 
 def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None, replace_box=False):
@@ -167,11 +156,19 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None, 
     opt.W, opt.H = ab64(opt.W), ab64(opt.H)
     img_pil = img_pil.resize((opt.W, opt.H))
     
-    rm_img, mask_1, _ = RM(opt, old_noun, remove_mask=True, replace_box=replace_box)
-    rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR)).convert('RGB')
+    rm_img, mask_1, _ = Remove_Me_lama(opt, old_noun, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
+                        else Remove_Me(opt, old_noun, remove_mask=True, replace_box=opt.replace_box)
+    
+    
+    # rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
+    rm_img = Image.fromarray(rm_img)
+
+    # rm_img.save(f'./static-inpaint/rm-img.jpg')
+    # print(f'removed image saved at \'./static-inpaint/rm-img.jpg\'')
     res, panoptic_dict = middleware(opt, rm_img) # key: name, mask
 
-    diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, use_adapter=opt.use_inpaint_adapter, ori_img=img_pil, cond_mask=mask_1)
+    diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, use_inpaint_adapter=opt.use_inpaint_adapter, \
+                                            ori_img=img_pil, cond_mask=mask_1, use_XL=opt.use_XL)
     # TODO: add conditional condition to diffusion via ControlNet
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
     
@@ -222,8 +219,8 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None, 
     
     print(f'target_mask.shape = {target_mask.shape}')
     
-    cv2.imwrite(f'./outputs/mask-{opt.out_name}', cv2.cvtColor(np.uint8(255. * \
-                                        rearrange(repeat(target_mask.squeeze(0), '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
+    cv2.imwrite(f'./outputs/replace-mask-{opt.out_name}', cv2.cvtColor(np.uint8(255. *  rearrange(repeat(target_mask.squeeze(0),\
+                                                        '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
     # SAVE_MASK_TEST
     
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img, use_adapter=opt.use_pbe_adapter)

@@ -8,19 +8,19 @@ from paint.crutils import ab8, ab64
 from torch.nn import functional as F
 from einops import repeat, rearrange
 
-def get_adapter(opt, adapter_type='depth'):
+def get_adapter(opt, cond_type='depth'):
     adapter = {}
     adapter['cond_weight'] = opt.cond_weight # cond_weight = 1.0
 
     adapter['model'] = Adapter(
-        cin=64 * 3, # sketch / canny: 64 * 1
+        cin=64 * (3 if cond_type=='depth' else 1), # sketch / canny: 64 * 1
         channels=[320, 640, 1280, 1280][:4],
         nums_rb=2,
         ksize=1,
         sk=True,
         use_conv=False).to(opt.device)
 
-    adapter['model'].load_state_dict(torch.load(opt.depth_adapter_path if adapter_type=='depth' else opt.style_adapter_path))
+    adapter['model'].load_state_dict(torch.load(opt.depth_adapter_path if cond_type=='depth' else opt.style_adapter_path))
     return adapter
 
 

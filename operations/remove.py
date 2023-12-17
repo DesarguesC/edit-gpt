@@ -1,5 +1,5 @@
 import numpy as np
-import torch
+import torch, cv2
 from paint.bgutils import target_removing
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 # calculate IoU between SAM & SEEM
@@ -7,8 +7,8 @@ from seem.masks import middleware, query_middleware
 from PIL import Image
 from einops import repeat, rearrange
 from paint.bgutils import refactor_mask, match_sam_box
-
-import cv2
+from paint.utils import (recover_size, resize_and_pad, load_img_to_array, save_array_to_img, dilate_mask)
+from operations.utils import inpaint_img_with_lama
 
 
 transform = lambda x: repeat(rearrange(x, 'h w -> h w 1'), '... 1 -> ... b', b=3)
@@ -82,7 +82,7 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
 
 
 def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=True):
-    print('-'*9 + 'Removing' + '-'*9)
+    print('-'*9 + 'Removing via Inst-Inpaint' + '-'*9)
     
     img_pil = Image.open(opt.in_dir).convert('RGB')
     opt.W, opt.H = img_pil.size
@@ -90,12 +90,12 @@ def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=Tru
     img_pil = img_pil.resize((opt.W, opt.H))
     
     target_mask = None
-    if remove_mask:
-        res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
-        cv2.imwrite(f'./static-inpaint/res-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
+    res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
+    cv2.imwrite(f'./static-inpaint/res-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
+    print(f'seg result image saved at \'./static-inpaint/res-{opt.out_name}\'')
     
     removed_pil = target_removing(opt=opt, target_noun=target_noun, image=img_pil,
-                                  ori_shape=img_pil.size, remove_mask=remove_mask, mask=target_mask)
+                                  ori_shape=img_pil.size, mask=target_mask if remove_mask else None)
     removed_np = np.array(removed_pil)
     
     # TODO: use part of rm_image, cropped in bbox, to cover the original image
@@ -105,6 +105,7 @@ def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=Tru
         Ablation: SEEM / SAM never perfectly fit the edge, which means mask hardly cover the whole object.
     """
     box_ = (0,0,removed_np.shape[1],removed_np.shape[0])
+    
     if replace_box:
         # global removed_np
         assert target_mask is not None, 'None target_mask'
@@ -125,10 +126,39 @@ def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=Tru
     removed_np = cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR)
         
     opt.out_name = (opt.out_name + '.jpg') if not opt.out_name.endswith('.jpg') else opt.out_name
-    cv2.imwrite(f'./static-inpaint/{opt.out_name}', removed_np)
-    if remove_mask:
-        return removed_np, target_mask, f'./static-inpaint/{opt.out_name}'
-    else: return removed_np, f'./static-inpaint/{opt.out_name}'
+    cv2.imwrite(f'./static-inpaint/RM-{opt.out_name}', removed_np)
+    print(f'removed image saved at \'./static-inpaint/RM-{opt.out_name}\'')
+    # if remove_mask:
+    return removed_np, target_mask, f'./static-inpaint/RM-{opt.out_name}'
+
+
+def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
+    if not hasattr(opt, 'device'):
+        opt.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+    print('-'*9 + 'Removing via LaMa' + '-'*9)
+    img_pil = Image.open(opt.in_dir).convert('RGB')
+    opt.W, opt.H = img_pil.size
+    opt.W, opt.H = ab64(opt.W), ab64(opt.H)
+    img_pil = img_pil.resize((opt.W, opt.H))
+    
+    res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
+    cv2.imwrite(f'./static-inpaint/res-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
+    print(f'seg result image saved at \'./static-inpaint/res-{opt.out_name}\'')
+    
+    print(f'target_mask.shape = {target_mask.shape}')
+    target_mask_dilate = [dilate_mask(a_mask, dilate_kernel_size) for a_mask in target_mask]
+    assert len(target_mask_dilate) == 1
+    img_inpainted = inpaint_img_with_lama(
+        np.array(np.uint8(img_pil)), target_mask_dilate[0], opt.lama_config, opt.lama_ckpt, device=opt.device
+    )
+    
+    print(img_inpainted.shape)
+    cv2.imwrite(f'./static-inpaint/RM-{opt.out_name}', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
+    print(f'removed image saved at \'./static-inpaint/RM-{opt.out_name}\'')
+    
+    return img_inpainted, target_mask, f'./static-inpaint/RM-{opt.out_name}'
+
 
 
 def Remove_Me_SEEM(opt, target_noun, mask_generator=None, label_done=None):
@@ -142,3 +172,7 @@ def Remove_Me_SEEM(opt, target_noun, mask_generator=None, label_done=None):
     cv2.imwrite(f'./static-inpaint/{opt.out_name}', cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_BGR2RGB))
 
     return removed_np, label_done
+
+
+
+

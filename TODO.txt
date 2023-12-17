@@ -1,7 +1,7 @@
-TODO: 2023-12-13
+TODO: 2023-12-17
 
-1. 更改guide.py中locate所需的prompt，要求在guide.py中system_prompt_locate变量附近已经写了，输入格式如Label类中的get_str_locate定义，输出依然是[name, (x,y), (w,h)]格式
-2. 给remove部分的ddpm.inpaint增加一个style的adapter，adapter输入为ori-image
-3. 考虑优化remove的ddpm.inpaint的模式，使用掩码让他只修改对应部分，在此之前需要先弄清楚paint-by-example掩码之外不修改的功能是如何在ddpm中实现的
-4. stable-diffusion 2.1 / stable-diffusion xl
+1. mask缩放好像还是有点问题（是locate部分的GPT-prompt有问题，没被理解）
+2. remove优化空间很大，别的都实现了基本
+    2.1 加掩码绝对保护，但是SAM/SEEM也不保证掩码完全正确 -> 掩码根据图像扩展 -> 作完全保护
+    2.2 不用掩码保护，那就得对inst-paint作优化，参考Paint-by-Example的方式？（数据集容易搞）
 

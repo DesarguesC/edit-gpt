@@ -32,12 +32,13 @@ class Label():
         assert len(box_mame_list) > 1, f'abnormal length of the box_name_list, box_name_list: {box_mame_list}'
         list_ = "Objects: " + self.get_str_part(box_mame_list[0:-1])
         edit_ = "Edit-Text: " + edit_txt
-        hint_ = "Hint: " + self.get_str_part(box_mame_list[-1])
+        hint_ = "Hint: " + self.get_str_part([box_mame_list[-1]])
         return list_ + '\n' + edit_ + '\n' + hint_
 
 
     def get_str_part(self, objects_masks_list: list[dict]):
         # get [name, (w,h)]
+        assert isinstance(objects_masks_list, list), f'type(objects_masks_list) = {type(objects_masks_list)}'
         length = len(objects_masks_list)
         out = "{"
         for idx in range(length):
@@ -51,7 +52,9 @@ class Label():
     
     def get_str_rescale(self, old_noun, new_noun, panoptic_dict):
         old_noun = old_noun.strip()
+        old_noun = old_noun.split(':')[-1] if ':' in old_noun else old_noun
         new_noun = new_noun.strip()
+        new_noun = new_noun.split(':')[-1] if ':' in new_noun else new_noun
         Objects = self.get_str_part(panoptic_dict)
         return f'Objects: {Objects}\nOld: {old_noun}\nNew: {new_noun}'
         

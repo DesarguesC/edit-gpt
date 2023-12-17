@@ -13,9 +13,10 @@ from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict, r
 from prompt.guide import get_response, first_ask_expand
 
 DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, ' \
-                          'fewer digits, cropped, worst quality, low quality'
+                          'fewer digits, cropped, worst quality, low quality'\
+                          'anime, cartoon, graphic, text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured'
 
-PROMPT_BASE = 'full body shot, 8K, highly detailed, expressively clear, high resolution'
+PROMPT_BASE = '8K, highly detailed, expressively clear, high resolution'
 
 
 def str2bool(v):
@@ -204,6 +205,27 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         help="whether to use the control-net adapters",
         default=False
     )
+    
+    parser.add_argument(
+        '--use_XL',
+        type=str2bool,
+        help="whether to use stable-diffusion-XL",
+        default=True
+    )
+    
+    parser.add_argument(
+        '--use_lama',
+        type=str2bool,
+        help="whether to use LaMa for remove inpainting",
+        default=True
+    )
+    
+    parser.add_argument(
+        '--dilate_kernel_size',
+        type=int,
+        help="kernel size to deliate when inpainting via LaMa",
+        default=15
+    )
 
     return parser
 
@@ -228,16 +250,8 @@ def get_sd_models(opt):
 
 
 
-def diffusion_inference(opt, new_target, model, sampler, adapter_features=None, append_to_context=None, prompt_expand_bot=None, **kwargs):
+def diffusion_inference(opt, prompts, model, sampler, adapter_features=None, append_to_context=None, **kwargs):
     # get text embedding
-    # model.to(torch.float32)
-    prompts = 'a photo of ' + new_target + PROMPT_BASE
-
-    if prompt_expand_bot != None:
-        yes = get_response(prompt_expand_bot, first_ask_expand)
-        print(f'expand answer: {yes}')
-        prompts = get_response(prompt_expand_bot, prompts)
-
     c = model.get_learned_conditioning([prompts])
     if opt.scale != 1.0:
         uc = model.get_learned_conditioning([opt.neg_prompt])

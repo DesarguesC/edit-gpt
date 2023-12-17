@@ -14,12 +14,10 @@ dd = list(pd.read_csv('./key.csv')['key'])
 assert len(dd) == 1
 api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
-engine='gpt-3.5-turbo'
+engine='gpt-3.5-turbo-0613'
 
 import cv2
-from operations.remove import Remove_Me
-from operations.replace import replace_target
-from operations.locate import create_location
+from operations import Remove_Me, Remove_Me_lama, replace_target, create_location
 
 opt = get_args()
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -38,6 +36,13 @@ location = str(label_done)
 edit_his = []
 TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
 
+# if opt.out_name.endswith(".jpg") or opt.out_name.endswith(".png"):
+#     opt.out_name = opt.out_name[0:-3]
+
+# opt.out_name = f'{opt.out_name}:use_XL={opt.use_XL}:use_lama={opt.use_lama}:dilate_kernel_size'\
+#                     f'={opt.dilate_kernel_size}:use_inpaint_adapter={opt.use_inpaint_adapter}:use_pbe_adapter={opt.use_pbe_adapter}.jpg'
+
+
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery
     noun_remove_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)
@@ -46,9 +51,10 @@ if 'remove' in sorted_class:
     target_noun = get_response(noun_remove_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
     
-    *_, save_path = Remove_Me(opt, target_noun, remove_mask=True, replace_box=opt.replace_box)
+    _ = Remove_Me_lama(opt, target_noun, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
+                        else Remove_Me(opt, target_noun, remove_mask=True, replace_box=opt.replace_box)
     
-    print(f'removed. saved in: {save_path}')
+    # image loaded via method Image.fromarray is 'RGB' mode by default
     print('exit from remove')
     exit(0)
     # Recover_Scenery_For(img_dragged)
@@ -69,26 +75,34 @@ if 'replace' in sorted_class:
     # TODO: replace has no need of an agent; original mask and box is necessary!
     rescale_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
     yes = get_response(rescale_agent, rescale_first_ask)
-    print(yes)
+    print(f'rescale_agent first answers: {yes}')
     diffusion_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
+    yes = get_response(diffusion_agent, first_ask_expand)
+    print(f'diffusion_agent first answers: {yes}')
     replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, expand_agent=diffusion_agent, replace_box=opt.replace_box)
-
-    
-    print('exit')
-    exit(0)
-    # img_np, img_dragged_target
-
 
 if 'locate' in sorted_class:
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
     locate_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
-    ans = get_response(locate_agent, locate_first_ask)
-    print(ans)
-    ans = re.split('[(),]', ans)
-    ans = [x for x in ans if x!='' and x!=' ']
-    print(f'len(ans) = {len(ans)}')
-    target, destination = ans[0], ans[1]
-    create_location(opt, target, destination, edit_agent=locate_agent)
+    yes = get_response(locate_agent, locate_first_ask)
+    print(f'locate_agent first ask: {yes}')
+    
+    noun_remove_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_noun, proxy=net_proxy)
+    a = get_response(noun_remove_agent, first_ask_noun)
+    print(f'noun_agent first ask: {a}')
+    target_noun = get_response(noun_remove_agent, opt.edit_txt)
+    print(f'target_noun: {target_noun}')
+    
+    # ans = get_response(locate_agent, locate_first_ask)
+    # print(ans)
+    # ans = re.split('[(),]', ans)
+    # ans = [x for x in ans if x!='' and x!=' ']
+    # print(f'len(ans) = {len(ans)}')
+    # target, destination = ans[0], ans[1]
+    create_location(opt, target_noun, edit_agent=locate_agent)
+
+if 'add' in sorted_class:
+    
 
 
     exit(0)

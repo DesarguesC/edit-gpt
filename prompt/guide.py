@@ -9,53 +9,50 @@ import time
 
 
 
-system_prompt_sort = """\
-                        You are an expert in text categorization, and I will input text for you to categorize. \
-                        Note that the text I entered has an editing nature, which is an editing instruction for the picture, \
-                        and now you need to classify the input text according to the following criteria: \
-                        1. Determines whether the text removes the object, and if so, its category is "romove". \
-                        2. Determine whether the text replaces the object, and if so, its category is "replace". \
-                        3. Determine whether the text moves the object. If it does, the category is "locate". \
-                        You may find that category 2. "replace" actually contains the case of category 1. "remove", \
-                        but in fact, as long as it conforms to category 2. The edited text of the condition is classified as category 2. "replace", \
-                        otherwise it is considered whether it is the case of 1. "remove". \
-                        Also, I guarantee that the text I enter will be in one of these categories and will not contain elements that belong to more than one category.\
-                    """
-first_ask_sort = """\
-                    For the text I entered, you only need to answer one of the three categories and print its name, \
-                    one of "remove", "replace", "locate", with no extra characters. If you have already understood your task, \
-                    please answer "yes" to me in this round without any extra characters, after which I will give you input and ask you to judge.
-                 """
+system_prompt_sort =    'You are an expert in text categorization, and I will input text for you to categorize. '\
+                        'Note that the text I entered has an editing nature, which is an editing instruction for the picture, '\
+                        'and now you need to classify the input text according to the following criteria: '\
+                        '1. Determines whether the text removes the object, and if so, its category is \"romove\". '\
+                        '2. Determine whether the text replaces the object, and if so, its category is \"replace\". '\
+                        '3. Determine whether the text moves the object. If it does, the category is "locate". '\
+                        'You may find that category 2. \"replace\" actually contains the case of category 1. \"remove\", '\
+                        'but in fact, as long as it conforms to category 2. The edited text of the condition is classified as category 2. \"replace\", '\
+                        'otherwise it is considered whether it is the case of 1. \"remove\". '\
+                        'Also, I guarantee that the text I enter will be in one of these categories and will not contain elements that belong to more than one category. '
+
+first_ask_sort =    'For the text I entered, you only need to answer one of the three categories and print its name, '\
+                    'one of \"remove\", \"replace\", \"locate\", with no extra characters. If you have already understood your task, '\
+                    'please answer \"yes\" to me in this round without any extra characters, after which I will give you input and ask you to judge. '
 
 
-system_prompt_remove = """\
-                           You are a text detection master and need to find a specific object in a piece of text. \
-                           In the text input you will receive, there will be an object object removed, you need to find the \
-                           removed object and output its name in full. Note: Be sure to keep all the touches on this object.\
-                           I guarantee only one object was removed.
-                       """
-remove_first_ask = """\
-                        Be careful to keep the modification about the object when you output the noun, \
-                        for example if you get an input "remove the leftmost zebra", you need to output "leftmost zebra" instead of just the word "zebra", \
-                        because there may not be only one zebra. If you have understood your task, please answer "yes" in the round without any extra characters, \
-                        after which I will give you input and ask you to judge.
-                   """
+system_prompt_remove =     'You are a text detection master and need to find a specific object in a piece of text. '\
+                           'In the text input you will receive, there will be an object object removed, you need to find the '\
+                           'removed object and output its name in full. Note: Be sure to keep all the touches on this object. '\
+                           'I guarantee only one object was removed. '
+
+remove_first_ask =      'Be careful to keep the modification about the object when you output the noun, '\
+                        'for example if you get an input "remove the leftmost zebra", you need to output \"leftmost zebra\" instead of just the word \"zebra\", '\
+                        'because there may not be only one zebra. Besides, your answer mustn\'t contain any other character. '\
+                        'If you have understood your task, please answer \"yes\" in the round without any extra characters, '\
+                        'after which I will give you input and ask you to judge. '
 
 
-system_prompt_replace = """\
-                           You are a text detection master and need to find a specific object in a piece of text. \
-                           In the text input an object will be replaced, and you need to find the replaced object from the text and print its name in full, \
-                           and you will also need to find the new object from the text to replace the object. Note: Be sure to keep all the touches on this object.\
-                           I guarantee only one object was replaced.
-                       """
-replace_first_ask = """\
-                        You need to output both the replaced object A and the replaced object B, in the form (A,B), without extra spaces.
-                        Be careful to keep the modification about the object when you output the noun, \
-                        for example if you get an input "Replace the leftmost zebra with a horse", \
-                        you need to output \"(leftmost zebra, horse)\" instead of just \"(zebra, horse)\", \
-                        because there may not be only one zebra. If you have understood your task, \
-                        please answer "yes" in the round without any extra characters, after which I will give you input and ask you to judge.
-                   """
+system_prompt_replace =    'You are a text detection master and need to find a specific object in a piece of text. '\
+                           'In the text input an object will be replaced, and you need to find the replaced object from the text and print its name in full, '\
+                           'and you will also need to find the new object from the text to replace the object. Note: Be sure to keep all the attributes '\
+                           'given in the discription of the object. '\
+                           'If you find object A is replaced to object B, you are ought to give the answer \'(A,B)\' without any other character or space. '\
+                           'I guarantee only one object was replaced. '
+
+
+replace_first_ask =     'You need to output both the replaced object A and the replaced object B, in the form (A,B), each without any other character or space. '\
+                        'Be careful to keep the modification about the object when you output the noun, '\
+                        'for example if you get an input \"Replace the leftmost zebra with a horse\", '\
+                        'you need to output \"(leftmost zebra, horse)\" instead of just \"(zebra, horse)\", '\
+                        'because there may not be only one zebra. And it\'s of vital importance that '\
+                        'in parentheses you should only output the noun you found. If you have understood your task, '\
+                        'please answer "yes" in the round without any extra characters, after which I will give you input and ask you to judge. '
+
 # 在已知的信息的位置列中，要将Old对象替换为New对象，需要为New生成一个新的bbox格式的数据。请从以下几个方面考虑：
 # 1.相对大小->New的大小(w,h)，根据已知的输入对象区域. 2.相对位置->New的位置(x,y)，注意(x,y)表示bounding box左下角的点坐标【我们以照片的左下角为坐标原点，向右为x正方向，向上为y正方向，这部分讲清楚空间位置】....
 
@@ -76,42 +73,58 @@ replace_first_ask = """\
 """
 
 
-system_prompt_locate = """\
-                           You are a text detection master and need to find a specific object in a piece of text. \
-                           You're going to get a series texts input in the form of the bellow: \n\
-                           Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , \
-                           [Name_n, (X_n,Y_n), (W_n,H_n))]}\nTarget: Name_n\nEdit-Text: <edit text guidance>\n\
-                           In the input shown above, \
-                           For the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field "Objects", \
-                           Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), \
-                           and (X_i,Y_i), (W_i,H_i) represent the location and size respectively in an image(or a photo). \
-                           Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, \
-                           where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, 
-                           And (W_i,H_i) represents the width and height of a rectangular box that including the i-th object. \
-                           "Name" in "Target" field also represents a name (editing target), \
-                           the same as in "Objects" field, and we assure \
-                           that Name in "Target" field is equivalent to the "Name_n", which is the same as the name of \
-                           the last item in "Objects" field. Finally, in "Edit-Text" field, you will get the edit prompt. \
-                           Your task is to modify the position and size of the target specified by the "Target" field \
-                           in the "Objects" field, according to the edit prompt given in "Edit-Text" field. \
-                           You should arrange a proper position and a proper size for the editing target.
-                           In conclusion, you should edit the position and size information, \
-                           given in "Objects" field, of the target according to the text edit guidance given in \
-                           "Edit-Text" field. 
-                       """
-locate_first_ask = """\
-                        For your task, you should output your generation of the target bounding box in the form of \
-                        [Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]. "Name_n" represents the name of the target\
-                        (it stays the same!). And coordinates (X_{new},Y_{new}) is the point at the top left corner in \
-                        the edge of the bounding box, while (W_{new},H_{new}) represents the width and height of a \
-                        rectangular box that including the this object(the same definition in bounding box). \
-                        In this way, your task is namely to generate the position and size according to the information \
-                        given and representing them in the form of bounding box.
-                   """
+system_prompt_locate =     'You are a text detection master and need to find a specific object in a piece of text. '\
+                           'You\'re going to get a series texts input in the form of the bellow: \n'\
+                           'Size: (W_{img},H{img})\n'\
+                           'Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
+                           '[Name_n, (X_n,Y_n), (W_n,H_n))]}\nTarget: Name_n\nEdit-Text: <edit text guidance>\n'\
+                           'In the input shown above, (W_{img},H_{img}) represents the size of original image input.'\
+                           'And for the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field \"Objects\", '\
+                           'Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
+                           'and (X_i,Y_i), (W_i,H_i) represent the location and size respectively in an image(or a photo). '\
+                           'Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, '\
+                           'where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, '\
+                           'And (W_i,H_i) represents the width and height of a rectangular box that including the i-th object. '\
+                           '"Name" in "Target" field also represents a name (editing target), '\
+                           'the same as in \"Objects\" field, and we assure '\
+                           'that Name in \"Target\" field is equivalent to the \"Name_n\", which is the same as the name of '\
+                           'the last item in \"Objects\" field. Finally, in \"Edit-Text\" field, you will get the edit prompt. '\
+                           'For the coordinates designed in bounding box, we give relevant definitions. '\
+                           'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
+                           'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
+                           'The direction "down" is defined as the positive direction of the y axis, '\
+                           'and the direction "right" is defined as the positive direction of the x axis. '\
+                           'In addition, for the width and height (i.e. w and h) in bounding box, the former corresponds to the X-axis direction '\
+                           'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple ((x,y), (w,h)) '\
+                           'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
+                           '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
+                           'cannot exceed the size of the original image (W_{img},H{img}).'\
+                           'Your task is to modify the position and size of the target specified by the \"Target\" field '\
+                           'in the \"Objects\" field, according to the edit prompt given in \"Edit-Text\" field. '\
+                           'You should arrange a proper position and a proper size for the editing target. '\
+                           'In conclusion, you should edit the position and size information, '\
+                           'given in \"Objects\" field, of the target according to the text edit guidance given in '\
+                           '\"Edit-Text\" field. '
+                       
+locate_first_ask =      'For your task, you should output your generation of the target bounding box in the form of '\
+                        '[Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]. \"Name_n\" represents the name of the target '\
+                        '(it stays the same!). And coordinates (X_{new},Y_{new}) is the point at the top left corner in '\
+                        'the edge of the bounding box, while (W_{new},H_{new}) represents the width and height of a '\
+                        'rectangular box that including the this object(the same definition in bounding box). '\
+                        'In this way, your task is to generate the position and size according to the information '\
+                        'given and representing them in the form of bounding box. '\
+                        'For example, if the instruction in "Edit-Text" field told you to move a object to a far place, '\
+                        'you should consider where is the so called "far place" according to the objects given in "Objects" field '\
+                        'and generate a new bounding box which stands for its new position for the object and output your answer in the form required.'\
+                        'If you have understood your task, '\
+                        'please answer "yes" in the round without any extra characters, after which '\
+                        'I will give you input and ask you to generate the bounding box. '
+
                     # TODO: consider if it's necessary to list the factors that GPT should take into account.
 
 # <resize the object>
 
+system_prompt_add = 
 
 # and you
 # 're going to find that position in the text and print out the name of that object in its entirety; \
@@ -166,47 +179,45 @@ locate_first_ask = """\
 
 
 
-system_prompt_rescale = """\
-                            You are an object scaler, capable of generating a size and location for an object \
-                            after considering size and location information of objects comprehensively. \
-                            You'll be told a series of input messages in the form of as follow:\n \
-                            Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , [Name_n, (X_n,Y_n), (W_n,H_n))]}\n\
-                            Old: Name_{old}\nNew: Name_{new}\n\
-                            For the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field "Objects", \
-                            Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), \
-                            and (X_i,Y_i), (W_i,H_i) represent the location and size respectively. \
-                            Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, \
-                            where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, \
-                            and (W_i,H_i) represents the width and height of a rectangular box that including the i-th object. \
-                            Then, in "Old" and "New" field , two nouns are given respectively, which indicates the Name_{old} \
-                            should be replaced Name_{new}. \
-                            Based on the description above, your task is to generate a new position coordinates and sizes \
-                            for the replacement. The out put should be in the form of [Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})]. \
-                        """
+system_prompt_rescale =     'You are an object scaler, capable of generating a size and location for an object '\
+                            'after considering size and location information of objects comprehensively. '\
+                            'You\'ll be told a series of input messages in the form of as follow:\n '\
+                            'Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , [Name_n, (X_n,Y_n), (W_n,H_n))]}\n'\
+                            'Old: Name_{old}\nNew: Name_{new}\n'\
+                            'For the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field "Objects", '\
+                            'Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
+                            'and (X_i,Y_i), (W_i,H_i) represent the location and size respectively. '\
+                            'Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, '\
+                            'where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, '\
+                            'and (W_i,H_i) represents the width and height of a rectangular box that including the i-th object. '\
+                            'Then, in "Old" and "New" field , two nouns are given respectively, which indicates the Name_{old} '\
+                            'should be replaced Name_{new}. '\
+                            'Based on the description above, your task is to generate a new position coordinates and sizes '\
+                            'for the replacement. The out put should be in the form of [Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})]. '
 
-rescale_first_ask = """\
-                        For your task, for details, you should generation modified bounding-box following the bellow rules. \n\
-                        1.LOGIC. After the replacement is done, the objects must be placed logically. \
-                        For example, if you need to replace a dog with a cat, usually the cat will be smaller than the \
-                        dog (so the bounding box will be smaller), and if you keep the coordinates (X_{old},Y_{old}) \
-                        unchanged, and (W_{old},H_{old}) decreases, then the cat's bounding box may be suspended in \
-                        the air. So in this case, we need to take into account the input "Objects" field and combine \
-                        the positions of the other objects, so that the generated bounding box of the cat is connected \
-                        to the ground (or something else), ensuring that it will not be suspended in the air \
-                        (which is illogical). \n\
-                        2.STABILITY. As mentioned in the previous point, the position of the object needs to be \
-                        modified after the replacement, but we still need to maintain the stability of its position, \
-                        the modification needs to be integrated into the input of the "Objects" field in the position \
-                        of each object in and overlay, size. In the case of guaranteeing requirement 1., \
-                        if we can satisfy the logic stated in 1. without changing X_{old} or Y_{old}, \
-                        there's no necessity to change it. \n\
-                        After the above two rules taken into consideration and finish the position and size editing, \
-                        you should output the result in the form of [Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})] \
-                        without any other character. For each term I ask, you should only output the result in form of \
-                        [Name_{new}, (X_{new},Y_{new}), (W_{new}, H_{new})] and mustn't output any extra words. \
-                        Now if you have fully understood your task, please answer "yes" and mustn't output any extra \
-                        characters, after which I will give you input. \
-                    """
+
+rescale_first_ask =     'For your task, for details, you should generation modified bounding-box following the bellow rules. \n'\
+                        '1.LOGIC. After the replacement is done, the objects must be placed logically. '\
+                        'For example, if you need to replace a dog with a cat, usually the cat will be smaller than the '\
+                        'dog (so the bounding box will be smaller), and if you keep the coordinates (X_{old},Y_{old}) '\
+                        'unchanged, and (W_{old},H_{old}) decreases, then the cat\'s bounding box may be suspended in '\
+                        'the air. So in this case, we need to take into account the input "Objects" field and combine '\
+                        'the positions of the other objects, so that the generated bounding box of the cat is connected '\
+                        'to the ground (or something else), ensuring that it will not be suspended in the air '\
+                        '(which is illogical). \n'\
+                        '2.STABILITY. As mentioned in the previous point, the position of the object needs to be '\
+                        'modified after the replacement, but we still need to maintain the stability of its position, '\
+                        'the modification needs to be integrated into the input of the "Objects" field in the position '\
+                        'of each object in and overlay, size. In the case of guaranteeing requirement 1., '\
+                        'if we can satisfy the logic stated in 1. without changing X_{old} or Y_{old}, '\
+                        'there\'s no necessity to change it. \n'\
+                        'After the above two rules taken into consideration and finish the position and size editing, '\
+                        'you should output the result in the form of [Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})] '\
+                        'without any other character. For each term I ask, you should only output the result in form of '\
+                        '[Name_{new}, (X_{new},Y_{new}), (W_{new}, H_{new})] and mustn\'t output any extra words. '\
+                        'Now if you have fully understood your task, please answer "yes" and mustn\'t output any extra '\
+                        'characters, after which I will give you input. '\
+
 
 # 在替换完成后，物体的摆放必须符合逻辑。例如需要将一只狗替换成一只猫，通常来说猫可能会比狗小（所以bounding box会小），
 # 此时如果保持坐标(X_{old},Y_{old})不变，而(W_{old},H_{old})减小，那么可能会导致猫的bounding box悬浮在空中。因此在这种情况下，
@@ -346,7 +357,8 @@ first_ask_noun = 'For example, when you type \"Move the kettle on the table to t
                  '(the target of the modification is the entire image), output \"<WHOLE>\"(without quotation mark)'\
                  'We make sure that there is only one target modification object in the input command '\
                  'that needs to be output, and that you only need to output a single word, with no extra characters output.'\
-                 'As a result, you only need to output a single word(\'<WHOLE>\' included, without quotation mark) without quotation mark'\
+                 'As a result, you only need to output a single word(\'<WHOLE>\' included, without quotation mark) without quotation mark.'\
+                 'However, the answer you output mustn\'t contain any other character, only hte noun you found.'\
                  'If you have understood your task, answer \"yes\" without extra characters.'
 
 import os
@@ -383,19 +395,17 @@ def get_response(chatbot, asks):
         print('finish')
         return answer
 
-system_prompt_expand = """\
-                        You are a prompt expander, expert in text expansion. Now you'll receive a prompt relative to \
-                        text-driven image generation via Diffusion Models. That means your mission is to expand the \
-                        prompt to much more elaborate one. The input will be a prompt starting with \
-                        "a/an photo of ...", your task is to specify and expand the prompt to let diffusion make sense \
-                        of the prompt so that diffusion can be driven to generate images with high quality and high resolution.
-                       """
-first_ask_expand = """\
-                        For each input you received, you are only to output the expanded prompt without any other \
-                        character. You mustn't output any extra characters except the expanded prompt. If you've \
-                        made sense your task, please answer me \'yes\' and do not output any extra character, either. \
-                        After this I'll give you input prompts.
-                   """
+system_prompt_expand =  'You are a prompt expander, expert in text expansion. Now you\'ll receive a prompt relative to '\
+                        'text-driven image generation via Diffusion Models. That means your mission is to expand the '\
+                        'prompt to much more elaborate one. The input will be a prompt starting with '\
+                        '"a/an photo of ...", your task is to specify and expand the prompt to let diffusion make sense '\
+                        'of the prompt so that diffusion can be driven to generate images with high quality and high resolution. '
+
+first_ask_expand =      'For each input you received, you are only to output the expanded prompt without any other '\
+                        'character. You mustn\'t output any extra characters except the expanded prompt. If you\'ve '\
+                        'made sense your task, please answer me \'yes\' and do not output any extra character, either. '\
+                        'After this I\'ll give you input prompts. '
+
 
 
 

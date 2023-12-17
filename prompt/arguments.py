@@ -4,6 +4,7 @@ from options.base_options import BaseOptions
 from options.test_options import TestOptions
 from ldm.inference_base import get_base_argument_parser
 
+
 def get_args():
     parser = argparse.ArgumentParser('SEEM Demo', add_help=False)
     
@@ -30,11 +31,11 @@ def get_args():
     parser.add_argument('--depth_adapter_path', default='../autodl-tmp/t2iadapter/t2iadapter_depth_sd15v2.pth', help='ckpt path to depth adapter')
     parser.add_argument('--style_adapter_path', default='../autodl-tmp/t2iadapter/coadapter-style-sd15v1.pth', help='ckpt path to style adapter')
     # test different adapter type ? seg / depth / keypose / openpose is ok. To fit sd1.5, we use depth first
+    
+    parser.add_argument('--lama_config', default='./configs/lama_default.yaml', help='path to lama inpainting config path')
+    parser.add_argument('--lama_ckpt', default='../autodl-tmp/lama/', help='path to lama ckpt folder')
+    parser.add_argument('--XL_base_path', default='../autodl-tmp', help='base path to XL, adapter, etc.')
 
-
-    # parser.add_argument('--sampler', default='DDIM', help='the method for sampling')
-    # parser.add_argument('--sd_config', default='./config/', help='your stable diffusion model config')
-    # parser.add_argument('--sd_ckpt', default='../autodl-tmp/sd-v1-5.ckpt', help='your stable diffusion model checkpoints')
 
 
     return parser.parse_args() 

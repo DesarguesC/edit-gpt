@@ -61,7 +61,7 @@ def preprocess_image(
 
 def target_removing(
         opt, target_noun: str, image: Image, model=None, resize_shape: Tuple[int, int] = (256, 256),
-        ori_shape: Tuple[int, int] = (512, 512), recovery=True, center_crop=False, remove_mask=False, mask=None
+        ori_shape: Tuple[int, int] = (512, 512), recovery=True, center_crop=False, mask=None
 ) -> Image:
     # print(f'start => image.size = {image.size}')
     # print(f'start => mask.shape = {mask.shape}')
@@ -89,18 +89,20 @@ def target_removing(
     print(f'tensor_image.shape = {tensor_image.shape}')
 
     rmtxt = 'remove the ' + target_noun
-    mask = torch.tensor(mask, dtype=torch.float32, requires_grad=False) if remove_mask and mask is not None else None
-    mask = repeat(mask, '1 ... -> c ...', c=4)[None].to(device)
-    # print(f'mask.shape = {mask.shape}')
-    h, w = resize_shape
-    mask = F.interpolate(
-        mask,
-        size=(h//opt.f, w//opt.f),
-        mode='bilinear',
-        align_corners=False
-    )
-    mask[mask < 0.5] = 0.
-    mask[mask >= 0.5] = 1.
+    if mask is not None:
+        mask = torch.tensor(mask, dtype=torch.float32, requires_grad=False)
+        mask = repeat(mask, '1 ... -> c ...', c=4)[None].to(device)
+        # print(f'mask.shape = {mask.shape}')
+        h, w = resize_shape
+        mask = F.interpolate(
+            mask,
+            size=(h//opt.f, w//opt.f),
+            mode='bilinear',
+            align_corners=False
+        )
+        mask[mask < 0.5] = 0.
+        mask[mask >= 0.5] = 1.
+    
     pil_removed = model.inpaint(tensor_image, rmtxt, num_steps=50, device=device, return_pil=True, seed=0, mask=mask if mask is not None else None)
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed
@@ -126,12 +128,15 @@ def refactor_mask(box_1, mask_1, box_2):
     """
     mask_1 = torch.tensor(mask_1, dtype=torch.float32)
     mask_2 = torch.zeros_like(mask_1)
-    # print(f'box_1 = {box_1}, mask_1.shape = {mask_1.shape}, box_2 = {box_2}, mask_2.shape = {mask_2.shape}')
+    print(f'box_1 = {box_1}, mask_1.shape = {mask_1.shape}, box_2 = {box_2}, mask_2.shape = {mask_2.shape}')
     x1, y1, w1, h1 = box_1
     x2, y2, w2, h2 = box_2
-    valid_mask = mask_1[:, y1:y1 + h1, x1:x1 + w1]
+    x1, x2, y1, y2, w1, w2, h1, h2 = int(x1), int(x2), int(y1), int(y2), int(w1), int(w2), int(h1), int(h2)
+    print(f'x1 = {x1}, y1 = {y1}, w1 = {w1}, h1 = {h1}')
+    print(f'x2 = {x2}, y2 = {y2}, w2 = {w2}, h2 = {h2}')
+    valid_mask = mask_1[:,y1:y1+h1,x1:x1+w1]
     valid_mask = rearrange(valid_mask, 'c h w -> 1 c h w')
-    # print(f'valid_mask.shape = {valid_mask.shape}')
+    print(f'valid_mask.shape = {valid_mask.shape}')
     resized_valid_mask = F.interpolate(
         valid_mask,
         size=(h2, w2),
@@ -140,11 +145,20 @@ def refactor_mask(box_1, mask_1, box_2):
     ).squeeze()
     resized_valid_mask[resized_valid_mask > 0.5] = 1.
     resized_valid_mask[resized_valid_mask <= 0.5] = 0.
-    # print(f'resized_valid_mask.shape = {resized_valid_mask.shape}')
+    print(f'resized_valid_mask.shape = {resized_valid_mask.shape}')
     # x = mask_2[:, x2:x2+w2, y2:y2+h2]
     # print(f'x2:x2+w2 -> {x2}:{x2+w2}, y2:y2+h2 -> {y2}:{y2+h2}')
-    # print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}')
-    mask_2[:, y2:y2+h2, x2:x2+w2] = resized_valid_mask
+    print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}')
+    print(f'mask_2.shape = {mask_2.shape}')
+    if y2+h2>=mask_2.shape[1] or x2+w2>=mask_2.shape[2]:
+        if x2+w2>=mask_2.shape[2]:
+            mask_2[:,((y2-h2) if y2-h2>=0 else 0):y2,((x2-w2) if x2-w2>=0 else 0):x2] = resized_valid_mask
+        elif y2+h2>=mask_2.shape[1]:
+            mask_2[:,((y2-h2) if y2-h2>=0 else 0):y2,x2:x2+w2] = resized_valid_mask
+    else:
+        mask_2[:,y2:y2+h2,x2:x2+w2] = resized_valid_mask
+    
+    
     mask_2 = repeat(rearrange(mask_2, 'b h w -> b 1 h w'), 'b 1 h w -> b c h w', c=1)
 
     return mask_2
