@@ -14,14 +14,15 @@ system_prompt_sort =    'You are an expert in text categorization, and I will in
                         'and now you need to classify the input text according to the following criteria: '\
                         '1. Determines whether the text removes the object, and if so, its category is \"romove\". '\
                         '2. Determine whether the text replaces the object, and if so, its category is \"replace\". '\
-                        '3. Determine whether the text moves the object. If it does, the category is "locate". '\
+                        '3. Determine whether the text moves the object. If it does, the category is \"locate\". '\
+                        '4. Determine whether the text add several object. If it does, the category is \"add\". '\
                         'You may find that category 2. \"replace\" actually contains the case of category 1. \"remove\", '\
                         'but in fact, as long as it conforms to category 2. The edited text of the condition is classified as category 2. \"replace\", '\
                         'otherwise it is considered whether it is the case of 1. \"remove\". '\
                         'Also, I guarantee that the text I enter will be in one of these categories and will not contain elements that belong to more than one category. '
 
 first_ask_sort =    'For the text I entered, you only need to answer one of the three categories and print its name, '\
-                    'one of \"remove\", \"replace\", \"locate\", with no extra characters. If you have already understood your task, '\
+                    'one of \"remove\", \"replace\", \"locate\" and \"add\", with no extra characters. If you have already understood your task, '\
                     'please answer \"yes\" to me in this round without any extra characters, after which I will give you input and ask you to judge. '
 
 
@@ -73,8 +74,8 @@ replace_first_ask =     'You need to output both the replaced object A and the r
 """
 
 
-system_prompt_locate =     'You are a text detection master and need to find a specific object in a piece of text. '\
-                           'You\'re going to get a series texts input in the form of the bellow: \n'\
+system_prompt_locate =     'You are a text detection master and need to generate a new bounding box for a specific object. '\
+                           'You are going to get a series texts input in the form of the bellow: \n'\
                            'Size: (W_{img},H{img})\n'\
                            'Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
                            '[Name_n, (X_n,Y_n), (W_n,H_n))]}\nTarget: Name_n\nEdit-Text: <edit text guidance>\n'\
@@ -98,83 +99,146 @@ system_prompt_locate =     'You are a text detection master and need to find a s
                            'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple ((x,y), (w,h)) '\
                            'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
                            '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
-                           'cannot exceed the size of the original image (W_{img},H{img}).'\
-                           'Your task is to modify the position and size of the target specified by the \"Target\" field '\
-                           'in the \"Objects\" field, according to the edit prompt given in \"Edit-Text\" field. '\
-                           'You should arrange a proper position and a proper size for the editing target. '\
-                           'In conclusion, you should edit the position and size information, '\
-                           'given in \"Objects\" field, of the target according to the text edit guidance given in '\
-                           '\"Edit-Text\" field. '
+                           'cannot exceed the size of the original image (W_{img},H{img}). Note that bounding boxes can overlap. '
+
                        
-locate_first_ask =      'For your task, you should output your generation of the target bounding box in the form of '\
-                        '[Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]. \"Name_n\" represents the name of the target '\
-                        '(it stays the same!). And coordinates (X_{new},Y_{new}) is the point at the top left corner in '\
-                        'the edge of the bounding box, while (W_{new},H_{new}) represents the width and height of a '\
-                        'rectangular box that including the this object(the same definition in bounding box). '\
+locate_first_ask =      'For the coordinates designed in bounding box, we give relevant definitions. '\
+                        'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
+                        'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
+                        'The direction "down" is defined as the positive direction of the y axis, '\
+                        'and the direction "right" is defined as the positive direction of the x axis. '\
+                        'In addition, for the width and height (i.e. w and h) in bounding box, the former corresponds to the X-axis direction '\
+                        'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple ((x,y), (w,h)) '\
+                        'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
+                        '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
+                        'cannot exceed the size of the original image (W_{img},H{img}).'\
+                        'Your task is to modify the position and size of the target specified by the \"Target\" field ' \
+                        'in the \"Objects\" field, according to the edit prompt given in \"Edit-Text\" field. '\
+                        'You should arrange a proper position and a proper size for the editing target. '\
                         'In this way, your task is to generate the position and size according to the information '\
                         'given and representing them in the form of bounding box. '\
                         'For example, if the instruction in "Edit-Text" field told you to move a object to a far place, '\
-                        'you should consider where is the so called "far place" according to the objects given in "Objects" field '\
-                        'and generate a new bounding box which stands for its new position for the object and output your answer in the form required.'\
+                        'you should consider where is the so called "far place" according to all those objects given in "Objects" field, '\
+                        'after which to generate a new bounding box which stands for its new position for the object.'\
+                        'For your task, you should output your generation of the target bounding box in the form of '\
+                        '[Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]. \"Name_n\" represents the name of the target '\
+                        '(it stays the same!). And coordinates (X_{new},Y_{new}) is the coordinate of the point at the top left corner in '\
+                        'the edge of the bounding box, while (W_{new},H_{new}) represents the width and height of a '\
+                        'rectangular box that including this object. Note that bounding boxes can overlap. '\
                         'If you have understood your task, '\
                         'please answer "yes" in the round without any extra characters, after which '\
-                        'I will give you input and ask you to generate the bounding box. '
+                        'I will give you input.'
 
                     # TODO: consider if it's necessary to list the factors that GPT should take into account.
 
 # <resize the object>
 
-system_prompt_add = 
+# no place
+system_prompt_add = 'You are a text detection master and need to generate a new bounding box for a specific object. '\
+                    'You are going to get a series texts input in the form of the bellow: \n'\
+                    'Size: (W_{img},H{img})\n'\
+                    'Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
+                    '[Name_n, (X_n,Y_n), (W_n,H_n))]}\nTarget: Name\n'\
+                    'For the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field \"Objects\", '\
+                    'Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
+                    'and (X_i,Y_i), (W_i,H_i) represent the location and size respectively in an image(or a photo). '\
+                    'Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, '\
+                    'where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, '\
+                    'and (W_i,H_i) represents the width and height of a rectangular box that including the i-th object. '\
+                    'You should add the target "Name" to the object list given in "Objects" field. '\
+# TODO: output Form ?
 
-# and you
-# 're going to find that position in the text and print out the name of that object in its entirety; \
-# In addition, you also need to find out where the object has been moved and print the name of that place. \
-# As for the nouns involved, you need to note: make sure to keep all the modifications about the object. \
-# You need to print the name of the object being moved without extra space. \
-# Be careful to keep the modification of the object in the output noun, \
-# for example if you get an input "move the leftmost zebra to the right lawn", \
-# you need to output the name of the moved object is "leftmost zebra" instead of just one word "zebra", \
-# and the location you need to output is "right lawn" instead of just one word "lawn". \
-# Because there may be more than one zebra or lawn, confusion must be avoided. \
-# I guarantee that only one object has moved its position.
+add_first_ask = 'You need to give the position and size of the specified new object "Name" in bounding box format. '\
+                'Regarding the arrangement of its position, you need to consider the following aspects. '\
+                '1. Relative size: the size of Name should be in accordance with the basic logic, '\
+                'e.g. in the case of the same distance, "dog" is generally larger than "apple", '\
+                '"dog" is generally larger than "cat". 2. Visual size: visually, '\
+                'to comply with the principle of "near big and far small"; for example, the same as "cat", '\
+                '"near cat" is generally much larger than "far cat".'\
+                'For your task, you should output your generation of the target bounding box in the form of '\
+                '[Name, (X,Y), (W, H)]. \"Name\" represents the name of the target to be added. '\
+                'And coordinates (X,Y) is the coordinate of the point at the top left corner in '\
+                'the edge of the bounding box, while (W,H) represents the width and height of a '\
+                'rectangular box that including this object. If you have understood your task, '\
+                'please answer "yes" in this round without any extra characters, after which '\
+                'I will give you input and ask you to generate the bounding box. '
 
 
 
-# Other -> ip2p
 
-# You need to output the moved object named A, and B is the name where the object is moved to, so there are two nouns in the output, \
-#                         please output in the form of "(A,B)". If you have understood your task, \
-#                         please answer "yes" in the round without any extra characters, \
-#                         after which I will give you input and ask you to judge. \
 
-# find target_noun and new_noun
+system_prompt_addHelp = 'You will receive an instruction for image editing, and the instruction is to add objects '\
+                        'to the image. Your task is to extract the added object and the number of added objects. '\
+                        'Ensure that the input instruction contains only added operations and only one '\
+                        '(but possibly multiple) objects. You need to output in the form (name, num, place), '\
+                        'where name represents the kind of object to be added (for example, cat, dog, tiger), etc.'\
+                        ', and place_n represents the target location to be added. '\
+                        'Besides, if no place is specified, just put \"<NULL>\". '
 
-# system_prompt_rescale = """\
-#                         You are an object scaler, capable of amending the size of an object with a known name \
-#                         based on information about a set of objects with a known name and a known size. \
-#                         The "name" is the category of the object, for example: cat, dog, apple, etc. \
-#                         The "size" of an object with a known name will be represented by a binary tuple (w,h), \
-#                         which represents the size of the smallest rectangular box that can include the object. \
-#                         In addition, all the objects are actually in a rectangular canvas (photo), \
-#                         all the rectangular boxes (width and height is represented as w and h respectively, \
-#                         and the definition of width and height actually conforms to the form of the opencv-python library).\
-#                         """
 
-# rescale_first_ask = """\
-#                     For your task, I will give you the input as follow:\n\
-#                     Objects: {[name_1, (w_1 h_1))], [name_2, (w_2, h_2))],... , [name_n, (w_n,h_n))]}, \
-#                     Old: [name_{old}, (w_{old}, h_{old})], New: [name_{new}], \
-#                     where [name_i, (w_i,h_i)] in the "Objects" field represents the known information of the i-th object and name_i \
-#                     is the name of the object, (w_i,h_i) represents the width and height of the rectangular box including the i-th object; \
-#                     In "Old" field, we ensure the object [name_{old}, (w_{old}, h_{old})] is included in "Objects" field, \
-#                     and it will be replaced by the object in "New" fied. \
-#                     Your task is to rescale the width and the height of the object in "New" field according to all known information. \
-#                     You only need output the rescaled object in "New" field in form of [name_{new}, (w_{new}', h_{new}')], \
-#                     where w_{new}' and h_{new}' is the new width and height you generate. \
-#                     If you have fully understood your task, please answer "yes" without any extra characters, \
-#                     after which I will give you input.\
-#                 """
+addHelp_first_ask = 'For your task, in the output "name", note that you need to output the "name" modifier in the '\
+                    'input instruction along with it. For example, if the input is "two more cats with black and '\
+                    'white fur on the lawn," the output would be (" cats with black and white fur, "2," on the lawn "). '\
+                    'In addition, your input must be of the form (name, num, place) and must not have any extra characters.'
 
+
+system_prompt_addArrange = 'You are a text detection master and need to generate a new bounding box for a specific object. '\
+                           'You should add an object to a specified place. '\
+                           'You are going to get a series texts input in the form of the bellow: \n'\
+                           'Size: (W_{img},H{img})\n'\
+                           'Place: [Name_p, (X_p,Y_p), (W_p,H_p)]\nTarget: Name\n'\
+                           'In the input shown above, (W_{img},H_{img}) in \"Size\" field represents the size of original image input. '\
+                           'And int \"Place\" field the name of a scenery is given by \"Name_p\", so as its location and range. '\
+                           '\"Place\" is defined by [Name_p, (X_p,Y_p), (W_p,H_p)] where \"Name_p\" represents its name while '\
+                           '(X_p,Y_p) and (W_p,H_p) represent its location and size in an image (or a photo). '\
+                           'WHAT YOU SHOULD DO IS: arrange(generate) a proper location and size for the object \"Name\" '\
+                           'with the constrain that the object \"Name\" represents is in the scope of \"Place\"'\
+                           '\"Name_p\" and \"Name\" respectively represent a name (i.e. object class, such as \"cat\", \"dog\", \"apple\", etc.), '\
+                           'and (X_p,Y_p), (W_p,H_p) represent the location and size respectively in an image (or a photo) '\
+                           'and a bounding box is uniquely identified by (X_i,Y_i), (W_i,H_i) '\
+                           'where (X_p,Y_p) represents the coordinate of the point at the top left corner in the edge of bounding box, '\
+                           'And (W_p,H_p) represents the width and height of a rectangular box that including object. '\
+                           'For the coordinates designed in bounding box, we give relevant definitions. '\
+                           'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
+                           'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
+                           'The direction "down" is defined as the positive direction of the y axis, '\
+                           'and the direction "right" is defined as the positive direction of the x axis. '\
+                           'In addition, for the width and height (i.e. w and h) in bounding box, the former corresponds to the X-axis direction '\
+                           'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple ((x,y), (w,h)) '\
+                           'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
+                           '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
+                           'cannot exceed the size of the original image (W_{img},H{img}). Note that bounding boxes can overlap. '
+
+
+addArrange_first_ask =  'For the coordinates designed in bounding box, we give relevant definitions. '\
+                        'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
+                        'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
+                        'The direction "down" is defined as the positive direction of the y axis, '\
+                        'and the direction "right" is defined as the positive direction of the x axis. '\
+                        'In addition, for the width and height (i.e. w and h) in bounding box, the former corresponds to the X-axis direction '\
+                        'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple ((x,y), (w,h)) '\
+                        'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
+                        '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
+                        'cannot exceed the size of the original image (W_{img},H{img}).'\
+                        'Your task is to arrange the position and size of the target \"Name\" specified in the \"Target\" field ' \
+                        'on purpose of adding it to the \"Place\" field. '\
+                        'You should arrange a proper position and a proper size for the target. '\
+                        'In this way, your task is to generate the position and size according to the information '\
+                        'given and representing them in the form of bounding box. '\
+                        'You should output your generation of the target bounding box in the form of '\
+                        '[Name, (X,Y), (W, H)] without any other character. \"Name_n\" represents the name of the target '\
+                        '(it stays the same!). And coordinates (X,Y) is the coordinate of the point at the top left corner in '\
+                        'the edge of the bounding box, while (W,H) represents the width and height of a '\
+                        'rectangular box that including this object. Note that bounding boxes can overlap. '\
+                        'If you have understood your task, '\
+                        'please answer "yes" in the round without any extra characters, after which '\
+                        'I will give you input.'
+
+
+
+
+
+# 对于更加复杂的编辑任务，增加一个agent将指令分解为上述编辑单元
 
 
 
@@ -193,7 +257,8 @@ system_prompt_rescale =     'You are an object scaler, capable of generating a s
                             'Then, in "Old" and "New" field , two nouns are given respectively, which indicates the Name_{old} '\
                             'should be replaced Name_{new}. '\
                             'Based on the description above, your task is to generate a new position coordinates and sizes '\
-                            'for the replacement. The out put should be in the form of [Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})]. '
+                            'for the replacement. The out put should be in the form of [Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})]. '\
+                            'Note that bounding boxes can overlap. '
 
 
 rescale_first_ask =     'For your task, for details, you should generation modified bounding-box following the bellow rules. \n'\
@@ -290,7 +355,7 @@ first_ask_edit = 'Note that if you are following the instructions to do the modi
                  'For this case, the location to arange the newly added object depends on you. '\
                  'You should consider this issue according to the following aspects: '\
                  'First, if the location has been specified in the instruction, just follow it. '\
-                 'Second, if there\'s no clue of where to arange the new object, you should generate the '\
+                 'Second, if there is no clue of where to arange the new object, you should generate the '\
                  'location after understanding the instruction.\nAs is illustrated before, '\
                  'the location is in the format of quaternion as (X_i,Y_i,W_i,H_i) '\
                  '(representing a rectangle that crops the object), where X_i and Y_i represents the coordinates of '\
@@ -298,7 +363,7 @@ first_ask_edit = 'Note that if you are following the instructions to do the modi
                  'of the rectangle respectively. You should concatenate the name_i and the quaternion together '\
                  'to the format [name_i, (X_i,Y_i,W_i,H_i)] and add it to the object list (\'Image\'). '\
                  'Additionally, if the object mentioned in instruction is required to be removed, '\
-                 'just delete it from \'Image\' when outputing.\nWhen it comes to the output, '\
+                 'just delete it from "Image" when outputing.\nWhen it comes to the output, '\
                  'you should print three lines accoding to the description below: '\
                  'The first line is in the general output, in format: {(X_0\',Y_0\'), [name_1\',(X_1\',Y_1\',W_1\',H_1\')]'\
                  ', [name_2\',(X_2\',Y_2\',W_1\',H_1\')], ..., [name_N\',(X_N\',Y_N\',W_N\',H_N\')]}. '\
@@ -360,6 +425,9 @@ first_ask_noun = 'For example, when you type \"Move the kettle on the table to t
                  'As a result, you only need to output a single word(\'<WHOLE>\' included, without quotation mark) without quotation mark.'\
                  'However, the answer you output mustn\'t contain any other character, only hte noun you found.'\
                  'If you have understood your task, answer \"yes\" without extra characters.'
+
+
+
 
 import os
 

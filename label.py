@@ -1,13 +1,12 @@
 import re
 from prompt.guide import *
 from prompt.util import get_image_from_box as get_img
-from prompt.item import Label, get_replace_tuple
+from prompt.item import Label, get_replace_tuple, get_add_tuple
 import torch
 import numpy as np
 from PIL import Image
 from einops import repeat, rearrange
 import pandas as pd
-
 from prompt.arguments import get_args
 
 dd = list(pd.read_csv('./key.csv')['key'])
@@ -17,7 +16,7 @@ net_proxy = 'http://127.0.0.1:7890'
 engine='gpt-3.5-turbo-0613'
 
 import cv2
-from operations import Remove_Me, Remove_Me_lama, replace_target, create_location
+from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
 
 opt = get_args()
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -92,20 +91,31 @@ if 'locate' in sorted_class:
     print(f'noun_agent first ask: {a}')
     target_noun = get_response(noun_remove_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
-    
-    # ans = get_response(locate_agent, locate_first_ask)
-    # print(ans)
-    # ans = re.split('[(),]', ans)
-    # ans = [x for x in ans if x!='' and x!=' ']
-    # print(f'len(ans) = {len(ans)}')
-    # target, destination = ans[0], ans[1]
+
     create_location(opt, target_noun, edit_agent=locate_agent)
 
 if 'add' in sorted_class:
-    
+    add_prompt_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addHelp, proxy=net_proxy)
+    a = get_response(add_prompt_agent, addHelp_first_ask)
+    print(f'add_prompt_agent first ask: {a}')
+    ans = get_response(add_prompt_agent, opt.edit_txt)
+    name, num, place = get_add_tuple(ans)
 
+    if '<NULL>' in place:
+        arrange_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
+        a = get_response(arrange_agent, add_first_ask)
+        print(f'arrange_agent first ask: {a}')
+    else:
+        arrange_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy)
+        a = get_response(arrange_agent, addArrange_first_ask)
+        print(f'arrange_agent first ask: {a}')
 
-    exit(0)
+    diffusion_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
+    yes = get_response(diffusion_agent, first_ask_expand)
+    print(f'diffusion_agent first answers: {yes}')
+
+    Add_Object(opt, name, num, place, edit_agent=arrange_agent, expand_agent=diffusion_agent)
+
 
 
 # for i in range(len(ins_cut)):

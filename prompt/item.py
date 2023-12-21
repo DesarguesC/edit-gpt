@@ -1,4 +1,5 @@
 import numpy as np
+from jieba import re
 
 
 class Label():
@@ -26,14 +27,15 @@ class Label():
         out = out + "}"
         return out
 
-    def get_str_location(self, box_mame_list, edit_txt):
+    def get_str_location(self, box_mame_list, edit_txt, size: tuple):
         # box_name_list[-1] used as a hint for GPT
         out = ""
         assert len(box_mame_list) > 1, f'abnormal length of the box_name_list, box_name_list: {box_mame_list}'
+        size_ = f"Size: ({size[0]},{size[1]})"
         list_ = "Objects: " + self.get_str_part(box_mame_list[0:-1])
         edit_ = "Edit-Text: " + edit_txt
         hint_ = "Hint: " + self.get_str_part([box_mame_list[-1]])
-        return list_ + '\n' + edit_ + '\n' + hint_
+        return f'{size_}\n{list_}\n{edit_}\n{hint_}'
 
 
     def get_str_part(self, objects_masks_list: list[dict]):
@@ -50,14 +52,27 @@ class Label():
         out = out + "}"
         return out
     
-    def get_str_rescale(self, old_noun, new_noun, panoptic_dict):
+    def get_str_rescale(self, old_noun, new_noun, panoptic_dict: list[dict]):
         old_noun = old_noun.strip()
         old_noun = old_noun.split(':')[-1] if ':' in old_noun else old_noun
         new_noun = new_noun.strip()
         new_noun = new_noun.split(':')[-1] if ':' in new_noun else new_noun
         Objects = self.get_str_part(panoptic_dict)
         return f'Objects: {Objects}\nOld: {old_noun}\nNew: {new_noun}'
-        
+
+    def get_str_add_panoptic(self, panoptic_dict: list[dict], name: str, size: tuple):
+        # place not specified
+        Size = f'({size[0]},{size[1]})' # (W,H)
+        Objects = self.get_str_part(panoptic_dict)
+        return f'Size: {Size}\nObjects: {Objects}\nTarget: {name}'
+
+
+    def get_str_add_place(self, place, name, size: tuple, place_box: Optional[tuple, list]):
+        Size = f'({size[0]},{size[1]})'
+        Place = f'[{place}, ({place_box[0]},{place_box[1]}), ({place_box[2]},{place_box[3]}]'
+        return f'Size: {Size}\nPlace: {Place}\nTarget: {name}'
+
+
 
     def __str__(self):
         out = "{"
@@ -81,4 +96,18 @@ def get_replace_tuple(replace_tupple: str):
     replace_tupple = replace_tupple.split(',')
     print(f'len replace_tuple = {len(replace_tupple)}')
     return (replace_tupple[0].strip(), replace_tupple[1].strip())
+
+
+def get_add_tuple(add_tuple: str):
+    punctuation = re.split('[(),]', add_tuple)
+    p = [x.strip() for x in punctuation if x!='' and x!= ' ']
+    assert len(p) == 3, f'list p = {p}, ans = {add_tuple}'
+    name, num, place = p[0], int(p[1]), p[2]
+    return name, num, place
+
+
+
+
+
+
 

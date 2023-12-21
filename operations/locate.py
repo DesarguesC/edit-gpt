@@ -66,7 +66,7 @@ def create_location(opt, target, edit_agent=None):
         'bbox': target_box
     }) # as a hint
 
-    question = Label().get_str_location(box_name_list, opt.edit_txt) # => [name, (x,y), (w,h)]
+    question = Label().get_str_location(box_name_list, opt.edit_txt, (opt.W,opt.H)) # => [name, (x,y), (w,h)]
     question = f'Size: ({opt.W},{opt.H})\n' + question
     print(f'question: {question}')
     box_ans = get_response(edit_agent, question)
