@@ -6,8 +6,7 @@ from enum import Enum, unique
 
 from basicsr.utils import img2tensor
 from torch import autocast
-from ldm.models.diffusion.ddim import DDIMSampler
-from ldm.models.diffusion.plms import PLMSSampler
+
 from ldm.modules.encoders.adapter import Adapter, StyleAdapter, Adapter_light
 from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict, resize_numpy_image
 from prompt.guide import get_response, first_ask_expand
@@ -196,7 +195,7 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         '--use_inpaint_adapter',
         type=str2bool,
         help="whether to use the control-net adapters",
-        default=True
+        default=False
     )
     
     parser.add_argument(
@@ -207,9 +206,16 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
     
     parser.add_argument(
-        '--use_XL',
+        '--use_adapter',
         type=str2bool,
-        help="whether to use stable-diffusion-XL",
+        help="whether to use stable-diffusion-XL-Adapter",
+        default=True
+    )
+    
+    parser.add_argument(
+        '--linear',
+        type=str2bool,
+        help="user linearart adpater of depth adapter",
         default=True
     )
     
@@ -226,10 +232,20 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         help="kernel size to deliate when inpainting via LaMa",
         default=15
     )
+    
+    parser.add_argument(
+        '--mask_ablation',
+        type=str2bool,
+        help="whether to do the mask ablation",
+        default=True
+    )
 
     return parser
 
 def get_sd_models(opt):
+    
+    from ldm.models.diffusion.ddim import DDIMSampler
+    from ldm.models.diffusion.plms import PLMSSampler
     """
     build stable diffusion model, sampler
     """

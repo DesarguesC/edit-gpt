@@ -143,7 +143,7 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     img_pil = img_pil.resize((opt.W, opt.H))
     
     res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
-    cv2.imwrite(f'./static-inpaint/res-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
+    cv2.imwrite(f'./static-inpaint/res-{opt.out_name}', np.uint8(res))
     print(f'seg result image saved at \'./static-inpaint/res-{opt.out_name}\'')
     
     print(f'target_mask.shape = {target_mask.shape}')

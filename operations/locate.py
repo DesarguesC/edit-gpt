@@ -1,4 +1,4 @@
-from operations.remove import Remove_Me as RM
+from operations.remove import Remove_Me, Remove_Me_lama
 from seem.masks import middleware
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 from paint.example import paint_by_example
@@ -45,7 +45,8 @@ def create_location(opt, target, edit_agent=None):
 
 
     # remove the target, get the mask (for bbox searching via SAM)
-    rm_img, target_mask, _ = RM(opt, target, remove_mask=True)
+    rm_img, target_mask, _ = Remove_Me_lama(opt, target, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
+                        else Remove_Me(opt, target, remove_mask=True, replace_box=opt.replace_box)
     rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR)).convert('RGB')
     # rm_img.save(f'./static-inpaint/rm-img.jpg')
     # print(f'removed image saved at \'./static-inpaint/rm-img.jpg\'')
@@ -82,10 +83,6 @@ def create_location(opt, target, edit_agent=None):
     target_mask, destination_mask = re_mask(target_mask), re_mask(destination_mask)
     
     print(f'target_mask.shape = {target_mask.shape}, destination_mask.shape = {destination_mask.shape}')
-    print('check: ')
-    print(f'checksum = {torch.sum(target_mask*target_mask)-torch.sum(destination_mask*destination_mask)}')
-    
-    
     
     cv2.imwrite(f'./outputs/destination-mask-{opt.out_name}', cv2.cvtColor(np.uint8(255. * rearrange(repeat(destination_mask.squeeze(0),\
                                                         '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
@@ -94,13 +91,17 @@ def create_location(opt, target, edit_agent=None):
     print(f'destination-mask saved: \'./outputs/destination-mask-{opt.out_name}\'')
     print(f'destination-mask saved: \'./outputs/target-mask-{opt.out_name}\'')
     
-
-    Ref_Image = np.array(img_pil)[y:y+h,x:x+w,:]
-    cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(Ref_Image, cv2.COLOR_BGR2RGB))
+    print(f'np.array(img_pil).shape = {np.array(img_pil).shape}')
+    xt, yt, wt, ht = target_box
+    yt_ = (yt+ht) if yt+ht < opt.H else yt-ht
+    xt_ = (xt+wt) if xt+wt < opt.W else xt-wt
+    Ref_Image = np.array(img_pil)[min(yt,yt_):max(yt,yt_), min(xt,xt_):max(xt,xt_), :]
+    cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint(Ref_Image), cv2.COLOR_BGR2RGB))
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
-    Ref_Image = Ref_Image * repeat(rearrange(target_mask.cpu().detach().numpy()[:,y:y+h,x:x+w], 'c h w -> h w c'), '... 1 -> ... c', c=3)
-    output_path, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)).convert('RGB'), img_pil, use_adapter=opt.use_pbe_adapter)
+    Ref_Image = Ref_Image * repeat(rearrange(target_mask.cpu().detach().numpy()\
+                                                 [:,min(yt,yt_):max(yt,yt_), min(xt,xt_):max(xt,xt_)], 'c h w -> h w c'), '... 1 -> ... c', c=3)
+    output_path, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)).convert('RGB'), rm_img, use_adapter=opt.use_pbe_adapter)
     # use rm_img or original img_pil ?
     cv2.imwrite(output_path, tensor2img(x_sample_ddim))
 

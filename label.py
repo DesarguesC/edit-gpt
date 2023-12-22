@@ -13,7 +13,8 @@ dd = list(pd.read_csv('./key.csv')['key'])
 assert len(dd) == 1
 api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
-engine='gpt-3.5-turbo-0613'
+# engine='gpt-3.5-turbo-0613'
+engine='gpt-3.5-turbo'
 
 import cv2
 from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
@@ -38,7 +39,7 @@ TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrang
 # if opt.out_name.endswith(".jpg") or opt.out_name.endswith(".png"):
 #     opt.out_name = opt.out_name[0:-3]
 
-# opt.out_name = f'{opt.out_name}:use_XL={opt.use_XL}:use_lama={opt.use_lama}:dilate_kernel_size'\
+# opt.out_name = f'{opt.out_name}:use_adapter={opt.use_adapter}:use_lama={opt.use_lama}:dilate_kernel_size'\
 #                     f'={opt.dilate_kernel_size}:use_inpaint_adapter={opt.use_inpaint_adapter}:use_pbe_adapter={opt.use_pbe_adapter}.jpg'
 
 
@@ -51,7 +52,7 @@ if 'remove' in sorted_class:
     print(f'target_noun: {target_noun}')
     
     _ = Remove_Me_lama(opt, target_noun, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
-                        else Remove_Me(opt, target_noun, remove_mask=True, replace_box=opt.replace_box)
+                        else Remove_Me(opt, target_noun, remove_mask=True)
     
     # image loaded via method Image.fromarray is 'RGB' mode by default
     print('exit from remove')
@@ -78,7 +79,7 @@ if 'replace' in sorted_class:
     diffusion_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
     yes = get_response(diffusion_agent, first_ask_expand)
     print(f'diffusion_agent first answers: {yes}')
-    replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, expand_agent=diffusion_agent, replace_box=opt.replace_box)
+    replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, expand_agent=diffusion_agent)
 
 if 'locate' in sorted_class:
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object

@@ -87,7 +87,7 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     _, panoptic_dict = middleware(opt, rm_img) # key: name, mask
 
     diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, use_inpaint_adapter=opt.use_inpaint_adapter, \
-                                            ori_img=img_pil, cond_mask=mask_1, use_XL=opt.use_XL)
+                                            ori_img=img_pil, cond_mask=mask_1)
     # TODO: add conditional condition to diffusion via ControlNet
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
     
@@ -101,8 +101,8 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
     box_1 = match_sam_box(mask_1, sam_seg_list) # old noun
     bbox_list = [match_sam_box(x['mask'], sam_seg_list) for x in panoptic_dict]
-    print(box_1)
-    print(bbox_list)
+    print(f'box_1 = {box_1}')
+    print(f'bbox_list = {bbox_list}')
        
     box_name_list = [{
         'name': panoptic_dict[i]['name'],
@@ -132,8 +132,8 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     box_0 = (int(x), int(y), int(w), int(h))
     target_mask = refactor_mask(box_2, mask_2, box_0)
     
-    target_mask[target_mask >= 0.5] = 0.95
-    target_mask[target_mask < 0.5] = 0.05
+    target_mask[target_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
+    target_mask[target_mask < 0.5] = 0.05 if opt.mask_ablation else 0.
     
     
     print(f'target_mask.shape = {target_mask.shape}')
