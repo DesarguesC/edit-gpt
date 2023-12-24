@@ -36,6 +36,9 @@ def get_args():
     parser.add_argument('--lama_ckpt', default='../autodl-tmp/lama/', help='path to lama ckpt folder')
     parser.add_argument('--XL_base_path', default='../autodl-tmp', help='base path to XL, adapter, etc.')
 
+    parser.add_argument('--example_type', type=str, default='XL', help="choose the method for generation",
+        choices=['XL', 'XL_adapter', 'v1.5', 'v1.5_adapter'],
+    )
 
 
     return parser.parse_args() 

@@ -46,6 +46,7 @@ matplotlib
 onnxruntime
 onnx
 openai
+easydict
 webdataset==0.2.35
 safetensors==0.3.1
 timm

@@ -183,40 +183,19 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         choices=["full", "autocast"],
         default="autocast"
     )
-    
-    parser.add_argument(
-        '--replace_box',
-        type=str2bool,
-        help="whether to replace removed image in box",
-        default=False
-    )
 
-    parser.add_argument(
-        '--use_inpaint_adapter',
-        type=str2bool,
-        help="whether to use the control-net adapters",
-        default=False
-    )
-    
-    parser.add_argument(
-        '--use_pbe_adapter',
-        type=str2bool,
-        help="whether to use the control-net adapters",
-        default=False
-    )
-    
-    parser.add_argument(
-        '--use_adapter',
-        type=str2bool,
-        help="whether to use stable-diffusion-XL-Adapter",
-        default=True
-    )
+    # parser.add_argument(
+    #     '--use_inpaint_adapter',
+    #     type=str2bool,
+    #     help="whether to use the control-net adapters",
+    #     default=False
+    # )
     
     parser.add_argument(
         '--linear',
         type=str2bool,
-        help="user linearart adpater of depth adapter",
-        default=True
+        help="user linearart adpater or depth adapter in XL",
+        default=False   # default: depth
     )
     
     parser.add_argument(
@@ -237,7 +216,7 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         '--mask_ablation',
         type=str2bool,
         help="whether to do the mask ablation",
-        default=True
+        default=False
     )
 
     return parser

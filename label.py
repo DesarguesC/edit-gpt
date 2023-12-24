@@ -36,13 +36,6 @@ location = str(label_done)
 edit_his = []
 TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
 
-# if opt.out_name.endswith(".jpg") or opt.out_name.endswith(".png"):
-#     opt.out_name = opt.out_name[0:-3]
-
-# opt.out_name = f'{opt.out_name}:use_adapter={opt.use_adapter}:use_lama={opt.use_lama}:dilate_kernel_size'\
-#                     f'={opt.dilate_kernel_size}:use_inpaint_adapter={opt.use_inpaint_adapter}:use_pbe_adapter={opt.use_pbe_adapter}.jpg'
-
-
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery
     noun_remove_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)

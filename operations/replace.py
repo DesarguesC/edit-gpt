@@ -86,8 +86,7 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     # print(f'removed image saved at \'./static-inpaint/rm-img.jpg\'')
     _, panoptic_dict = middleware(opt, rm_img) # key: name, mask
 
-    diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, use_inpaint_adapter=opt.use_inpaint_adapter, \
-                                            ori_img=img_pil, cond_mask=mask_1)
+    diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, ori_img=img_pil, cond_mask=mask_1)
     # TODO: add conditional condition to diffusion via ControlNet
     _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
     
