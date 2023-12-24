@@ -10,7 +10,7 @@ static-crfill/  # object removed images
 static-inpaint/ 
 static/
 
-*.csv
+key.csv
 # *.txt
 *.docx
 *.pptx
@@ -21,7 +21,6 @@ static/
 
 # weights
 *.pt
-*.pth
 *.ckpt
 
 src/*
