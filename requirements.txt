@@ -1,4 +1,4 @@
-albumentations
+albumentations==0.4.3
 diffusers==0.11.1
 pytorch_lightning==1.5.9
 opencv-python==4.8.1.78
@@ -34,7 +34,6 @@ cityscapesscripts==2.2.2
 shapely==1.8.0
 mup==1.0.0
 sentencepiece==0.1.99
-kornia==0.6.8
 k-diffusion==0.0.14
 gradio
 open-clip-torch
@@ -63,3 +62,4 @@ einops
 -e git+https://github.com/DesarguesC/inst-inpaint.git@main#egg=inst-inpaint
 -e git+https://github.com/DesarguesC/crfill@master#egg=crfill
 -e git+https://github.com/CompVis/taming-transformers@master#egg=taming-transformers
+-e git+https://github.com/DesarguesC/kornia@master#egg=kornia

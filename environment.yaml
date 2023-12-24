@@ -48,7 +48,6 @@ dependencies:
     - scikit-image==0.21.0
     - mup==1.0.0
     - sentencepiece==0.1.99
-    - kornia==0.6.8
     - k-diffusion==0.0.14
     - gradio
     - open-clip-torch
@@ -77,4 +76,5 @@ dependencies:
     - -e git+https://github.com/MaureenZOU/detectron2-xyz.git@main#egg=detectron2
     - -e git+https://github.com/DesarguesC/inst-inpaint.git@main#egg=inst-inpaint
     - -e git+https://github.com/DesarguesC/crfill@master#egg=crfill
+    - -e git+https://github.com/DesarguesC/kornia@master#egg=kornia
 # https://github.com/MaureenZOU/detectron2-xyz
