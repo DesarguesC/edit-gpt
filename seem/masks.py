@@ -105,10 +105,10 @@ def middleware(opt, image: Image, visual_mode=True):
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
 
     res, lists = gain_panoptic_seg(seem_model, image)
-    if np.abs(np.max(res)-1) < 0.1:
+    if np.max(res) < 1.001:
         res = res * 255.
     # dif_res, dif_lists = gain_panoptic_seg(seem_model, diffusion_image)
-    cv2.imwrite(f'./static-inpaint/panoptic-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
+    cv2.imwrite(f'./static-inpaint/panoptic-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_BGR2RGB))
     print(f'panoptic seg saved at \'./static-inpaint/panoptic-{opt.out_name}\'')
     
     return res, lists

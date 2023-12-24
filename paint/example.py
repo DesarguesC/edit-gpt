@@ -69,10 +69,10 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
     
     opt.XL_base_path = opt.XL_base_path.strip('/')
     
-    expand_agent=None
+    # expand_agent=None
     
-    prompts = f'a photo of {new_noun}, {PROMPT_BASE}'
-    prompts = f'{prompts}; {get_response(expand_agent, prompts)}' if expand_agent != None else prompts
+    prompts = f'a photo of ONLY a/an {new_noun}, {PROMPT_BASE}'
+    prompts = f'{prompts}. Simultaneously, {get_response(expand_agent, new_noun)}' if expand_agent != None else prompts
     print(f'prompt: \n {prompts}\n')
     if opt.example_type == 'XL_adapter':
         print('-' * 9 + 'Generating via SDXL-Adapter' + '-' * 9)
@@ -123,7 +123,7 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
         pipe.to("cuda")
         gen_images = pipe(prompts, height=opt.H, width=opt.W, steps=int(1.5*opt.steps)).images[0]
     
-    else  # 'v1.5' in opt.example_type
+    else:  # 'v1.5' in opt.example_type
         print('-'*9 + 'Generating via sd1.5 with T2I-Adapter' + '-'*9)
         sd_model, sd_sampler = get_sd_models(opt)
         # ori_img: for depth condition generating
@@ -131,20 +131,20 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
 
         if opt.example_type == 'v1.5_adapter':
             print('-'*9 + 'Generating via Style Adapter' + '-'*9)
-            adapter, cond_model = get_adapter(opt, cond_type='style'), get_style_model(opt)
+            adapter, cond_model = get_adapter(opt, cond_type='depth'), get_depth_model(opt)
             print(f'BEFORE: cond_img.size = {ori_img.size}')
-            style_cond = process_style_cond(opt, ori_img, cond_model) # not a image
-            print(f'style_cond.shape = {style_cond.shape}, cond_mask.shape = {cond_mask.shape}')
+            cond = process_depth_cond(opt, ori_img, cond_model) # not a image
+            print(f'cond.shape = {cond.shape}, cond_mask.shape = {cond_mask.shape}')
             # resize mask to the shape of style_cond ?
-            # cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
-            # print(f'cond_mask.shape = {cond_mask.shape}')
-            # if cond_mask is not None:
-                # cond_mask[cond_mask < 0.5] = 0.05
-                # cond_mask[cond_mask >= 0.5] = 0.95
+            cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
+            print(f'cond_mask.shape = {cond_mask.shape}')
+            if cond_mask is not None:
+                cond_mask[cond_mask < 0.5] = 0.05 if opt.mask_ablation else 0.
+                cond_mask[cond_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
                 # TODO: check if mask smoothing is needed
-            # style_cond = style_cond * (style_mask * 0.8) # 1 - cond_mask ?
-            cv2.imwrite(f'./static/style_cond.jpg', tensor2img(style_cond))
-            adapter_features, append_to_context = get_adapter_feature(style_cond, adapter)
+            cond = cond * (cond_mask * 0.8 if opt.mask_ablation else 1.) # 1 - cond_mask ?
+            cv2.imwrite(f'./static/adapter_cond.jpg', tensor2img(cond))
+            adapter_features, append_to_context = get_adapter_feature(cond, adapter)
         
         # if isinstance(adapter_features, list):
         #     print(len(adapter_features))
@@ -168,8 +168,8 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
         gen_images = gen_images.resize(ori_img.size)
     assert gen_images.size == ori_img.size, f'gen_images.size = {gen_images.size}, ori_img.size = {ori_img.size}'
     
-    gen_images.save('./static/ref.jpg')
-    print(f'example saved at \'./static/ref.jpg\' [sized: {gen_images.size}]')
+    gen_images.save(f'./static/ref4{opt.out_name}')
+    print(f'example saved at \'./static/ref4{opt.out_name}\' [sized: {gen_images.size}]')
     return gen_images # PIL.Image
 
 

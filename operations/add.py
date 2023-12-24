@@ -31,21 +31,34 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
     opt.W, opt.H = img_pil.size
     opt.W, opt.H = ab64(opt.W), ab64(opt.H)
     img_pil = img_pil.resize((opt.W, opt.H))
+    print(f'ADD: (name, num, place) = ({name}, {num}, {place})')
 
     if '<NULL>' in place:
         # system_prompt_add -> panoptic
-        _, panopic_dict = middleware(opt, img_pil)
+        _, panoptic_dict = middleware(opt, img_pil)
+        print(f'panoptic_dict: {panoptic_dict}')
         question = Label().get_str_add_panoptic(panopic_dict, name, (opt.W,opt.H))
     else:
         # system_prompt_addArrange -> name2place
-        _, place_mask, place_box = query_middleware(opt, img_pil, place)
+        _, place_mask, _ = query_middleware(opt, img_pil, place)
+        
+        # load SAM
+        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+        sam.to(device=opt.device)
+        mask_generator = SamAutomaticMaskGenerator(sam)
+        mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
+        place_box = match_sam_box(place_mask, [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]) # old noun
+        print(f'place_box = {place_box}')
         question = Label().get_str_add_place(place, name, (opt.W,opt.H), place_box)
 
+    print(f'question: \n{question}\n num = {num}')
     for i in range(num):
         ans = get_response(edit_agent, question)
-        ans_list = [x.strip() for x in re.split('[(),{}]', ans) if x != '' and x != ' ']
+        print(f'ans = {ans}')
+        ans_list = [x.strip() for x in re.split('[(),{}\[\]]', ans) if x != '' and x != ' ']
         assert len(ans_list) == 5, f'ans = {ans}, ans_list = {ans_list}'
         ori_box = (int(ans_list[1]), int(ans_list[2]), int(ans_list[3]), int(ans_list[4]))
+        print(f'ans_box = {ori_box}')
         # generate example
         diffusion_pil = generate_example(opt, name, expand_agent=expand_agent, ori_img=img_pil)
         # query mask-box & rescale
@@ -53,7 +66,7 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
         sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
         sam.to(device=opt.device)
         mask_generator = SamAutomaticMaskGenerator(sam)
-        box_example = match_sam_box(mask_2, [
+        box_example = match_sam_box(mask_example, [
             (u['bbox'], u['segmentation'], u['area']) for u in \
                     sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), \
                                            key=(lambda x: x['area']), reverse=True)
@@ -61,8 +74,7 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
 
         target_mask = refactor_mask(box_example, mask_example, ori_box)
         # paint-by-example
-        _, painted = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, \
-                                   base_img=img_pil, use_adapter=opt.use_pbe_adapter)
+        _, painted = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil)
         output_path = os.path.join(opt.out_dir, f'{i}~{opt.out_name}')
         cv2.imwrite(output_path, tensor2img(painted))
         print(f'Added image saved at \'{output_path}\'')

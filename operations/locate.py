@@ -47,7 +47,7 @@ def create_location(opt, target, edit_agent=None):
     # remove the target, get the mask (for bbox searching via SAM)
     rm_img, target_mask, _ = Remove_Me_lama(opt, target, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
                         else Remove_Me(opt, target, remove_mask=True, replace_box=opt.replace_box)
-    rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR)).convert('RGB')
+    rm_img = Image.fromarray(rm_img)
     # rm_img.save(f'./static-inpaint/rm-img.jpg')
     # print(f'removed image saved at \'./static-inpaint/rm-img.jpg\'')
 
@@ -93,15 +93,16 @@ def create_location(opt, target, edit_agent=None):
     
     print(f'np.array(img_pil).shape = {np.array(img_pil).shape}')
     xt, yt, wt, ht = target_box
-    yt_ = (yt+ht) if yt+ht < opt.H else yt-ht
-    xt_ = (xt+wt) if xt+wt < opt.W else xt-wt
-    Ref_Image = np.array(img_pil)[min(yt,yt_):max(yt,yt_), min(xt,xt_):max(xt,xt_), :]
-    cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint(Ref_Image), cv2.COLOR_BGR2RGB))
+    yt_ = (yt+ht) if yt+ht < opt.H else int(abs(yt-ht))
+    xt_ = (xt+wt) if xt+wt < opt.W else int(abs(xt-wt))
+    Ref_Image = (np.array(img_pil)*np.array(target_mask))[min(yt,yt_):max(yt,yt_), min(xt,xt_):max(xt,xt_), :]
+    print(f'Ref_Image.shape = {Ref_Image.shape}')
+    cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint8(Ref_Image), cv2.COLOR_BGR2RGB))
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
     Ref_Image = Ref_Image * repeat(rearrange(target_mask.cpu().detach().numpy()\
                                                  [:,min(yt,yt_):max(yt,yt_), min(xt,xt_):max(xt,xt_)], 'c h w -> h w c'), '... 1 -> ... c', c=3)
-    output_path, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)).convert('RGB'), rm_img, use_adapter=opt.use_pbe_adapter)
+    output_path, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img)
     # use rm_img or original img_pil ?
     cv2.imwrite(output_path, tensor2img(x_sample_ddim))
 

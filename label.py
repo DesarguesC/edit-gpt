@@ -14,7 +14,7 @@ assert len(dd) == 1
 api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
 # engine='gpt-3.5-turbo-0613'
-engine='gpt-3.5-turbo'
+engine='gpt-3.5-turbo-0613'
 
 import cv2
 from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
@@ -93,6 +93,7 @@ if 'add' in sorted_class:
     a = get_response(add_prompt_agent, addHelp_first_ask)
     print(f'add_prompt_agent first ask: {a}')
     ans = get_response(add_prompt_agent, opt.edit_txt)
+    print(f'tupple_ans: {ans}')
     name, num, place = get_add_tuple(ans)
 
     if '<NULL>' in place:

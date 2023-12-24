@@ -141,7 +141,7 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
                                                         '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
     # SAVE_MASK_TEST
     
-    output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img, use_adapter=opt.use_pbe_adapter)
+    output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
     # results = rearrange(results.cpu().detach().numpy(), '1 c h w -> h w c')
     # print(f'results.shape = {results.shape}')
     cv2.imwrite(output_path, tensor2img(results)) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
