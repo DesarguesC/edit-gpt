@@ -20,7 +20,7 @@ from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
 from einops import repeat, rearrange
-import torch, cv2
+import torch, cv2, os
 from paint.example import generate_example
 
 

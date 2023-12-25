@@ -16,13 +16,15 @@ system_prompt_sort =    'You are an expert in text categorization, and I will in
                         '2. Determine whether the text replaces the object, and if so, its category is \"replace\". '\
                         '3. Determine whether the text moves the object. If it does, the category is \"locate\". '\
                         '4. Determine whether the text add several object. If it does, the category is \"add\". '\
+                        '5. If it does not contain any of the first four meanings, just output <null> (i.e. category \'<null>\')'\
                         'You may find that category 2. \"replace\" actually contains the case of category 1. \"remove\", '\
                         'but in fact, as long as it conforms to category 2. The edited text of the condition is classified as category 2. \"replace\", '\
                         'otherwise it is considered whether it is the case of 1. \"remove\". '\
-                        'Also, I guarantee that the text I enter will be in one of these categories and will not contain elements that belong to more than one category. '
+                        'For another case, if the input is "close her eyes", that should be catogory 5, so you output "<null>"'\
+                        'Also, I guarantee that the text I enter will be in one of these 5 categories and will not contain elements that belong to more than one category. '
 
 first_ask_sort =    'For the text I entered, you only need to answer one of the three categories and print its name, '\
-                    'one of \"remove\", \"replace\", \"locate\" and \"add\", with no extra characters. If you have already understood your task, '\
+                    'one of \"remove\", \"replace\", \"locate\" and \"add\", or \'<null>\', with no extra characters. If you have already understood your task, '\
                     'please answer \"yes\" to me in this round without any extra characters, after which I will give you input and ask you to judge. '
 
 
@@ -130,6 +132,7 @@ locate_first_ask =      'For the coordinates designed in bounding box, we give r
                         'I will give you input.'
 
                     # TODO: consider if it's necessary to list the factors that GPT should take into account.
+                    # TODO: Illustrate the generation procedure by providing examples ?
 
 # <resize the object>
 
@@ -469,10 +472,11 @@ system_prompt_expand =  'You are a prompt expander, expert in text expansion. No
                         '"a/an photo of ...", your task is to specify and expand the prompt to let diffusion make sense '\
                         'of the prompt so that diffusion can be driven to generate images with high quality and high resolution. '
 
-first_ask_expand =      'For each of your input, it is ONLY ONE kind of object. '\
+two, three = 'two', 'three'
+first_ask_expand = lambda x: 'For each of your input, it is ONLY ONE kind of object. '\
                         'For each input you received, you are only to output the expanded prompt without any other '\
                         'character. You mustn\'t output any extra characters except the expanded prompt. The expanded prompt is '\
-                        ' ought to be no more than two sentences. If you\'ve '\
+                        f'ought to be no more than {tow if x else three} sentences. If you\'ve '\
                         'made sense your task, please answer me \'yes\' and mustn\'t output any extra character, either, '\
                         'after which I\'ll give you input prompts. '
 """

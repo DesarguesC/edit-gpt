@@ -20,11 +20,34 @@ from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
 from einops import repeat, rearrange
+TURN = lambda x: repeat(rearrange(np.array(x.cpu().detach().numpy()), 'c h w -> h w c'), '... 1 -> ... c', c=3)
 
 def re_mask(mask, dtype=torch.float32):
     mask[mask >= 0.5] = 1.
     mask[mask < 0.5] = 0.
     return torch.tensor(mask, dtype=dtype)
+
+def get_area(ref_img, box):
+    assert len(box) == 4
+    # if box cooresponds to an area out of the ref image, then move back the box
+    x, y, w, h = box
+    x1, y1 = x + w, y + h
+    if (ref_img.shape) == 3:
+        wi, hi, _ = ref_img.shape
+    else:
+        wi, hi, *_ = ref_img.shape
+    if x1 > wi:
+        x -= (x1-wi)
+        x1 = wi
+    if y1 > hi:
+        y -= (y1-hi)
+        y1 = hi
+    return ref_img[y:y1, x:x1, :]
+    
+def fine_box(box, img_shape):
+    # TODO: fine a box into ori-img area
+    pass
+    
 
 def create_location(opt, target, edit_agent=None):
     assert edit_agent != None, 'no edit agent'
@@ -81,6 +104,9 @@ def create_location(opt, target, edit_agent=None):
     box_0 = (x, y, w, h)
     destination_mask = refactor_mask(target_box, target_mask, box_0)
     target_mask, destination_mask = re_mask(target_mask), re_mask(destination_mask)
+    if torch.max(target_mask) <= 1.:
+        target_mask[target_mask > 0.5] = 0.95 if opt.mask_ablation else 1.
+        target_mask[target_mask <= 0.5] = 0.05 if opt.mask_ablation else 0.
     
     print(f'target_mask.shape = {target_mask.shape}, destination_mask.shape = {destination_mask.shape}')
     
@@ -91,20 +117,28 @@ def create_location(opt, target, edit_agent=None):
     print(f'destination-mask saved: \'./outputs/destination-mask-{opt.out_name}\'')
     print(f'destination-mask saved: \'./outputs/target-mask-{opt.out_name}\'')
     
-    print(f'np.array(img_pil).shape = {np.array(img_pil).shape}')
+    img_np = np.array(img_pil)
     xt, yt, wt, ht = target_box
     yt_ = (yt+ht) if yt+ht < opt.H else int(abs(yt-ht))
     xt_ = (xt+wt) if xt+wt < opt.W else int(abs(xt-wt))
-    Ref_Image = (np.array(img_pil)*np.array(target_mask))[min(yt,yt_):max(yt,yt_), min(xt,xt_):max(xt,xt_), :]
-    print(f'Ref_Image.shape = {Ref_Image.shape}')
+    Ref_Image = (img_np * TURN(target_mask))
+    Ref_Image = get_area(Ref_Image, target_box)
+    print(f'img_np.shape = {img_np.shape}, Ref_Image.shape = {Ref_Image.shape}')
     cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint8(Ref_Image), cv2.COLOR_BGR2RGB))
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
-    Ref_Image = Ref_Image * repeat(rearrange(target_mask.cpu().detach().numpy()\
-                                                 [:,min(yt,yt_):max(yt,yt_), min(xt,xt_):max(xt,xt_)], 'c h w -> h w c'), '... 1 -> ... c', c=3)
+    
     output_path, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img)
-    # use rm_img or original img_pil ?
+    
+    
+    print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
+    # cv2.imwrite(
+    #             output_path, tensor2img(x_sample_ddim.cpu() * repeat(1.-target_mask, '1 ... -> c ...', c=3)) + \
+    #             np.uint8(TURN(target_mask))*cv2.cvtColor(np.uint8(img_np), cv2.COLOR_RGB2BGR)
+    #            )
+    
     cv2.imwrite(output_path, tensor2img(x_sample_ddim))
+    # TODO: If I need to Paint-by-Example ?
 
     print('exit from create_location')
     exit(0)

@@ -163,3 +163,12 @@ def refactor_mask(box_1, mask_1, box_2):
 
     return mask_2
 
+# TODO: implement 'refactor_target'
+
+
+def refactor_target(box_1, target, box_1, mask=None):
+    # By default, target has been multiplied by mask
+    return
+
+
+

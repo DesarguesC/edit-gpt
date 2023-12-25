@@ -1,5 +1,14 @@
-TODO: 2023-12-122
+TODO: 2023-12-26
 
-1. locate中target截取定位有问题
-2. GPT的左右似乎关于y=x镜像，然后移动的功能不太行感觉
+1. prompt/guide.py   ->   give examples to GPT
+2. operations/locate.py   ->   maybe Paint-by-Example is not necessary
+4. operations/locate.py   ->   Function: fine_box   ->   remove the repitive function
+4. paint/bgutils.py   ->   Function: refactor_target
+
+
+
+* 规范remove, replace, locate, add之外的编辑指令，用ip2p实现
+
+思路：能用掩码拆分，但是不能拆得太散。
+
 

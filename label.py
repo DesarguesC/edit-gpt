@@ -20,6 +20,9 @@ import cv2
 from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
 
 opt = get_args()
+
+assert os.path.exists(opt.in_dir), f'File Not Exists: {opt.in_dir}'
+
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -53,7 +56,7 @@ if 'remove' in sorted_class:
     # Recover_Scenery_For(img_dragged)
     # TODO: recover the scenery for img_dragged in mask
 
-if 'replace' in sorted_class:
+elif 'replace' in sorted_class:
     # find the target -> remove -> recover the scenery -> add the new
     noun_replace_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy)
     a = get_response(noun_replace_agent, replace_first_ask)
@@ -69,12 +72,12 @@ if 'replace' in sorted_class:
     rescale_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
     yes = get_response(rescale_agent, rescale_first_ask)
     print(f'rescale_agent first answers: {yes}')
-    diffusion_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
+    diffusion_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand('XL' in opt.example_type), proxy=net_proxy)
     yes = get_response(diffusion_agent, first_ask_expand)
     print(f'diffusion_agent first answers: {yes}')
     replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, expand_agent=diffusion_agent)
 
-if 'locate' in sorted_class:
+elif 'locate' in sorted_class:
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
     locate_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
     yes = get_response(locate_agent, locate_first_ask)
@@ -88,7 +91,7 @@ if 'locate' in sorted_class:
 
     create_location(opt, target_noun, edit_agent=locate_agent)
 
-if 'add' in sorted_class:
+elif 'add' in sorted_class:
     add_prompt_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addHelp, proxy=net_proxy)
     a = get_response(add_prompt_agent, addHelp_first_ask)
     print(f'add_prompt_agent first ask: {a}')
@@ -111,7 +114,13 @@ if 'add' in sorted_class:
 
     Add_Object(opt, name, num, place, edit_agent=arrange_agent, expand_agent=diffusion_agent)
 
+else:
+    # '<null>' in sorted_class:
+    print('exit from <null>')
+    exit(0)
 
+    
+    
 
 # for i in range(len(ins_cut)):
 ins_i = opt.edit_txt
