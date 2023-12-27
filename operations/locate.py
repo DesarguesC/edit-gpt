@@ -136,9 +136,15 @@ def create_location(opt, target, edit_agent=None):
     #             output_path, tensor2img(x_sample_ddim.cpu() * repeat(1.-target_mask, '1 ... -> c ...', c=3)) + \
     #             np.uint8(TURN(target_mask))*cv2.cvtColor(np.uint8(img_np), cv2.COLOR_RGB2BGR)
     #            )
-    
-    cv2.imwrite(output_path, tensor2img(x_sample_ddim))
+    x_sample_ddim = tensor2img(x_sample_ddim)
+    cv2.imwrite(output_path, x_sample_ddim)
+    print(f'locate result image saved at \'{output_path}\'')
     # TODO: If I need to Paint-by-Example ?
+    if opt.test_mode:
+        import os
+        assert os.path.exists(opt.test_path)
+        cv2.imwrite(f'./{opt.test_path}/{opt.out_name}', x_sample_ddim)
+        print(f'locate-test image saved at \'./{opt.test_path}/{opt.out_name}\'')
 
     print('exit from create_location')
     exit(0)

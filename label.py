@@ -39,6 +39,15 @@ location = str(label_done)
 edit_his = []
 TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
 
+if opt.test_mode:
+    path = os.path.join(opt.out_dir, opt.out_name.split('-')[0])
+    if not os.path.exists(path):
+        os.mkdir(path)
+        opt.test_path = path
+
+# exit(0)
+
+
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery
     noun_remove_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)

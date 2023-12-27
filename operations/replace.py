@@ -144,7 +144,15 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
     # results = rearrange(results.cpu().detach().numpy(), '1 c h w -> h w c')
     # print(f'results.shape = {results.shape}')
-    cv2.imwrite(output_path, tensor2img(results)) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
+    results = tensor2img(results)
+    cv2.imwrite(output_path, results) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
+    print(f'replace result image saved at \'{output_path}\'')
+    if opt.test_mode:
+        import os
+        assert os.path.exists(opt.test_path)
+        cv2.imwrite(f'./{opt.test_pah}/{opt.out_name}', results)
+        print(f'replace-test image saved at \'./{opt.test_pah}/{opt.out_name}\'')
+    
     print('exit from replace')
     exit(0)
     

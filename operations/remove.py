@@ -156,6 +156,11 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     print(img_inpainted.shape)
     cv2.imwrite(f'./static-inpaint/Remove-{opt.out_name}', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
     print(f'removed image saved at \'./static-inpaint/RM-{opt.out_name}\'')
+    if opt.test_mode:
+        import os
+        assert os.path.exists(opt.test_path)
+        cv2.imwrite(f'./{opt.test_path}/{opt.out_name}', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
+        print(f'removed-test image saved at \'./{opt.test_path}/{opt.out_name}\'')
     
     return img_inpainted, target_mask, f'./static-inpaint/RM-{opt.out_name}'
 
