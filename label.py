@@ -14,7 +14,7 @@ assert len(dd) == 1
 api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
 # engine='gpt-3.5-turbo-0613'
-engine='gpt-3.5-turbo-0613'
+engine='gpt-3.5-turbo'
 
 import cv2
 from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
@@ -33,6 +33,8 @@ a1 = get_response(class_agent, first_ask_sort)
 
 sorted_class = get_response(class_agent, opt.edit_txt)
 print(f'sorted class: <{sorted_class}>')
+del class_agent
+
 
 prompt_list = []
 location = str(label_done)
@@ -41,9 +43,9 @@ TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrang
 
 if opt.test_mode:
     path = os.path.join(opt.out_dir, opt.out_name.split('-')[0])
-    if not os.path.exists(path):
-        os.mkdir(path)
-        opt.test_path = path
+    opt.test_path = path
+    if not os.path.exists(path): os.mkdir(path)
+    
 
 # exit(0)
 
@@ -81,8 +83,8 @@ elif 'replace' in sorted_class:
     rescale_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
     yes = get_response(rescale_agent, rescale_first_ask)
     print(f'rescale_agent first answers: {yes}')
-    diffusion_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand('XL' in opt.example_type), proxy=net_proxy)
-    yes = get_response(diffusion_agent, first_ask_expand)
+    diffusion_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
+    yes = get_response(diffusion_agent, first_ask_expand('XL' in opt.example_type))
     print(f'diffusion_agent first answers: {yes}')
     replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, expand_agent=diffusion_agent)
 
@@ -98,6 +100,7 @@ elif 'locate' in sorted_class:
     target_noun = get_response(noun_remove_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
 
+    del noun_remove_agent
     create_location(opt, target_noun, edit_agent=locate_agent)
 
 elif 'add' in sorted_class:
@@ -106,7 +109,10 @@ elif 'add' in sorted_class:
     print(f'add_prompt_agent first ask: {a}')
     ans = get_response(add_prompt_agent, opt.edit_txt)
     print(f'tupple_ans: {ans}')
+    import time
+    time.sleep(15)
     name, num, place = get_add_tuple(ans)
+    del add_prompt_agent
 
     if '<NULL>' in place:
         arrange_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)

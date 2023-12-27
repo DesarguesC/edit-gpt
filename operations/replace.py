@@ -1,7 +1,7 @@
 from operations import Remove_Me, Remove_Me_lama
 from seem.masks import middleware
 from paint.crutils import ab8, ab64
-from paint.bgutils import refactor_mask, match_sam_box
+from paint.bgutils import refactor_mask, match_sam_box, fix_box
 from paint.example import paint_by_example
 from PIL import Image
 import numpy as np
@@ -126,9 +126,12 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     box_0 = re.split(punctuation, box_0)
     box_0 = [x.strip() for x in box_0 if x!= ' ' and x!='']
     
+    
     new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
-    box_0 = (int(x), int(y), int(w), int(h))
+    box_0 = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
+    box_0 = fix_box(box_0, (opt.W,opt.H,3))
+    
     target_mask = refactor_mask(box_2, mask_2, box_0)
     
     target_mask[target_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
@@ -150,8 +153,8 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     if opt.test_mode:
         import os
         assert os.path.exists(opt.test_path)
-        cv2.imwrite(f'./{opt.test_pah}/{opt.out_name}', results)
-        print(f'replace-test image saved at \'./{opt.test_pah}/{opt.out_name}\'')
+        cv2.imwrite(f'./{opt.test_path}/{opt.out_name}', results)
+        print(f'replace-test image saved at \'./{opt.test_path}/{opt.out_name}\'')
     
     print('exit from replace')
     exit(0)

@@ -39,6 +39,7 @@ def get_args():
     parser.add_argument('--example_type', type=str, default='XL', help="choose the method for generation",
         choices=['XL', 'XL_adapter', 'v1.5', 'v1.5_adapter'],
     )
+    parser.add_argument('--expand_scale', default=1.0, type=float, help='expansion scale for mask')
 
 
     return parser.parse_args() 

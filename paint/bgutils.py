@@ -150,25 +150,35 @@ def refactor_mask(box_1, mask_1, box_2):
     # print(f'x2:x2+w2 -> {x2}:{x2+w2}, y2:y2+h2 -> {y2}:{y2+h2}')
     print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}')
     print(f'mask_2.shape = {mask_2.shape}')
-    if y2+h2>=mask_2.shape[1] or x2+w2>=mask_2.shape[2]:
-        if x2+w2>=mask_2.shape[2]:
-            mask_2[:,((y2-h2) if y2-h2>=0 else 0):y2,((x2-w2) if x2-w2>=0 else 0):x2] = resized_valid_mask
-        elif y2+h2>=mask_2.shape[1]:
-            mask_2[:,((y2-h2) if y2-h2>=0 else 0):y2,x2:x2+w2] = resized_valid_mask
-    else:
-        mask_2[:,y2:y2+h2,x2:x2+w2] = resized_valid_mask
+    # if y2+h2>=mask_2.shape[1] or x2+w2>=mask_2.shape[2]:
+    #     if x2+w2>=mask_2.shape[2]:
+    #         mask_2[:,((y2-h2) if y2-h2>=0 else 0):y2,((x2-w2) if x2-w2>=0 else 0):x2] = resized_valid_mask
+    #     elif y2+h2>=mask_2.shape[1]:
+    #         mask_2[:,((y2-h2) if y2-h2>=0 else 0):y2,x2:x2+w2] = resized_valid_mask
+    # else:
+    mask_2[:,y2:y2+h2,x2:x2+w2] = resized_valid_mask
     
     
     mask_2 = repeat(rearrange(mask_2, 'b h w -> b 1 h w'), 'b 1 h w -> b c h w', c=1)
 
     return mask_2
 
-# TODO: implement 'refactor_target'
 
 
-def refactor_target(box_1, target, box_1, mask=None):
-    # By default, target has been multiplied by mask
-    return
-
-
-
+# TODO: implement 'refact_target'
+def fix_box(gpt_box, img_shape):
+    x, y, w, h = gpt_box
+    x1, y1 = x + w, y + h
+    assert len(gpt_box) == 4
+    assert len(img_shape) >= 3
+    if len(img_shape) == 3:
+        wi, hi, _ = img_shape
+    else:
+        wi, hi, *_ = img_shape
+    if x1 > wi:
+        x -= (x1-wi)
+    if y1 > hi:
+        y -= (y1-hi)
+    gpt_box = (x1, y1, w, h)
+    
+    return gpt_box

@@ -1,7 +1,7 @@
 from operations import Remove_Me, Remove_Me_lama
 from seem.masks import middleware
 from paint.crutils import ab8, ab64
-from paint.bgutils import refactor_mask, match_sam_box
+from paint.bgutils import refactor_mask, match_sam_box, fix_box
 from paint.example import paint_by_example
 from PIL import Image
 import numpy as np
@@ -57,7 +57,8 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
         print(f'ans = {ans}')
         ans_list = [x.strip() for x in re.split('[(),{}\[\]]', ans) if x != '' and x != ' ']
         assert len(ans_list) == 5, f'ans = {ans}, ans_list = {ans_list}'
-        ori_box = (int(ans_list[1]), int(ans_list[2]), int(ans_list[3]), int(ans_list[4]))
+        ori_box = (int(ans_list[1]), int(ans_list[2]), int(ans_list[3] * opt.expand_scale), int(ans_list[4] * opt.expand_scale))
+        ori_box = fix_box(ori_box, (opt.W,opt.H,3))
         print(f'ans_box = {ori_box}')
         # generate example
         diffusion_pil = generate_example(opt, name, expand_agent=expand_agent, ori_img=img_pil)

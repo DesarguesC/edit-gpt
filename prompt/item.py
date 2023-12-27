@@ -34,9 +34,9 @@ class Label():
         assert len(box_mame_list) > 1, f'abnormal length of the box_name_list, box_name_list: {box_mame_list}'
         size_ = f"Size: ({size[0]},{size[1]})"
         list_ = "Objects: " + self.get_str_part(box_mame_list[0:-1])
+        target_ = "Target: " + box_mame_list[-1]['name']
         edit_ = "Edit-Text: " + edit_txt
-        hint_ = "Hint: " + self.get_str_part([box_mame_list[-1]])
-        return f'{size_}\n{list_}\n{edit_}\n{hint_}'
+        return f'{size_}\n{list_}\n{target_}\n{edit_}'
 
 
     def get_str_part(self, objects_masks_list: list[dict]):

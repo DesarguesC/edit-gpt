@@ -48,10 +48,11 @@ system_prompt_replace =    'You are a text detection master and need to find a s
                            'I guarantee only one object was replaced. '
 
 
-replace_first_ask =     'You need to output both the replaced object A and the replaced object B, in the form (A,B), each without any other character or space. '\
+replace_first_ask =     'You need to output both the replaced object A and the replaced object B, in the form (A,B). '\
+                        'For the two items, each is without any other character or space. '\
                         'Be careful to keep the modification about the object when you output the noun, '\
-                        'for example if you get an input \"Replace the leftmost zebra with a horse\", '\
-                        'you need to output \"(leftmost zebra, horse)\" instead of just \"(zebra, horse)\", '\
+                        'for example if you get an input \"Replace the zebra on the left to a horse\", '\
+                        'you need to output \"(zebra on the left, horse)\", '\
                         'because there may not be only one zebra. And it\'s of vital importance that '\
                         'in parentheses you should only output the noun you found. If you have understood your task, '\
                         'please answer "yes" in the round without any extra characters, after which I will give you input and ask you to judge. '
@@ -476,7 +477,7 @@ two, three = 'two', 'three'
 first_ask_expand = lambda x: 'For each of your input, it is ONLY ONE kind of object. '\
                         'For each input you received, you are only to output the expanded prompt without any other '\
                         'character. You mustn\'t output any extra characters except the expanded prompt. The expanded prompt is '\
-                        f'ought to be no more than {tow if x else three} sentences. If you\'ve '\
+                        f'ought to be no more than {two if x else three} sentences. If you\'ve '\
                         'made sense your task, please answer me \'yes\' and mustn\'t output any extra character, either, '\
                         'after which I\'ll give you input prompts. '
 """

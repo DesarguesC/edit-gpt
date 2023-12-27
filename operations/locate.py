@@ -2,7 +2,7 @@ from operations.remove import Remove_Me, Remove_Me_lama
 from seem.masks import middleware
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 from paint.example import paint_by_example
-from paint.bgutils import match_sam_box, refactor_mask
+from paint.bgutils import match_sam_box, refactor_mask, fix_box
 from PIL import Image
 import numpy as np
 # from utils.visualizer import Visualizer
@@ -32,16 +32,6 @@ def get_area(ref_img, box):
     # if box cooresponds to an area out of the ref image, then move back the box
     x, y, w, h = box
     x1, y1 = x + w, y + h
-    if (ref_img.shape) == 3:
-        wi, hi, _ = ref_img.shape
-    else:
-        wi, hi, *_ = ref_img.shape
-    if x1 > wi:
-        x -= (x1-wi)
-        x1 = wi
-    if y1 > hi:
-        y -= (y1-hi)
-        y1 = hi
     return ref_img[y:y1, x:x1, :]
     
 def fine_box(box, img_shape):
@@ -91,8 +81,8 @@ def create_location(opt, target, edit_agent=None):
     }) # as a hint
 
     question = Label().get_str_location(box_name_list, opt.edit_txt, (opt.W,opt.H)) # => [name, (x,y), (w,h)]
-    question = f'Size: ({opt.W},{opt.H})\n' + question
-    print(f'question: {question}')
+    # question = f'Size: ({opt.W},{opt.H})\n' + question
+    print(f'question: \n{question}')
     box_ans = get_response(edit_agent, question)
     print(f'box_ans = {box_ans}')
 
@@ -101,7 +91,9 @@ def create_location(opt, target, edit_agent=None):
     punctuation = re.compile('[^\w\s]+')
     box_ans = [x.strip() for x in re.split(punctuation, box_ans) if x != ' ' and x != '']
     x, y, w, h = int(box_ans[1]), int(box_ans[2]), int(box_ans[3]), int(box_ans[4])
-    box_0 = (x, y, w, h)
+    box_0 = (x, y, w * opt.expand_scale, h * opt.expand_scale)
+    box_0 = fix_box(box_0, (opt.W,opt.H,3))
+    
     destination_mask = refactor_mask(target_box, target_mask, box_0)
     target_mask, destination_mask = re_mask(target_mask), re_mask(destination_mask)
     if torch.max(target_mask) <= 1.:
@@ -117,19 +109,13 @@ def create_location(opt, target, edit_agent=None):
     print(f'destination-mask saved: \'./outputs/destination-mask-{opt.out_name}\'')
     print(f'destination-mask saved: \'./outputs/target-mask-{opt.out_name}\'')
     
-    img_np = np.array(img_pil)
-    xt, yt, wt, ht = target_box
-    yt_ = (yt+ht) if yt+ht < opt.H else int(abs(yt-ht))
-    xt_ = (xt+wt) if xt+wt < opt.W else int(abs(xt-wt))
-    Ref_Image = (img_np * TURN(target_mask))
-    Ref_Image = get_area(Ref_Image, target_box)
+    Ref_Image = get_area(np.array(img_pil) * TURN(target_mask), target_box)
     print(f'img_np.shape = {img_np.shape}, Ref_Image.shape = {Ref_Image.shape}')
     cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint8(Ref_Image), cv2.COLOR_BGR2RGB))
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
     
     output_path, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img)
-    
     
     print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
     # cv2.imwrite(
