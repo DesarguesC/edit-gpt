@@ -11,3 +11,13 @@ pip install -r requirements.txt
 ```
 (set global proxy if you are using)
 
+If the error has occurred:
+
+"OSError: Could not find library geos_c or load any of its variants ['/Library/Frameworks/GEOS.framework/Versions/Current/GEOS', '/opt/local/lib/libgeos_c.dylib', '/usr/local/lib/libgeos_c.dylib', '/opt/homebrew/lib/libgeos_c.dylib']"
+
+you can install geos as follow:
+```bash
+sudo apt-get install geos # linux
+brew install geos # macos
+```
+
