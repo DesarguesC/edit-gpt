@@ -57,7 +57,7 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
         print(f'ans = {ans}')
         ans_list = [x.strip() for x in re.split('[(),{}\[\]]', ans) if x != '' and x != ' ']
         assert len(ans_list) == 5, f'ans = {ans}, ans_list = {ans_list}'
-        ori_box = (int(ans_list[1]), int(ans_list[2]), int(ans_list[3] * opt.expand_scale), int(ans_list[4] * opt.expand_scale))
+        ori_box = (int(ans_list[1]), int(ans_list[2]), int(int(ans_list[3]) * opt.expand_scale), int(int(ans_list[4]) * opt.expand_scale))
         ori_box = fix_box(ori_box, (opt.W,opt.H,3))
         print(f'ans_box = {ori_box}')
         # generate example
