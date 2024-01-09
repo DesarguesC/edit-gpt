@@ -1,13 +1,9 @@
-TODO: 2023-12-27
+TODO: 2024-01-03
 
 1. prompt/guide.py   ->   give examples to GPT
-[consider for create a request header for GPT-instruct]
-2. operations/locate.py   ->   expand mask area via a hyperparameter [done] -> cause mask refactor problem ?
-[does it exists here ? 运行room.jpg的locate在refator_mask那里报错]
-
+给一些例子
+2. operations/locate.py   ->   expand mask area via a hyperparameter [done] -> 「cause mask refactor problem」 ?
+[does it exists here ? 运行room.jpg的locate在refator_mask那里报错] => 这部分replace里也报错了，在repeat和rearrange上需要调
 
 * 规范remove, replace, locate, add之外的编辑指令，用ip2p实现
-
-思路：能用掩码拆分，但是不能拆得太散。
-
 

@@ -26,6 +26,8 @@ assert os.path.exists(opt.in_dir), f'File Not Exists: {opt.in_dir}'
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+
+
 noun_list = []
 label_done = Label()
 class_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_sort, proxy=net_proxy)

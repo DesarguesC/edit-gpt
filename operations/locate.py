@@ -91,7 +91,7 @@ def create_location(opt, target, edit_agent=None):
     punctuation = re.compile('[^\w\s]+')
     box_ans = [x.strip() for x in re.split(punctuation, box_ans) if x != ' ' and x != '']
     x, y, w, h = int(box_ans[1]), int(box_ans[2]), int(box_ans[3]), int(box_ans[4])
-    box_0 = (x, y, w * opt.expand_scale, h * opt.expand_scale)
+    box_0 = (x, y, int(w * opt.expand_scale), int(h * opt.expand_scale))
     box_0 = fix_box(box_0, (opt.W,opt.H,3))
     
     destination_mask = refactor_mask(target_box, target_mask, box_0)

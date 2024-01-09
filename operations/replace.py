@@ -130,8 +130,10 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
     box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
+
     box_0 = fix_box(box_0, (opt.H,opt.W,3))
     print(f'fixed box: (x,y,w,h) = {box_0}')
+
     
     target_mask = refactor_mask(box_2, mask_2, box_0)
     
@@ -140,9 +142,14 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     
     
     print(f'target_mask.shape = {target_mask.shape}')
+    if len(target_mask.shape) <= 3:
+        target_mask = target_mask.squeeze(0)
+    if target_mask.shape
+    if target_mask.shape[0] == 1:
+        
     
-    cv2.imwrite(f'./outputs/replace-mask-{opt.out_name}', cv2.cvtColor(np.uint8(255. *  rearrange(repeat(target_mask.squeeze(0),\
-                                                        '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
+    cv2.imwrite(f'./outputs/replace-mask-{opt.out_name}', cv2.cvtColor(np.uint8(255.*rearrange(repeat(target_mask.squeeze(0) \
+                                      if len(target_mask.shape)<=3 else target_mask, '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
     # SAVE_MASK_TEST
     
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
