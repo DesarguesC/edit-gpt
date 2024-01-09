@@ -129,8 +129,9 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     
     new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
-    box_0 = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
-    box_0 = fix_box(box_0, (opt.W,opt.H,3))
+    box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
+    box_0 = fix_box(box_0, (opt.H,opt.W,3))
+    print(f'fixed box: (x,y,w,h) = {box_0}')
     
     target_mask = refactor_mask(box_2, mask_2, box_0)
     
