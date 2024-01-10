@@ -120,21 +120,17 @@ def match_sam_box(mask: np.array, sam_list: list[tuple]):
     del pointer[box_idx]
     return bbox
 
-def refactor_mask(box_1, mask_1, box_2):
+def refactor_mask(box_1, mask_1, box_2, type='remove'):
     """
         mask_1 is in box_1
         reshape mask_1 into box_2, as mask_2, return
         TODO: refactor mask_1 into box_2 (tend to get smaller ?)
     """
-    # if len(mask_1.shape) == 2:
-    #     mask_1 = rearrange(repeat(rearrange(mask_1, 'h w -> 1 h w'), '1 h w -> c h w', c=3), 'c h w -> 1 c h w')
-    # elif len(mask_1.shape) == 3:
-    #     if mask_1.shape[0] == 1:
-    #         mask_1 = repeat(mask_1, '1 h w -> c h w', c=3)
-    #     mask_1 =rearrange(mask_1, 'c h w -> 1 c h w')
-        
+    
     mask_1 = torch.tensor(mask_1.squeeze(), dtype=torch.float32)
-    mask_2 = repeat(torch.zeros_like(mask_1.unsqueeze(0)), '1 ... -> c ...', c=3).unsqueeze(0)
+    # h * w
+    mask_2 = torch.zeros_like(mask_1.unsqueeze(0))
+    # 1 * h * w
     print(f'box_1 = {box_1}, mask_1.shape = {mask_1.shape}, box_2 = {box_2}, mask_2.shape = {mask_2.shape}')
     x1, y1, w1, h1 = box_1
     x2, y2, w2, h2 = box_2
@@ -150,27 +146,17 @@ def refactor_mask(box_1, mask_1, box_2):
         mode='bilinear',
         align_corners=False
     ).squeeze()
-    resized_valid_mask = rearrange(repeat(rearrange(resized_valid_mask, 'h w -> 1 h w'), '1 h w -> c h w', c=3), 'c h w -> 1 c h w')
+    # resized_valid_mask = rearrange(repeat(rearrange(resized_valid_mask, 'h w -> 1 h w'), '1 h w -> c h w', c=3), 'c h w -> 1 c h w')
+    resized_valid_mask = resized_valid_mask.unsqueeze(0)
     resized_valid_mask[resized_valid_mask > 0.5] = 1.
     resized_valid_mask[resized_valid_mask <= 0.5] = 0.
     print(f'resized_valid_mask.shape = {resized_valid_mask.shape}')
-    # x = mask_2[:, x2:x2+w2, y2:y2+h2]
-    # print(f'x2:x2+w2 -> {x2}:{x2+w2}, y2:y2+h2 -> {y2}:{y2+h2}')
+    # 1 * h * w
     print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}')
-    print(f'mask_2.shape = {mask_2.shape}')
-    # if y2+h2>=mask_2.shape[1] or x2+w2>=mask_2.shape[2]:
-    #     if x2+w2>=mask_2.shape[2]:
-    #         mask_2[:,((y2-h2) if y2-h2>=0 else 0):y2,((x2-w2) if x2-w2>=0 else 0):x2] = resized_valid_mask
-    #     elif y2+h2>=mask_2.shape[1]:
-    #         mask_2[:,((y2-h2) if y2-h2>=0 else 0):y2,x2:x2+w2] = resized_valid_mask
-    # else:
-    mask_2[:,:,y2:y2+h2,x2:x2+w2] = resized_valid_mask
-    
-    mask_2 = repeat(rearrange(mask_2, 'b h w -> b 1 h w'), 'b 1 h w -> b c h w', c=3)
-    # 1 * 3 * w * h
-
-
-    return mask_2
+    # 1 * w * h
+    mask_2[:,y2:y2+h2,x2:x2+w2] = resized_valid_mask
+    return repeat(mask_2, '1 h w -> c h w', c = 3).unsqueeze(0) if type == 'remove' else mask_2
+    # 1 * 3 * h * w
 
 
 

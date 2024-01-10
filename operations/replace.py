@@ -133,28 +133,21 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
 
     box_0 = fix_box(box_0, (opt.H,opt.W,3))
     print(f'fixed box: (x,y,w,h) = {box_0}')
-
-    
-    target_mask = refactor_mask(box_2, mask_2, box_0)
+    target_mask = refactor_mask(box_2, mask_2, box_0, type=='replace')
+    # 1 * h * w 
     
     target_mask[target_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
     target_mask[target_mask < 0.5] = 0.05 if opt.mask_ablation else 0.
-    
-    
-    print(f'target_mask.shape = {target_mask.shape}')
     if len(target_mask.shape) <= 3:
-        target_mask = target_mask.squeeze(0)
-    if target_mask.shape
-    if target_mask.shape[0] == 1:
-        
+        target_mask = target_mask.unsqueeze(0)
+    if torch.max(target_mask) <= 1.:
+        target_mask = 255. * target_mask
     
-    cv2.imwrite(f'./outputs/replace-mask-{opt.out_name}', cv2.cvtColor(np.uint8(255.*rearrange(repeat(target_mask.squeeze(0) \
-                                      if len(target_mask.shape)<=3 else target_mask, '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
+    cv2.imwrite(f'./outputs/replace-mask-{opt.out_name}', cv2.cvtColor(np.uint8(repeat(target_mask, '1 ... -> c ...', c=3)), cv2.COLOR_BGR2RGB))
     # SAVE_MASK_TEST
-    
+    print(f'target_mask.shape = {target_mask.shape}, ref_img.size = {np.array(diffusion_pil).shape}, base_img.shape = {np.array(rm_img).shape}')
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
-    # results = rearrange(results.cpu().detach().numpy(), '1 c h w -> h w c')
-    # print(f'results.shape = {results.shape}')
+    # mask required: 1 * h * w
     results = tensor2img(results)
     cv2.imwrite(output_path, results) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
     print(f'replace result image saved at \'{output_path}\'')
