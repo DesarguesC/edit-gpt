@@ -7,3 +7,22 @@ TODO: 2024-01-03
 
 * 规范remove, replace, locate, add之外的编辑指令，用ip2p实现
 
+TODO: 2024-01-27
+1.locate module, improve: modify GPT prompts
+2.How to do experiments ?
+    -> evaluate the ability on direction perception ?
+    -> 
+
+previous idea of exp:
+
+llm grounded diffusion那篇的定量实验是怎么做的
+方位数据集？
+用gpt问答模型（llm-vqa）给自己做测评（看下llm的对比测评方式）
+结合som-prompting测评，不过会不会被质疑为什么不用som prompting？
+尝试用gpt4或者gpt4v（好像叫这个？）测评？
+接地扩散那篇定量实验怎么做的
+方位数据集？
+用通用终端问答模型（llm-vqa）给自己做测评（看下llm的对比测评方式）
+结合社会激励测评，不过会不会被质疑为什么不用社会激励？
+尝试用gpt 4或者gpt 4v（好像叫这个？）测评？
+
