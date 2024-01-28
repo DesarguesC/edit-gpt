@@ -12,6 +12,8 @@ TODO: 2024-01-27
 2.How to do experiments ?
     -> evaluate the ability on direction perception ?
     -> 
+3.参考CCA那篇，我也加一个用于矫正的agent，只是我的引导信息全都是bounding box
+4.考虑一下如何表示如CCA中的多agent合作
 
 previous idea of exp:
 
@@ -25,4 +27,21 @@ llm grounded diffusion那篇的定量实验是怎么做的
 用通用终端问答模型（llm-vqa）给自己做测评（看下llm的对比测评方式）
 结合社会激励测评，不过会不会被质疑为什么不用社会激励？
 尝试用gpt 4或者gpt 4v（好像叫这个？）测评？
+
+
+
+Experiments Conception Details
+
+1.原有模型中，输入的change/replace这种动词其实没有发挥作用，因为diffusion本身不理解clip（编辑指令只用clip编码，但clip对动词不灵敏，可以说是几乎没有用）-> 证明他（做一些展示diffusion混淆指令的例子）
+2.基于1.，过去做的instruct image-editing实质上基本是在做replace，人们基于remove
+之类的工作以很少的关注
+3.没有人做过locate的工作
+
+Our Contribution：做了locate，同时整合了前面的图像编辑功能，形成一个拥有replace/remove/add/locate能力的集成系统
+
+
+
+Question：
+我是否需要有model selection的部分，因为看到Hugging-GPT和CAA里都有？
+但是我希望我做的“显得”更通用一些
 
