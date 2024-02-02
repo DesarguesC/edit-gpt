@@ -1,8 +1,7 @@
-import re
+import re, torch, os, cv2, time
 from prompt.guide import *
 from prompt.util import get_image_from_box as get_img
 from prompt.item import Label, get_replace_tuple, get_add_tuple
-import torch
 import numpy as np
 from PIL import Image
 from einops import repeat, rearrange
@@ -16,7 +15,6 @@ net_proxy = 'http://127.0.0.1:7890'
 # engine='gpt-3.5-turbo-0613'
 engine='gpt-3.5-turbo'
 
-import cv2
 from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
 
 opt = get_args()
@@ -25,7 +23,21 @@ assert os.path.exists(opt.in_dir), f'File Not Exists: {opt.in_dir}'
 
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 
+if not os.path.exists(opt.out_dir):
+    os.mkdir(opt.out_dir)
+base_cnt = len(os.listdir(opt.out_dir))
+    
 
+
+
+"""
+base_dir:
+    -> semantic (must been done)
+    -> remove (if done)
+    -> replace (if done)
+    -> locate (if done)
+    -> add (if done)
+"""
 
 
 noun_list = []
@@ -43,14 +55,29 @@ location = str(label_done)
 edit_his = []
 TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
 
-if opt.test_mode:
-    path = os.path.join(opt.out_dir, opt.out_name.split('-')[0])
-    opt.test_path = path
-    if not os.path.exists(path): os.mkdir(path)
+opt.out_name = opt.out_name if opt.out_name.endswith('.jpg') or opt.out_name.endswith('.png') else (opt.out_name+'.jpg')
+
+# if opt.test_mode:
+#     path = os.path.join(opt.out_dir, opt.out_name.split('-')[0])
+#     opt.test_path = path
+#     if not os.path.exists(path): os.mkdir(path)
     
 
 # exit(0)
+folder_name = f'<{base_cnt:06}>' + opt.out_name.split('.')[0]
+if 'remove' in sorted_class:
+    folder_name = 'REMOVE' + folder_name
+elif 'replace' in sorted_class:
+    folder_name = 'REPLACE' + folder_name
+elif 'locate' in sorted_class:
+    folder_name = 'LOCATE' + folder_name
+else:
+    folder_name = 'ADD' + folder_name
 
+opt.base_folder = folder_name
+base_dir = os.path.join(opt.out_dir, folder_name)
+opt.base_dir = base_dir
+os.mkdir(base_dir)
 
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery

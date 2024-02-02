@@ -19,7 +19,7 @@ from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
 from einops import repeat, rearrange
-import torch, cv2
+import torch, cv2, os
 from paint.example import generate_example
 
 
@@ -143,19 +143,22 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     if torch.max(target_mask) <= 1.:
         target_mask = 255. * target_mask
     
-    cv2.imwrite(f'./outputs/replace-mask-{opt.out_name}', cv2.cvtColor(np.uint8(repeat(target_mask, '1 ... -> c ...', c=3)), cv2.COLOR_BGR2RGB))
+    assert os.path.exists(f'{opt.base_dir}/Semantic'), 'where is \'Semantic\' folder????'
+    cv2.imwrite(f'./{opt.base_dir}/Semantic/replace-mask-{opt.out_name}', cv2.cvtColor(np.uint8(repeat(target_mask, '1 ... -> c ...', c=3)), cv2.COLOR_BGR2RGB))
     # SAVE_MASK_TEST
     print(f'target_mask.shape = {target_mask.shape}, ref_img.size = {np.array(diffusion_pil).shape}, base_img.shape = {np.array(rm_img).shape}')
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
     # mask required: 1 * h * w
+    assert os.path.exists(output_path), 'where is replace path folder ?'
     results = tensor2img(results)
-    cv2.imwrite(output_path, results) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
-    print(f'replace result image saved at \'{output_path}\'')
-    if opt.test_mode:
-        import os
-        assert os.path.exists(opt.test_path)
-        cv2.imwrite(f'./{opt.test_path}/{opt.out_name}', results)
-        print(f'replace-test image saved at \'./{opt.test_path}/{opt.out_name}\'')
+    cv2.imwrite(f'{output_path}/{opt.out_name}', results) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
+    print(f'replace result image saved at \'./{output_path}/{opt.out_name}\'')
+    # print(f'replace result image saved at \'./{output_path}/replace-mask-{opt.out_name}\'')
+    # if opt.test_mode:
+    #     import os
+    #     assert os.path.exists(opt.test_path)
+    #     cv2.imwrite(f'./{opt.test_path}/{opt.out_name}', results)
+    #     print(f'replace-test image saved at \'./{opt.test_path}/{opt.out_name}\'')
     
     print('exit from replace')
     exit(0)

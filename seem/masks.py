@@ -11,12 +11,8 @@ from modeling.language.loss import vl_similarity
 from utils.constants import COCO_PANOPTIC_CLASSES
 from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
 
-import cv2
-import os
-import glob
-import subprocess
+import cv2, os, glob, subprocess, random
 from PIL import Image
-import random
 
 # t = []
 # t.append(transforms.Resize(512, interpolation=Image.BICUBIC))
@@ -103,13 +99,13 @@ def middleware(opt, image: Image, visual_mode=True):
     seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
     with torch.no_grad():
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
-
+    sam_output_dir = os.path.join(opt.base_dir, 'Semantic')
     res, lists = gain_panoptic_seg(seem_model, image)
     if np.max(res) < 1.001:
         res = res * 255.
     # dif_res, dif_lists = gain_panoptic_seg(seem_model, diffusion_image)
-    cv2.imwrite(f'./static-inpaint/panoptic-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_BGR2RGB))
-    print(f'panoptic seg saved at \'./static-inpaint/panoptic-{opt.out_name}\'')
+    cv2.imwrite(f'{sam_output_dir}/panoptic-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_BGR2RGB))
+    print(f'panoptic seg saved at \'{sam_output_dir}/panoptic-{opt.out_name}\'')
     
     return res, lists
 

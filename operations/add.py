@@ -32,6 +32,8 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
     opt.W, opt.H = ab64(opt.W), ab64(opt.H)
     img_pil = img_pil.resize((opt.W, opt.H))
     print(f'ADD: (name, num, place) = ({name}, {num}, {place})')
+    assert os.path.exists(opt.base_dir), 'where is base_dir ?'
+    add_path = os.path.join(opt.base_dir, 'added')
 
     if '<NULL>' in place:
         # system_prompt_add -> panoptic
@@ -76,13 +78,13 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
         target_mask = refactor_mask(box_example, mask_example, ori_box)
         # paint-by-example
         _, painted = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil)
-        output_path = os.path.join(opt.out_dir, f'{i}~{opt.out_name}')
+        output_path = os.path.join(add_path, f'{i}~{opt.out_name}')
         painted = tensro2img(painted)
         cv2.imwrite(output_path, painted)
-        print(f'Added image saved at \'{output_path}\'')
-        if opt.test_mode:
-            cv2.imwrte(f'./{opt.test_path}/{i}~{opt.out_name}', painted)
-            print(f'add-test image saved at \'./{opt.test_path}/{i}~{opt.out_name}\'')
+        print(f'Added image saved at \'{output_path}\' folder (numbered).')
+        # if opt.test_mode:
+        #     cv2.imwrte(f'./{opt.test_path}/{i}~{opt.out_name}', painted)
+        #     print(f'add-test image saved at \'./{opt.test_path}/{i}~{opt.out_name}\'')
 
     print('exit from add')
     exit(0)

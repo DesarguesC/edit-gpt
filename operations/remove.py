@@ -1,5 +1,5 @@
 import numpy as np
-import torch, cv2
+import torch, cv2, os
 from paint.bgutils import target_removing
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 # calculate IoU between SAM & SEEM
@@ -143,8 +143,12 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     img_pil = img_pil.resize((opt.W, opt.H))
     
     res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
-    cv2.imwrite(f'./static-inpaint/res-{opt.out_name}', np.uint8(res))
-    print(f'seg result image saved at \'./static-inpaint/res-{opt.out_name}\'')
+    sam_output_dir = os.path.join(opt.base_dir, 'Semantic')
+    assert not os.path.exists(sam_output_dir) and os.path.exists(opt.base_dir), f'? {os.path.exists(sam_output_dir)}, {os.path.exists(opt.base_dir)} ?'
+    os.mkdir(sam_output_dir)
+    
+    cv2.imwrite(f'./{sam_output_dir}/res-remove-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
+    print(f'seg result image saved at \'./{sam_output_dir}/res-remove-{opt.out_name}\'')
     
     print(f'target_mask.shape = {target_mask.shape}')
     target_mask_dilate = [dilate_mask(a_mask, dilate_kernel_size) for a_mask in target_mask]
@@ -154,15 +158,19 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     )
     
     print(img_inpainted.shape)
-    cv2.imwrite(f'./static-inpaint/Remove-{opt.out_name}', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
-    print(f'removed image saved at \'./static-inpaint/RM-{opt.out_name}\'')
-    if opt.test_mode:
-        import os
-        assert os.path.exists(opt.test_path)
-        cv2.imwrite(f'./{opt.test_path}/{opt.out_name}', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
-        print(f'removed-test image saved at \'./{opt.test_path}/{opt.out_name}\'')
     
-    return img_inpainted, target_mask, f'./static-inpaint/RM-{opt.out_name}'
+    rm_output_dir = os.path.join(opt.base_dir, 'Removed')
+    assert not os.path.exists(rm_output_dir) and os.path.exists(opt.base_dir), f"? {os.path.exists(rm_output_dir)}, {os.path.exists(opt.base_dir)} ?"
+    os.mkdir(rm_output_dir)
+    cv2.imwrite(f'{rm_output_dir}/{opt.out_name}', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
+    print(f'removed image saved at \'{rm_output_dir}/{opt.out_name}\'')
+    # if opt.test_mode:
+    #     import os
+    #     assert os.path.exists(opt.test_path)
+    #     cv2.imwrite(f'./{opt.test_path}/{opt.out_name}', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
+    #     print(f'removed-test image saved at \'./{opt.test_path}/{opt.out_name}\'')
+    
+    return img_inpainted, target_mask, f'./{rm_output_dir}/{opt.out_name}'
 
 
 

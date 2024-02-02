@@ -65,9 +65,24 @@ def get_tensor_clip(normalize=True, toTensor=True):
                                                 (0.26862954, 0.26130258, 0.27577711))]
     return torchvision.transforms.Compose(transform_list)
 
+
+"""
+type:
+    XL_adapter   -> SD-XL with T2I-Adapter
+    XL           -> raw SD-XL
+    v1.5_adapter -> SD1.5 with T2I-Adapter
+"""
+
 def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, cond_mask=None, **kwargs) -> Image:
     
     opt.XL_base_path = opt.XL_base_path.strip('/')
+    assert os.path.exists(opt.base_dir), 'where if base_dir ?'
+    ref_dir = os.path.join(opt.base_dir, 'GenRef')
+    os.mkdir(ref_dir)
+    if 'adapter' in opt.example_type:
+        ad_path = os.path.join(ref_dir, 'ad_cond')
+        os.mkdir(ad_path)
+    
     
     # expand_agent=None
     
@@ -130,7 +145,7 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
         adapter_features, append_to_context = None, None
 
         if opt.example_type == 'v1.5_adapter':
-            print('-'*9 + 'Generating via Style Adapter' + '-'*9)
+            print('-'*9 + 'Generating via Style Adapter (depth)' + '-'*9)
             adapter, cond_model = get_adapter(opt, cond_type='depth'), get_depth_model(opt)
             print(f'BEFORE: cond_img.size = {ori_img.size}')
             cond = process_depth_cond(opt, ori_img, cond_model) # not a image
@@ -138,12 +153,12 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
             # resize mask to the shape of style_cond ?
             cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
             print(f'cond_mask.shape = {cond_mask.shape}')
-            if cond_mask is not None:
-                cond_mask[cond_mask < 0.5] = 0.05 if opt.mask_ablation else 0.
-                cond_mask[cond_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
+            if cond_mask is not None and torch.max(cond_mask) <= 1.:
+                cond_mask[cond_mask < 0.5] = (0.05 if opt.mask_ablation else 0.)
+                cond_mask[cond_mask >= 0.5] = (0.95 if opt.mask_ablation else 1.)
                 # TODO: check if mask smoothing is needed
-            cond = cond * (cond_mask * 0.8 if opt.mask_ablation else 1.) # 1 - cond_mask ?
-            cv2.imwrite(f'./static/adapter_cond.jpg', tensor2img(cond))
+            cond = cond * ( cond_mask * (0.8 if opt.mask_ablation else 1.) ) # 1 - cond_mask ?
+            cv2.imwrite(f'./{ad_path}/cond.jpg', tensor2img(cond))
             adapter_features, append_to_context = get_adapter_feature(cond, adapter)
         
         # if isinstance(adapter_features, list):
@@ -156,8 +171,8 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
             seed_everything(opt.seed)
             diffusion_image = diffusion_inference(opt, prompts, sd_model, sd_sampler, adapter_features=adapter_features, append_to_context=append_to_context)
             diffusion_image = tensor2img(diffusion_image)
-            cv2.imwrite('./static/ref.jpg', diffusion_image)
-            print(f'example saved at \'./static/ref.jpg\'')
+            cv2.imwrite(f'./{ref_dir}/ref.jpg', diffusion_image)
+            print(f'example saved at \'./{ref_dir}/ref.jpg\'')
             diffusion_image = cv2.cvtColor(diffusion_image, cv2.COLOR_BGR2RGB)
         del sd_model, sd_sampler
         gen_images = Image.fromarray(np.uint8(diffusion_image)).convert('RGB') # pil
@@ -168,43 +183,50 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
         gen_images = gen_images.resize(ori_img.size)
     assert gen_images.size == ori_img.size, f'gen_images.size = {gen_images.size}, ori_img.size = {ori_img.size}'
     
-    gen_images.save(f'./static/ref4{opt.out_name}')
-    print(f'example saved at \'./static/ref4{opt.out_name}\' [sized: {gen_images.size}]')
+    gen_images.save(f'./{ref_dir}/{opt.out_name}')
+    
+    print(f'example saved at \'./{ref_dir}/{opt.out_name}\' --- [sized: {gen_images.size}]')
     return gen_images # PIL.Image
 
 
 def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base_img: Image = None, use_adapter=False, style_mask=None, **kwargs):
     seed_everything(opt.seed)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
+    assert os.path.exists(f'./{opt.base_dir}/GenRef'), 'where is ref folder ???'
+    
     config = OmegaConf.load(f"{opt.example_config}")
     model = load_model_from_config(config, f"{opt.example_ckpt}").to(device)
     if opt.plms:
         sampler = PLMSSampler(model)
     else:
         sampler = DDIMSampler(model)
-
-    output_path = os.path.join(opt.out_dir, opt.out_name)
+    
+    replace_path = os.path.join(opt.base_dir, 'Replaced')
+    if not os.path.exists(replace_path):
+        os.mkdir(replace_path)
+    
     start_code = None
     if opt.fixed_code:
         start_code = torch.randn([opt.n_samples, opt.C, opt.H // opt.f, opt.W // opt.f], device=device)
 
     adapter_features = append_to_context = None
-    if use_adapter and style_mask is not None:
-        print('-' * 9 + 'Example created via Adapter' + '-' * 9)
-        adapter, cond_model = get_adapter(opt), get_style_model(opt)
-        style_cond = process_style_cond(opt, ref_img, cond_model)
-        assert style_mask is not None
-        print(f'style_cond.shape = {style_cond.shape}, style_mask.shape = {style_mask.shape}')
-        if style_mask is not None:
-            style_mask[style_mask < 0.5] = 0.
-            style_mask[style_mask >= 0.5] = 1.
-            # TODO: check if mask smoothing is needed
-            style_cond *= style_mask
-        cv2.imwrite(f'./static/style_cond.jpg', tensor2img(style_cond))
-        adapter_features, append_to_context = get_adapter_feature(style_cond, adapter)
-        # adapter_features got!
-
+    """
+        WARNING: Useless
+    """
+    # if use_adapter and style_mask is not None:
+    #     print('-' * 9 + 'Example created via Adapter' + '-' * 9)
+    #     adapter, cond_model = get_adapter(opt), get_style_model(opt)
+    #     style_cond = process_style_cond(opt, ref_img, cond_model)
+    #     assert style_mask is not None
+    #     print(f'style_cond.shape = {style_cond.shape}, style_mask.shape = {style_mask.shape}')
+    #     if style_mask is not None:
+    #         style_mask[style_mask < 0.5] = 0.
+    #         style_mask[style_mask >= 0.5] = 1.
+    #         # TODO: check if mask smoothing is needed
+    #         style_cond *= style_mask
+    #     cv2.imwrite(f'./static/style_cond.jpg', tensor2img(style_cond))
+    #     adapter_features, append_to_context = get_adapter_feature(style_cond, adapter)
+    #     # adapter_features got!
 
     precision_scope = autocast if opt.precision == "autocast" else nullcontext
     with torch.no_grad():
@@ -259,7 +281,7 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
                 x_samples_ddim = model.decode_first_stage(samples_ddim)
                 x_samples_ddim = torch.clamp((x_samples_ddim + 1.) / 2., min=0., max=1.)
     
-    return output_path, x_samples_ddim
+    return replace_path, x_samples_ddim
 
 
 
