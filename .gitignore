@@ -6,18 +6,18 @@ __pycache__/
 *.mp4
 test_out/
 checkpoints/
-static-crfill/  # object removed images
-static-inpaint/ 
-static/
+# static-crfill/  # object removed images
+# static-inpaint/ 
+# static/
 
 key.csv
 # *.txt
 *.docx
 *.pptx
 *.ppt
-*.jpg
-*.png
-
+# *.jpg
+# *.png
+outputs/
 
 # weights
 *.pt
