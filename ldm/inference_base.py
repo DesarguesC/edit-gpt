@@ -183,13 +183,6 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         choices=["full", "autocast"],
         default="autocast"
     )
-
-    parser.add_argument(
-        '--test_mode',
-        type=str2bool,
-        help="test-mode: to make a folder",
-        default=True
-    )
     
     parser.add_argument(
         '--linear',

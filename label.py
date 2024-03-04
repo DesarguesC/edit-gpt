@@ -26,10 +26,6 @@ opt.device = "cuda" if torch.cuda.is_available() else "cpu"
 if not os.path.exists(opt.out_dir):
     os.mkdir(opt.out_dir)
 base_cnt = len(os.listdir(opt.out_dir))
-    
-
-
-
 """
 base_dir:
     -> semantic (must been done)
@@ -38,7 +34,6 @@ base_dir:
     -> locate (if done)
     -> add (if done)
 """
-
 
 noun_list = []
 label_done = Label()
@@ -49,21 +44,12 @@ sorted_class = get_response(class_agent, opt.edit_txt)
 print(f'sorted class: <{sorted_class}>')
 del class_agent
 
-
 prompt_list = []
 location = str(label_done)
 edit_his = []
 TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
-
 opt.out_name = opt.out_name if opt.out_name.endswith('.jpg') or opt.out_name.endswith('.png') else (opt.out_name+'.jpg')
 
-# if opt.test_mode:
-#     path = os.path.join(opt.out_dir, opt.out_name.split('-')[0])
-#     opt.test_path = path
-#     if not os.path.exists(path): os.mkdir(path)
-    
-
-# exit(0)
 folder_name = f'<{base_cnt:06}>' + opt.out_name.split('.')[0]
 if 'remove' in sorted_class:
     folder_name = 'REMOVE' + folder_name
@@ -78,6 +64,11 @@ opt.base_folder = folder_name
 base_dir = os.path.join(opt.out_dir, folder_name)
 opt.base_dir = base_dir
 os.mkdir(base_dir)
+mask_dir = os.path.join(base_dir, 'Mask')
+opt.mask_dir = mask_dir
+print(f'base_dir: {base_dir}')
+# 去掉opt.out_name这个参数
+
 
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery
@@ -165,7 +156,6 @@ else:
 
     
     
-
 # for i in range(len(ins_cut)):
 ins_i = opt.edit_txt
 print(f'edit prompt: {ins_i}')
@@ -197,8 +187,6 @@ img_dragged, img_obj = res * (1. - mask), res * mask
 print(img_dragged.shape, img_obj.shape)
 Image.fromarray(np.uint8(img_dragged)).save('./tmp/test_out/dragged.jpg')
 Image.fromarray(np.uint8(img_obj)).save('./tmp/test_out/obj.jpg')
-    
-    
     
 
 print(f'ori: \n', label_done)

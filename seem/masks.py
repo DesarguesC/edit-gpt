@@ -104,8 +104,8 @@ def middleware(opt, image: Image, visual_mode=True):
     if np.max(res) < 1.001:
         res = res * 255.
     # dif_res, dif_lists = gain_panoptic_seg(seem_model, diffusion_image)
-    cv2.imwrite(f'{sam_output_dir}/panoptic-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_BGR2RGB))
-    print(f'panoptic seg saved at \'{sam_output_dir}/panoptic-{opt.out_name}\'')
+    cv2.imwrite(f'{sam_output_dir}/panoptic.jpg', cv2.cvtColor(np.uint8(res), cv2.COLOR_BGR2RGB))
+    print(f'panoptic seg saved at \'{sam_output_dir}/panoptic.jpg\'')
     
     return res, lists
 

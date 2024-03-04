@@ -78,12 +78,7 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     rm_img, mask_1, _ = Remove_Me_lama(opt, old_noun, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
                         else Remove_Me(opt, old_noun, remove_mask=True, replace_box=opt.replace_box)
     
-    
-    # rm_img = Image.fromarray(cv2.cvtColor(rm_img, cv2.COLOR_RGB2BGR))
     rm_img = Image.fromarray(rm_img)
-
-    # rm_img.save(f'./static-inpaint/rm-img.jpg')
-    # print(f'removed image saved at \'./static-inpaint/rm-img.jpg\'')
     _, panoptic_dict = middleware(opt, rm_img) # key: name, mask
 
     diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, ori_img=img_pil, cond_mask=mask_1)
@@ -149,16 +144,9 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     print(f'target_mask.shape = {target_mask.shape}, ref_img.size = {np.array(diffusion_pil).shape}, base_img.shape = {np.array(rm_img).shape}')
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
     # mask required: 1 * h * w
-    assert os.path.exists(output_path), 'where is replace path folder ?'
     results = tensor2img(results)
     cv2.imwrite(f'{output_path}/{opt.out_name}', results) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
     print(f'replace result image saved at \'./{output_path}/{opt.out_name}\'')
-    # print(f'replace result image saved at \'./{output_path}/replace-mask-{opt.out_name}\'')
-    # if opt.test_mode:
-    #     import os
-    #     assert os.path.exists(opt.test_path)
-    #     cv2.imwrite(f'./{opt.test_path}/{opt.out_name}', results)
-    #     print(f'replace-test image saved at \'./{opt.test_path}/{opt.out_name}\'')
     
     print('exit from replace')
     exit(0)

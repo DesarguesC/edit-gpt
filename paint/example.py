@@ -76,15 +76,11 @@ type:
 def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, cond_mask=None, **kwargs) -> Image:
     
     opt.XL_base_path = opt.XL_base_path.strip('/')
-    assert os.path.exists(opt.base_dir), 'where if base_dir ?'
-    ref_dir = os.path.join(opt.base_dir, 'GenRef')
+    assert os.path.exists(opt.base_dir), 'where is base_dir ?'
+    ref_dir = os.path.join(opt.base_dir, 'Ref')
+    opt.ref_dir = ref_dir
     os.mkdir(ref_dir)
-    if 'adapter' in opt.example_type:
-        ad_path = os.path.join(ref_dir, 'ad_cond')
-        os.mkdir(ad_path)
-    
-    
-    # expand_agent=None
+    ad_output = os.path.join(ref_dir, 'ad_cond.jpg')
     
     prompts = f'a photo of ONLY a/an {new_noun}, {PROMPT_BASE}'
     prompts = f'{prompts}. Simultaneously, {get_response(expand_agent, new_noun)}' if expand_agent != None else prompts
@@ -158,14 +154,8 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
                 cond_mask[cond_mask >= 0.5] = (0.95 if opt.mask_ablation else 1.)
                 # TODO: check if mask smoothing is needed
             cond = cond * ( cond_mask * (0.8 if opt.mask_ablation else 1.) ) # 1 - cond_mask ?
-            cv2.imwrite(f'./{ad_path}/cond.jpg', tensor2img(cond))
+            cv2.imwrite(ad_output, tensor2img(cond))
             adapter_features, append_to_context = get_adapter_feature(cond, adapter)
-        
-        # if isinstance(adapter_features, list):
-        #     print(len(adapter_features))
-        # else:
-        #     print(adapter_features)
-        # print(append_to_context)
 
         with torch.inference_mode(), sd_model.ema_scope(), autocast('cuda'):
             seed_everything(opt.seed)
@@ -183,16 +173,20 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
         gen_images = gen_images.resize(ori_img.size)
     assert gen_images.size == ori_img.size, f'gen_images.size = {gen_images.size}, ori_img.size = {ori_img.size}'
     
-    gen_images.save(f'./{ref_dir}/{opt.out_name}')
-    
-    print(f'example saved at \'./{ref_dir}/{opt.out_name}\' --- [sized: {gen_images.size}]')
+    gen_images.save(f'./{ref_dir}/ref.jpg')
+    print(f'example saved at \'./{ref_dir}/ref.jpg\' --- [sized: {gen_images.size}]')
     return gen_images # PIL.Image
 
 
 def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base_img: Image = None, use_adapter=False, style_mask=None, **kwargs):
+    # mask: [1, 1, h, w] is required
+    print(f'Example Mask = {mask.shape}')
     seed_everything(opt.seed)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    assert os.path.exists(f'./{opt.base_dir}/GenRef'), 'where is ref folder ???'
+    # if not hasattr(opt, 'ref_dir'):
+    #     setattr(opt, 'ref_dir', os.path.join(opt.base_dir, 'Ref'))
+    # if not os.path.exists(opt.ref_dir):
+    #     os.mkdir(opt.ref_dir)
     
     config = OmegaConf.load(f"{opt.example_config}")
     model = load_model_from_config(config, f"{opt.example_ckpt}").to(device)
@@ -200,10 +194,7 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
         sampler = PLMSSampler(model)
     else:
         sampler = DDIMSampler(model)
-    
-    replace_path = os.path.join(opt.base_dir, 'Replaced')
-    if not os.path.exists(replace_path):
-        os.mkdir(replace_path)
+    replace_output = os.path.join(opt.base_dir, 'replaced.jpg')
     
     start_code = None
     if opt.fixed_code:
@@ -213,26 +204,11 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
     """
         WARNING: Useless
     """
-    # if use_adapter and style_mask is not None:
-    #     print('-' * 9 + 'Example created via Adapter' + '-' * 9)
-    #     adapter, cond_model = get_adapter(opt), get_style_model(opt)
-    #     style_cond = process_style_cond(opt, ref_img, cond_model)
-    #     assert style_mask is not None
-    #     print(f'style_cond.shape = {style_cond.shape}, style_mask.shape = {style_mask.shape}')
-    #     if style_mask is not None:
-    #         style_mask[style_mask < 0.5] = 0.
-    #         style_mask[style_mask >= 0.5] = 1.
-    #         # TODO: check if mask smoothing is needed
-    #         style_cond *= style_mask
-    #     cv2.imwrite(f'./static/style_cond.jpg', tensor2img(style_cond))
-    #     adapter_features, append_to_context = get_adapter_feature(style_cond, adapter)
-    #     # adapter_features got!
 
     precision_scope = autocast if opt.precision == "autocast" else nullcontext
     with torch.no_grad():
         with precision_scope("cuda"):
             with model.ema_scope():
-                
                 image_tensor = get_tensor()(base_img.convert('RGB')).unsqueeze(0)
                 mask[mask < 0.5] = 0.
                 mask[mask >= 0.5] = 1.
@@ -281,7 +257,7 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
                 x_samples_ddim = model.decode_first_stage(samples_ddim)
                 x_samples_ddim = torch.clamp((x_samples_ddim + 1.) / 2., min=0., max=1.)
     
-    return replace_path, x_samples_ddim
+    return replace_output, x_samples_ddim
 
 
 

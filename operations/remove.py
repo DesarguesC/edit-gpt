@@ -144,11 +144,10 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     
     res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
     sam_output_dir = os.path.join(opt.base_dir, 'Semantic')
-    assert not os.path.exists(sam_output_dir) and os.path.exists(opt.base_dir), f'? {os.path.exists(sam_output_dir)}, {os.path.exists(opt.base_dir)} ?'
     os.mkdir(sam_output_dir)
     
-    cv2.imwrite(f'./{sam_output_dir}/res-remove-{opt.out_name}', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
-    print(f'seg result image saved at \'./{sam_output_dir}/res-remove-{opt.out_name}\'')
+    cv2.imwrite(f'./{sam_output_dir}/panoptic.jpg', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
+    print(f'seg result image saved at \'./{sam_output_dir}/panoptic.jpg\'')
     
     print(f'target_mask.shape = {target_mask.shape}')
     target_mask_dilate = [dilate_mask(a_mask, dilate_kernel_size) for a_mask in target_mask]
@@ -156,21 +155,13 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     img_inpainted = inpaint_img_with_lama(
         np.array(np.uint8(img_pil)), target_mask_dilate[0], opt.lama_config, opt.lama_ckpt, device=opt.device
     )
-    
     print(img_inpainted.shape)
     
-    rm_output_dir = os.path.join(opt.base_dir, 'Removed')
-    assert not os.path.exists(rm_output_dir) and os.path.exists(opt.base_dir), f"? {os.path.exists(rm_output_dir)}, {os.path.exists(opt.base_dir)} ?"
-    os.mkdir(rm_output_dir)
-    cv2.imwrite(f'{rm_output_dir}/{opt.out_name}', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
-    print(f'removed image saved at \'{rm_output_dir}/{opt.out_name}\'')
-    # if opt.test_mode:
-    #     import os
-    #     assert os.path.exists(opt.test_path)
-    #     cv2.imwrite(f'./{opt.test_path}/{opt.out_name}', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
-    #     print(f'removed-test image saved at \'./{opt.test_path}/{opt.out_name}\'')
+    rm_output = os.path.join(opt.base_dir, 'removed.jpg')
+    cv2.imwrite(rm_output, cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
+    print(f'removed image saved at \'{rm_output}\'')
     
-    return img_inpainted, target_mask, f'./{rm_output_dir}/{opt.out_name}'
+    return img_inpainted, target_mask, rm_output
 
 
 

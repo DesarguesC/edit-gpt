@@ -455,16 +455,20 @@ def get_response(chatbot, asks):
     iteration = 0
     while True:
         iteration += 1
-        print(f"talking {iteration}......")
+        print(f"talking {iteration}...... ", end='')
         try:
             answer = chatbot.ask(asks)
-        except:
-            time.sleep(10)
-            print('Timed Out')
-            if iteration > 3:
+        except Exception as err:
+            print(err)
+            print('Timed Out', end='')
+            if iteration > 2:
+                time.sleep(5)
                 os.system("bash ../clash/restart-clash.sh")
+            time.sleep(5)
+            if iteration % 5 == 4: print('')
             continue
         print('finish')
+        # del chatbot
         return answer
 
 system_prompt_expand =  'You are a prompt expander, expert in text expansion. Now you\'ll receive a prompt relative to '\

@@ -82,9 +82,6 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
         painted = tensro2img(painted)
         cv2.imwrite(output_path, painted)
         print(f'Added image saved at \'{output_path}\' folder (numbered).')
-        # if opt.test_mode:
-        #     cv2.imwrte(f'./{opt.test_path}/{i}~{opt.out_name}', painted)
-        #     print(f'add-test image saved at \'./{opt.test_path}/{i}~{opt.out_name}\'')
 
     print('exit from add')
     exit(0)

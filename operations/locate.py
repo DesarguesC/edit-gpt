@@ -7,7 +7,7 @@ from PIL import Image
 import numpy as np
 # from utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog as mt
-import torch, cv2
+import torch, cv2, os
 from torch import autocast
 from torch.nn import functional as F
 from prompt.item import Label
@@ -83,16 +83,25 @@ def create_location(opt, target, edit_agent=None):
     question = Label().get_str_location(box_name_list, opt.edit_txt, (opt.W,opt.H)) # => [name, (x,y), (w,h)]
     # question = f'Size: ({opt.W},{opt.H})\n' + question
     print(f'question: \n{question}')
-    box_ans = get_response(edit_agent, question)
-    print(f'box_ans = {box_ans}')
 
-    # deal with the answer, procedure is the same as in replace.py
-    box_ans = box_ans.split('[')[-1].split(']')[0]
-    punctuation = re.compile('[^\w\s]+')
-    box_ans = [x.strip() for x in re.split(punctuation, box_ans) if x != ' ' and x != '']
-    x, y, w, h = int(box_ans[1]), int(box_ans[2]), int(box_ans[3]), int(box_ans[4])
-    box_0 = (x, y, int(w * opt.expand_scale), int(h * opt.expand_scale))
-    box_0 = fix_box(box_0, (opt.W,opt.H,3))
+    box_0 = (0,0,0,0)
+    try_time = 0
+    while box_0 == (0,0,0,0):
+        if try_time > 0:
+            print(f'Trying to fix - [{try_time}]')
+        box_ans = get_response(edit_agent, question)
+        print(f'box_ans = {box_ans}')
+        # deal with the answer, procedure is the same as in replace.py
+        box_ans = box_ans.split('[')[-1].split(']')[0]
+        punctuation = re.compile('[^\w\s]+')
+        box_ans = [x.strip() for x in re.split(punctuation, box_ans) if x != ' ' and x != '']
+        x, y, w, h = int(box_ans[1]), int(box_ans[2]), int(box_ans[3]), int(box_ans[4])
+        box_0 = (x, y, int(w * opt.expand_scale), int(h * opt.expand_scale))
+        box_0 = fix_box(box_0, (opt.W,opt.H,3))
+        
+        try_time += 1
+
+    print(f'BEFORE: box_0={box_0}')
     
     destination_mask = refactor_mask(target_box, target_mask, box_0)
     target_mask, destination_mask = re_mask(target_mask), re_mask(destination_mask)
@@ -100,37 +109,40 @@ def create_location(opt, target, edit_agent=None):
         target_mask[target_mask > 0.5] = 0.95 if opt.mask_ablation else 1.
         target_mask[target_mask <= 0.5] = 0.05 if opt.mask_ablation else 0.
     
+    os.mkdir(opt.mask_dir)
     print(f'target_mask.shape = {target_mask.shape}, destination_mask.shape = {destination_mask.shape}')
+    # target_mask: [1, h, w], destination_mask: [1, 3, h, w]
+    cv2.imwrite(f'./{opt.mask_dir}/destination.jpg', cv2.cvtColor(np.uint8((255. if torch.max(destination_mask) <= 1. else 1.) \
+                            * rearrange(destination_mask.squeeze(0), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
+    cv2.imwrite(f'./{opt.mask_dir}/target.jpg', cv2.cvtColor(np.uint8((255. if torch.max(target_mask) <= 1. else 1.) \
+                            * rearrange(repeat(target_mask, '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
+    print(f'destination-mask saved: \'./{opt.mask_dir}/destination.jpg\'') # 目的位置的mask (编辑后)
+    print(f'destination-mask saved: \'./{opt.mask_dir}/target.jpg\'') # 原始图片的mask (编辑前)
+
+    # TODO: Validate destination_mask content
+    # d1, d2, d3 = destination_mask[0].chunk(3)
+    # print(d1==d2)
+    # print(d2==d3)
+    dest = destination_mask.squeeze()
+    if len(dest.shape) > 2:
+        dest = dest[0].unsqueeze(0).unsqueeze(0)
+    else:
+        dest = dest.unsqueeze(0).unsqueeze(0)
     
-    cv2.imwrite(f'./outputs/destination-mask-{opt.out_name}', cv2.cvtColor(np.uint8(255. * rearrange(repeat(destination_mask.squeeze(0),\
-                                                        '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
-    cv2.imwrite(f'./outputs/target-mask-{opt.out_name}', cv2.cvtColor(np.uint8(255. * rearrange(repeat(target_mask,\
-                                                        '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
-    print(f'destination-mask saved: \'./outputs/destination-mask-{opt.out_name}\'')
-    print(f'destination-mask saved: \'./outputs/target-mask-{opt.out_name}\'')
-    
-    Ref_Image = get_area(np.array(img_pil) * TURN(target_mask), target_box)
+    img_np = np.array(img_pil)
+    Ref_Image = get_area(img_np * TURN(target_mask), target_box)
+
     print(f'img_np.shape = {img_np.shape}, Ref_Image.shape = {Ref_Image.shape}')
-    cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint8(Ref_Image), cv2.COLOR_BGR2RGB))
+    # cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint8(Ref_Image), cv2.COLOR_BGR2RGB))
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
-    
-    output_path, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img)
-    
+    replace_output, x_sample_ddim = paint_by_example(opt, dest, Image.fromarray(np.uint8(Ref_Image)), rm_img)
     print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
-    # cv2.imwrite(
-    #             output_path, tensor2img(x_sample_ddim.cpu() * repeat(1.-target_mask, '1 ... -> c ...', c=3)) + \
-    #             np.uint8(TURN(target_mask))*cv2.cvtColor(np.uint8(img_np), cv2.COLOR_RGB2BGR)
-    #            )
+
     x_sample_ddim = tensor2img(x_sample_ddim)
-    cv2.imwrite(output_path, x_sample_ddim)
-    print(f'locate result image saved at \'{output_path}\'')
+    cv2.imwrite(replace_output, x_sample_ddim)
+    print(f'locate result image saved at \'{replace_output}\'')
     # TODO: If I need to Paint-by-Example ?
-    if opt.test_mode:
-        import os
-        assert os.path.exists(opt.test_path)
-        cv2.imwrite(f'./{opt.test_path}/{opt.out_name}', x_sample_ddim)
-        print(f'locate-test image saved at \'./{opt.test_path}/{opt.out_name}\'')
 
     print('exit from create_location')
     exit(0)

@@ -164,17 +164,8 @@ def refactor_mask(box_1, mask_1, box_2, type='remove'):
 def fix_box(gpt_box, img_shape):
     assert len(gpt_box) == 4
     x, y, w, h = gpt_box
-    assert len(img_shape) >= 3
-    if len(img_shape) == 3:
-        hi, wi, _ = img_shape
-    else:
-        hi, wi, *_ = img_shape
-    
-    # if x >= wi:
-    #     x = wi - w
-    # if y >= hi:
-    #     y = hi - h
-        
+    assert len(img_shape) == 3
+    hi, wi, _ = img_shape #[h, w, 3]
     if x + w >= wi:
         x = wi - w
     if y + h >= hi:
