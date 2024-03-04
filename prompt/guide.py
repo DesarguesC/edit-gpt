@@ -1,13 +1,9 @@
 from revChatGPT.V3 import Chatbot
 import time
-
 """
     Remove, Replace 作为两个单独的状态，后面一个包括位置移动、大小修改、对象内容修改（ip2p）  【对象修改是否需要？还是我就做好位置、大小这些】
     
 """
-
-
-
 
 system_prompt_sort =    'You are an expert in text categorization, and I will input text for you to categorize. '\
                         'Note that the text I entered has an editing nature, which is an editing instruction for the picture, '\
@@ -27,7 +23,6 @@ first_ask_sort =    'For the text I entered, you only need to answer one of the 
                     'one of \"remove\", \"replace\", \"locate\" and \"add\", or \'<null>\', with no extra characters. If you have already understood your task, '\
                     'please answer \"yes\" to me in this round without any extra characters, after which I will give you input and ask you to judge. '
 
-
 system_prompt_remove =     'You are a text detection master and need to find a specific object in a piece of text. '\
                            'In the text input you will receive, there will be an object object removed, you need to find the '\
                            'removed object and output its name in full. Note: Be sure to keep all the touches on this object. '\
@@ -39,14 +34,12 @@ remove_first_ask =      'Be careful to keep the modification about the object wh
                         'If you have understood your task, please answer \"yes\" in the round without any extra characters, '\
                         'after which I will give you input and ask you to judge. '
 
-
 system_prompt_replace =    'You are a text detection master and need to find a specific object in a piece of text. '\
                            'In the text input an object will be replaced, and you need to find the replaced object from the text and print its name in full, '\
                            'and you will also need to find the new object from the text to replace the object. Note: Be sure to keep all the attributes '\
                            'given in the discription of the object. '\
                            'If you find object A is replaced to object B, you are ought to give the answer \'(A,B)\' without any other character or space. '\
                            'I guarantee only one object was replaced. '
-
 
 replace_first_ask =     'You need to output both the replaced object A and the replaced object B, in the form (A,B). '\
                         'For the two items, each is without any other character or space. '\
@@ -59,7 +52,6 @@ replace_first_ask =     'You need to output both the replaced object A and the r
 
 # 在已知的信息的位置列中，要将Old对象替换为New对象，需要为New生成一个新的bbox格式的数据。请从以下几个方面考虑：
 # 1.相对大小->New的大小(w,h)，根据已知的输入对象区域. 2.相对位置->New的位置(x,y)，注意(x,y)表示bounding box左下角的点坐标【我们以照片的左下角为坐标原点，向右为x正方向，向上为y正方向，这部分讲清楚空间位置】....
-
 #
 ############################################################################################################################
 # Note that Old-noun & New-noun can be same,
@@ -68,15 +60,11 @@ replace_first_ask =     'You need to output both the replaced object A and the r
 # destination:
 #               {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
 #############################################################################################################################
-
-
 """(input format)
     Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , [Name_n, (X_n,Y_n), (W_n,H_n))]}
     Target: Name
     Edit-Text: ...
 """
-
-
 system_prompt_locate =     'You are a text detection master and need to generate a new bounding box for a specific object. '\
                            'You are going to get a series texts input in the form of the bellow: \n'\
                            'Size: (W_{img},H{img})\n'\
@@ -103,8 +91,7 @@ system_prompt_locate =     'You are a text detection master and need to generate
                            'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
                            '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
                            'cannot exceed the size of the original image (W_{img},H{img}). Note that bounding boxes can overlap. '
-
-                       
+          
 locate_first_ask =      'For the coordinates designed in bounding box, we give relevant definitions. '\
                         'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
                         'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
@@ -136,7 +123,6 @@ locate_first_ask =      'For the coordinates designed in bounding box, we give r
                     # TODO: Illustrate the generation procedure by providing examples ?
 
 # <resize the object>
-
 # no place
 system_prompt_add = 'You are a text detection master and need to generate a new bounding box for a specific object. '\
                     'You are going to get a series texts input in the form of the bellow: \n'\
@@ -167,24 +153,18 @@ add_first_ask = 'You need to give the position and size of the specified new obj
                 'please answer "yes" in this round without any extra characters, after which '\
                 'I will give you input and ask you to generate the bounding box. '
 
-
-
-
-
-system_prompt_addHelp = 'You will receive an instruction for image editing, and the instruction is to add objects '\
-                        'to the image. Your task is to extract the added object and the number of added objects. '\
+system_prompt_addHelp = 'You will receive an instruction for image editing, which aims at adding objects '\
+                        'to the image. Your task is to extract: What objects are to be added and How many respectively . '\
                         'Ensure that the input instruction contains only added operations and only one '\
                         '(but possibly multiple) objects. You need to output in the form (name, num, place), '\
                         'where name represents the kind of object to be added (for example, cat, dog, tiger), etc.'\
                         ', and place_n represents the target location to be added. '\
                         'Besides, if no place is specified, just put \"<NULL>\". '
 
-
 addHelp_first_ask = 'For your task, in the output "name", note that you need to output the "name" modifier in the '\
                     'input instruction along with it. For example, if the input is "two more cats with black and '\
                     'white fur on the lawn," the output would be (" cats with black and white fur, "2," on the lawn "). '\
-                    'In addition, your input must be of the form (name, num, place) and must not have any extra characters.'
-
+                    'In addition, your output must be of the form (name, num, place) and must not have any extra characters.'
 
 system_prompt_addArrange = 'You are a text detection master and need to generate a new bounding box for a specific object. '\
                            'You should add an object to a specified place. '\
@@ -213,7 +193,6 @@ system_prompt_addArrange = 'You are a text detection master and need to generate
                            '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
                            'cannot exceed the size of the original image (W_{img},H{img}). Note that bounding boxes can overlap. '
 
-
 addArrange_first_ask =  'For the coordinates designed in bounding box, we give relevant definitions. '\
                         'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
                         'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
@@ -238,14 +217,7 @@ addArrange_first_ask =  'For the coordinates designed in bounding box, we give r
                         'please answer "yes" in the round without any extra characters, after which '\
                         'I will give you input.'
 
-
-
-
-
 # 对于更加复杂的编辑任务，增加一个agent将指令分解为上述编辑单元
-
-
-
 
 system_prompt_rescale =     'You are an object scaler, capable of generating a size and location for an object '\
                             'after considering size and location information of objects comprehensively. '\
@@ -263,7 +235,6 @@ system_prompt_rescale =     'You are an object scaler, capable of generating a s
                             'Based on the description above, your task is to generate a new position coordinates and sizes '\
                             'for the replacement. The out put should be in the form of [Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})]. '\
                             'Note that bounding boxes can overlap. '
-
 
 rescale_first_ask =     'For your task, for details, you should generation modified bounding-box following the bellow rules. \n'\
                         '1.LOGIC. After the replacement is done, the objects must be placed logically. '\
@@ -286,7 +257,6 @@ rescale_first_ask =     'For your task, for details, you should generation modif
                         '[Name_{new}, (X_{new},Y_{new}), (W_{new}, H_{new})] and mustn\'t output any extra words. '\
                         'Now if you have fully understood your task, please answer "yes" and mustn\'t output any extra '\
                         'characters, after which I will give you input. '\
-
 
 # 在替换完成后，物体的摆放必须符合逻辑。例如需要将一只狗替换成一只猫，通常来说猫可能会比狗小（所以bounding box会小），
 # 此时如果保持坐标(X_{old},Y_{old})不变，而(W_{old},H_{old})减小，那么可能会导致猫的bounding box悬浮在空中。因此在这种情况下，
@@ -410,7 +380,6 @@ first_ask_cut = 'For the instructions given to modify the image, you have to seg
                 'and You need to output each of these delimited commands without line breaks, '\
                 'using the string \".\" as the separator. '
 
-
 system_prompt_noun = 'You are a noun extractor and need to extract all the nouns from an input sentence. '\
                      'But the input sentence you are given is very specific, '\
                      'it is a natural language instruction for editing an image. '\
@@ -431,11 +400,9 @@ first_ask_noun = 'For example, when you type \"Move the kettle on the table to t
                  'If you have understood your task, answer \"yes\" without extra characters.'
 
 
-
-
 import os
 
-def get_bot(engine, api_key, system_prompt, proxy):
+def get_bot(engine, api_key, system_prompt):
     iteration = 0
     while True:
         iteration += 1

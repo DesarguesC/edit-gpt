@@ -128,11 +128,10 @@ elif 'add' in sorted_class:
     a = get_response(add_prompt_agent, addHelp_first_ask)
     print(f'add_prompt_agent first ask: {a}')
     ans = get_response(add_prompt_agent, opt.edit_txt)
-    print(f'tupple_ans: {ans}')
-    import time
-    time.sleep(15)
+    print(f'tuple_ans: {ans}')
     name, num, place = get_add_tuple(ans)
     del add_prompt_agent
+    print(f'name = {name}, num = {num}, place = {place}')
 
     if '<NULL>' in place:
         arrange_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
