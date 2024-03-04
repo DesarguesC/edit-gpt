@@ -100,7 +100,7 @@ def get_replace_tuple(replace_tupple: str):
 
 
 def get_add_tuple(add_tuple: str):
-    punctuation = re.split('[(),]:', add_tuple)
+    punctuation = re.split(r'[\[(),\]:\"\']', add_tuple)
     p = [x.strip() for x in punctuation if x!='' and x!= ' ']
     assert len(p) == 3, f'p = {p}\nans = {add_tuple}'
     name, num, place = p[0], int(p[1]), p[2]

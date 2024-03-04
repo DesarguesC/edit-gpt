@@ -73,6 +73,14 @@ type:
     v1.5_adapter -> SD1.5 with T2I-Adapter
 """
 
+def fix_mask(mask):
+    dest = mask.squeeze()
+    if len(dest.shape) > 2:
+        dest = dest[0].unsqueeze(0).unsqueeze(0)
+    else:
+        dest = dest.unsqueeze(0).unsqueeze(0)
+    return dest
+
 def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, cond_mask=None, **kwargs) -> Image:
     
     opt.XL_base_path = opt.XL_base_path.strip('/')
@@ -161,8 +169,6 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
             seed_everything(opt.seed)
             diffusion_image = diffusion_inference(opt, prompts, sd_model, sd_sampler, adapter_features=adapter_features, append_to_context=append_to_context)
             diffusion_image = tensor2img(diffusion_image)
-            cv2.imwrite(f'./{ref_dir}/ref.jpg', diffusion_image)
-            print(f'example saved at \'./{ref_dir}/ref.jpg\'')
             diffusion_image = cv2.cvtColor(diffusion_image, cv2.COLOR_BGR2RGB)
         del sd_model, sd_sampler
         gen_images = Image.fromarray(np.uint8(diffusion_image)).convert('RGB') # pil
@@ -180,6 +186,7 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
 
 def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base_img: Image = None, use_adapter=False, style_mask=None, **kwargs):
     # mask: [1, 1, h, w] is required
+    mask = fix_mask(mask)
     print(f'Example Mask = {mask.shape}')
     seed_everything(opt.seed)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

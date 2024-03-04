@@ -123,11 +123,6 @@ def create_location(opt, target, edit_agent=None):
     # d1, d2, d3 = destination_mask[0].chunk(3)
     # print(d1==d2)
     # print(d2==d3)
-    dest = destination_mask.squeeze()
-    if len(dest.shape) > 2:
-        dest = dest[0].unsqueeze(0).unsqueeze(0)
-    else:
-        dest = dest.unsqueeze(0).unsqueeze(0)
     
     img_np = np.array(img_pil)
     Ref_Image = get_area(img_np * TURN(target_mask), target_box)
@@ -136,7 +131,7 @@ def create_location(opt, target, edit_agent=None):
     # cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint8(Ref_Image), cv2.COLOR_BGR2RGB))
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
-    replace_output, x_sample_ddim = paint_by_example(opt, dest, Image.fromarray(np.uint8(Ref_Image)), rm_img)
+    replace_output, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img)
     print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
 
     x_sample_ddim = tensor2img(x_sample_ddim)

@@ -136,14 +136,13 @@ elif 'add' in sorted_class:
     if '<NULL>' in place:
         arrange_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
         a = get_response(arrange_agent, add_first_ask)
-        print(f'arrange_agent first ask: {a}')
     else:
         arrange_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy)
         a = get_response(arrange_agent, addArrange_first_ask)
-        print(f'arrange_agent first ask: {a}')
+    print(f'arrange_agent first ask: {a}')
 
     diffusion_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
-    yes = get_response(diffusion_agent, first_ask_expand)
+    yes = get_response(diffusion_agent, first_ask_expand(2))
     print(f'diffusion_agent first answers: {yes}')
 
     Add_Object(opt, name, num, place, edit_agent=arrange_agent, expand_agent=diffusion_agent)

@@ -402,7 +402,7 @@ first_ask_noun = 'For example, when you type \"Move the kettle on the table to t
 
 import os
 
-def get_bot(engine, api_key, system_prompt):
+def get_bot(engine, api_key, system_prompt, proxy):
     iteration = 0
     while True:
         iteration += 1
@@ -411,7 +411,7 @@ def get_bot(engine, api_key, system_prompt):
             agent = Chatbot(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
         except:
             time.sleep(10)
-            print('Timed Out')
+            print('Timed Out', end='\n')
             if iteration > 3:
                 os.system("bash ../clash/restart-clash.sh")
             continue
@@ -426,8 +426,8 @@ def get_response(chatbot, asks):
         try:
             answer = chatbot.ask(asks)
         except Exception as err:
-            print(err)
-            print('Timed Out', end='')
+            print('Error Msg: ', err)
+            print('Timed Out', end='\n')
             if iteration > 2:
                 time.sleep(5)
                 os.system("bash ../clash/restart-clash.sh")
@@ -448,7 +448,7 @@ two, three = 'two', 'three'
 first_ask_expand = lambda x: 'For each of your input, it is ONLY ONE kind of object. '\
                         'For each input you received, you are only to output the expanded prompt without any other '\
                         'character. You mustn\'t output any extra characters except the expanded prompt. The expanded prompt is '\
-                        f'ought to be no more than {two if x else three} sentences. If you\'ve '\
+                        f'ought to be no more than {two if x==2 else three} sentences. If you\'ve '\
                         'made sense your task, please answer me \'yes\' and mustn\'t output any extra character, either, '\
                         'after which I\'ll give you input prompts. '
 """

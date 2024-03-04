@@ -34,6 +34,7 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
     print(f'ADD: (name, num, place) = ({name}, {num}, {place})')
     assert os.path.exists(opt.base_dir), 'where is base_dir ?'
     add_path = os.path.join(opt.base_dir, 'added')
+    os.mkdir(add_path)
 
     if '<NULL>' in place:
         # system_prompt_add -> panoptic
@@ -79,7 +80,7 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
         # paint-by-example
         _, painted = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil)
         output_path = os.path.join(add_path, f'{i}~{opt.out_name}')
-        painted = tensro2img(painted)
+        painted = tensor2img(painted)
         cv2.imwrite(output_path, painted)
         print(f'Added image saved at \'{output_path}\' folder (numbered).')
 
