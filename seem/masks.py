@@ -75,8 +75,11 @@ def query_middleware(opt, image: Image, reftxt: str):
     # TODO: save
     sam_output_dir = os.path.join(opt.base_dir, 'Semantic')
     if not os.path.exists(sam_output_dir): os.mkdir(sam_output_dir)
-    cv2.imwrite(f'./{sam_output_dir}/panoptic.jpg', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
-    print(f'seg result image saved at \'./{sam_output_dir}/panoptic.jpg\'')
+    name_ = f'./{sam_output_dir}/panoptic'
+    t = 0
+    while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
+    cv2.imwrite(f'{name_}-{t}.jpg', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
+    print(f'seg result image saved at \'{name_}-{t}.jpg\'')
 
 
     return Image.fromarray(res), pred_masks_pos, pred_box_pos
