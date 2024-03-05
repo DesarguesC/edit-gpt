@@ -38,7 +38,6 @@ class Label():
         edit_ = "Edit-Text: " + edit_txt
         return f'{size_}\n{list_}\n{target_}\n{edit_}'
 
-
     def get_str_part(self, objects_masks_list: list[dict]):
         # get [name, (w,h)]
         assert isinstance(objects_masks_list, list), f'type(objects_masks_list) = {type(objects_masks_list)}'
@@ -67,13 +66,10 @@ class Label():
         Objects = self.get_str_part(panoptic_dict)
         return f'Size: {Size}\nObjects: {Objects}\nTarget: {name}'
 
-
     def get_str_add_place(self, place, name, size: tuple, place_box: Optional[tuple]):
         Size = f'({size[0]},{size[1]})'
         Place = f'[{place}, ({place_box[0]},{place_box[1]}), ({place_box[2]},{place_box[3]}]'
         return f'Size: {Size}\nPlace: {Place}\nTarget: {name}'
-
-
 
     def __str__(self):
         out = "{"

@@ -263,7 +263,7 @@ class GeneralizedSEEM(nn.Module):
         extra = {}
         if 'text' in batched_inputs[0]:
             gtext = self.sem_seg_head.predictor.lang_encoder.get_text_token_embeddings(batched_inputs[0]['text'], name='grounding', token=False, norm=False)
-            print(f'gtext.keys() = {gtext.keys()}')
+            # print(f'gtext.keys() = {gtext.keys()}')
             token_emb = gtext['token_emb']
             tokens = gtext['tokens']
             query_emb = token_emb[tokens['attention_mask'].bool()]

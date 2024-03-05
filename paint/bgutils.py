@@ -11,7 +11,6 @@ from torch.nn import functional as F
 from einops import repeat, rearrange
 from paint.control import *
 
-
 to_tensor = ToTensor()
 
 inpaint_config_path = './configs/latent-diffusion/gqa-inpaint-ldm-vq-f8-256x256.yaml'
@@ -19,11 +18,11 @@ inpaint_model_base_path = './inst-paint'
 
 def load_inpaint_model(
     ckpt_base_path = inpaint_model_base_path, config_path = inpaint_config_path, device='cuda'
-):
+    ):
     parsed_config = OmegaConf.load(config_path)
     ckpt = os.path.join(ckpt_base_path, 'ldm/model.ckpt')
     print(f'Loading model from: {ckpt}')
-#     sd = read_state_dict(ckpt)
+    # sd = read_state_dict(ckpt)
     model = instantiate_from_config(parsed_config["model"])
     
     model_state_dict = torch.load(ckpt, map_location=device)["state_dict"]
@@ -34,10 +33,9 @@ def load_inpaint_model(
     
     return model
 
-
 def preprocess_image(
         image: Image, resize_shape: Tuple[int, int] = (256, 256), center_crop=False
-):
+    ):
     pil_image = image
 
     if center_crop:
@@ -58,11 +56,10 @@ def preprocess_image(
 
     return pil_image, tensor_image
 
-
 def target_removing(
         opt, target_noun: str, image: Image, model=None, resize_shape: Tuple[int, int] = (256, 256),
         ori_shape: Tuple[int, int] = (512, 512), recovery=True, center_crop=False, mask=None
-) -> Image:
+    ) -> Image:
     # print(f'start => image.size = {image.size}')
     # print(f'start => mask.shape = {mask.shape}')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -107,7 +104,6 @@ def target_removing(
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed
 
-
 def match_sam_box(mask: np.array, sam_list: list[tuple]):
     pointer = sam_list
     if isinstance(mask, torch.Tensor):
@@ -115,7 +111,6 @@ def match_sam_box(mask: np.array, sam_list: list[tuple]):
     box_idx = np.argmax([
         np.sum(mask.squeeze() * sam_[1].squeeze()) / np.sum(mask) for sam_ in pointer
     ])
-    # box_idx = np.argmax([np.sum(mask.squeeze() * sam_[1].squeeze()) / (np.abs(np.sum(mask)-sam_[2])+1) for sam_ in pointer])
     bbox = sam_list[box_idx][0]
     del pointer[box_idx]
     return bbox
@@ -126,7 +121,6 @@ def refactor_mask(box_1, mask_1, box_2, type='remove'):
         reshape mask_1 into box_2, as mask_2, return
         TODO: refactor mask_1 into box_2 (tend to get smaller ?)
     """
-    
     mask_1 = torch.tensor(mask_1.squeeze(), dtype=torch.float32)
     # h * w
     mask_2 = torch.zeros_like(mask_1.unsqueeze(0))
@@ -139,7 +133,7 @@ def refactor_mask(box_1, mask_1, box_2, type='remove'):
     print(f'x2 = {x2}, y2 = {y2}, w2 = {w2}, h2 = {h2}')
     valid_mask = mask_1.unsqueeze(0)[:, y1:y1+h1,x1:x1+w1]
     valid_mask = rearrange(valid_mask, 'c h w -> 1 c h w')
-    print(f'valid_mask.shape = {valid_mask.shape}')
+    # print(f'valid_mask.shape = {valid_mask.shape}')
     resized_valid_mask = F.interpolate(
         valid_mask,
         size=(h2, w2),
@@ -158,17 +152,16 @@ def refactor_mask(box_1, mask_1, box_2, type='remove'):
     return repeat(mask_2, '1 h w -> c h w', c = 3).unsqueeze(0) if type == 'remove' else mask_2
     # 1 * 3 * h * w
 
-
-
 # TODO: implement 'refact_target'
+
 def fix_box(gpt_box, img_shape):
-    assert len(gpt_box) == 4
+    assert len(gpt_box) == 4 and len(img_shape) == 3
     x, y, w, h = gpt_box
-    assert len(img_shape) == 3
-    hi, wi, _ = img_shape #[h, w, 3]
-    if x + w >= wi:
-        x = wi - w
-    if y + h >= hi:
-        y = hi - h
-    
-    return (x, y, w, h)
+    fixed_box = (0,0,0,0)
+    if w < 0: print('?')
+    if h < 0: print('?')
+    H_, W_, _ = img_shape # [h, w, 3]
+    if x + w >= W_ or y + h >= H_:
+        return fixed_box
+    fixed_box = (x,y,w,h)
+    return fixed_box

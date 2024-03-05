@@ -17,9 +17,7 @@ def find_box_idx(mask: np.array, box_list: list[tuple]):
     # print(f'mask.shape = {mask.shape}')
     cdot = [np.sum(u[1] * mask) for u in box_list]
     return np.argmax(np.array(cdot))
-
-
-      
+   
 def box_replace(ori_img, rm_img, target_box):
     # cv2.imwrite(f'./static-inpaint/directRM.jpg', cv2.cvtColor(np.uint8(rm_img), cv2.COLOR_RGB2BGR))
     assert ori_img.shape == rm_img.shape, f'ori_img.shape = {ori_img.shape}, rm_img.shape = {rm_img.shape}'
@@ -31,7 +29,6 @@ def box_replace(ori_img, rm_img, target_box):
     ori_img[y:y+h, x:x+w, :] = rm_img[y:y+h, x:x+w, :]
     return ori_img
     
-
 def remove_target(opt, target_noun, tasks=['Text'], mask_generator=None):
     assert mask_generator != None, 'mask_generator not initialized.'
     img = Image.open(opt.in_dir).convert('RGB')
@@ -61,8 +58,6 @@ def remove_target(opt, target_noun, tasks=['Text'], mask_generator=None):
     img_dragged, img_obj = img_np * mask, img_np * (1. - mask)
     return img_np, np.uint8(img_dragged), np.uint8(img_obj), mask, img
 
-
-
 def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
     img_np, img_dragged, img_obj, img_mask, img_pil, label_done = remove_target(opt, target_noun, mask_generator, label_done)
     print(img_dragged.shape, img_obj.shape)
@@ -79,7 +74,6 @@ def Remove_Me_crfill(opt, target_noun, mask_generator=None, label_done=None):
     removed_pil.save(f'static-crfill/{opt.out_name}')
 
     return np.array(removed_pil), label_done
-
 
 def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=True):
     print('-'*9 + 'Removing via Inst-Inpaint' + '-'*9)
@@ -131,7 +125,6 @@ def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=Tru
     # if remove_mask:
     return removed_np, target_mask, f'./static-inpaint/RM-{opt.out_name}'
 
-
 def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     if not hasattr(opt, 'device'):
         opt.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -162,8 +155,6 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     print(f'removed image saved at \'{rm_output}\'')
     
     return img_inpainted, target_mask, rm_output
-
-
 
 def Remove_Me_SEEM(opt, target_noun, mask_generator=None, label_done=None):
     img_np, img_dragged, img_obj, img_mask, img_pil, label_done = remove_target(opt=opt,

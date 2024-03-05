@@ -79,12 +79,10 @@ if 'remove' in sorted_class:
     
     _ = Remove_Me_lama(opt, target_noun, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
                         else Remove_Me(opt, target_noun, remove_mask=True)
-    
+    # TODO: recover the scenery for img_dragged in mask
     # image loaded via method Image.fromarray is 'RGB' mode by default
     print('exit from remove')
     exit(0)
-    # Recover_Scenery_For(img_dragged)
-    # TODO: recover the scenery for img_dragged in mask
 
 elif 'replace' in sorted_class:
     # find the target -> remove -> recover the scenery -> add the new

@@ -39,12 +39,11 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
     if '<NULL>' in place:
         # system_prompt_add -> panoptic
         _, panoptic_dict = middleware(opt, img_pil)
-        print(f'panoptic_dict: {panoptic_dict}')
-        question = Label().get_str_add_panoptic(panopic_dict, name, (opt.W,opt.H))
+        # print(f'panoptic_dict: {panoptic_dict}')
+        question = Label().get_str_add_panoptic(panoptic_dict, name, (opt.W,opt.H))
     else:
         # system_prompt_addArrange -> name2place
         _, place_mask, _ = query_middleware(opt, img_pil, place)
-        
         # load SAM
         sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
         sam.to(device=opt.device)
@@ -55,14 +54,25 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
         question = Label().get_str_add_place(place, name, (opt.W,opt.H), place_box)
 
     print(f'question: \n{question}\n num = {num}')
+    
     for i in range(num):
-        ans = get_response(edit_agent, question)
-        print(f'ans = {ans}')
-        ans_list = [x.strip() for x in re.split(r'[(),{}\[\]]', ans) if x != '' and x != ' ']
-        assert len(ans_list) == 5, f'ans = {ans}, ans_list = {ans_list}'
-        ori_box = (int(ans_list[1]), int(ans_list[2]), int(int(ans_list[3]) * opt.expand_scale), int(int(ans_list[4]) * opt.expand_scale))
-        ori_box = fix_box(ori_box, (opt.W,opt.H,3))
-        print(f'ans_box = {ori_box}')
+
+        fixed_box = (0,0,0,0)
+        try_time = 0
+
+        while fixed_box == (0,0,0,0):
+            if try_time > 0:
+                print(f'Trying to fix... - Iter: {try_time}')
+            ans = get_response(edit_agent, question)
+            print(f'ans = {ans}')
+            ans_list = [x.strip() for x in re.split(r'[(),{}\[\]]', ans) if x != '' and x != ' ']
+            assert len(ans_list) == 5, f'ans = {ans}, ans_list = {ans_list}'
+            fixed_box = (int(ans_list[1]), int(ans_list[2]), int(int(ans_list[3]) * opt.expand_scale), int(int(ans_list[4]) * opt.expand_scale))
+            fixed_box = fix_box(fixed_box, (opt.W,opt.H,3))
+
+            try_time += 1
+        
+        print(f'ans_box = {fixed_box}')
         # generate example
         diffusion_pil = generate_example(opt, name, expand_agent=expand_agent, ori_img=img_pil)
         # query mask-box & rescale
@@ -76,7 +86,7 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
                                            key=(lambda x: x['area']), reverse=True)
                     ])
 
-        target_mask = refactor_mask(box_example, mask_example, ori_box)
+        target_mask = refactor_mask(box_example, mask_example, fixed_box)
         # paint-by-example
         _, painted = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil)
         output_path = os.path.join(add_path, f'added-{i}.jpg')

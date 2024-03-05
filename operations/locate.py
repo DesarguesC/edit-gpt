@@ -86,9 +86,10 @@ def create_location(opt, target, edit_agent=None):
 
     box_0 = (0,0,0,0)
     try_time = 0
+
     while box_0 == (0,0,0,0):
         if try_time > 0:
-            print(f'Trying to fix - [{try_time}]')
+            print(f'Trying to fix... - Iter: {try_time}')
         box_ans = get_response(edit_agent, question)
         print(f'box_ans = {box_ans}')
         # deal with the answer, procedure is the same as in replace.py

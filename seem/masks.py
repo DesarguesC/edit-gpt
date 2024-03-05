@@ -1,4 +1,4 @@
-import torch
+import torch, cv2, os, glob, subprocess, random
 import numpy as np
 import torch.nn.functional as F
 from PIL import Image
@@ -11,12 +11,6 @@ from modeling.language.loss import vl_similarity
 from utils.constants import COCO_PANOPTIC_CLASSES
 from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
 
-import cv2, os, glob, subprocess, random
-from PIL import Image
-
-# t = []
-# t.append(transforms.Resize(512, interpolation=Image.BICUBIC))
-# transform = transforms.Compose(t)
 metadata = MetadataCatalog.get('coco_2017_train_panoptic')
 all_classes = [name.replace('-other','').replace('-merged','') for name in COCO_PANOPTIC_CLASSES] + ["others"]
 colors_list = [(np.array(color['color'])/255).tolist() for color in COCO_CATEGORIES] + [[1, 1, 1]]
@@ -26,8 +20,6 @@ from seem.modeling.BaseModel import BaseModel
 from seem.modeling import build_model
 from seem.utils.constants import COCO_PANOPTIC_CLASSES
 from seem.demo.seem.tasks import *
-
-
 
 def query_middleware(opt, image: Image, reftxt: str):
     """
@@ -43,7 +35,6 @@ def query_middleware(opt, image: Image, reftxt: str):
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"],
                                                                                  is_eval=True)
     # get text-image mask
-    # image_ori = transform(image)
     width, height = image.size
     image_ori = np.asarray(image)
     images = torch.from_numpy(image_ori.copy()).permute(2, 0, 1).cuda()
@@ -55,15 +46,13 @@ def query_middleware(opt, image: Image, reftxt: str):
     seem_model.model.task_switch['grounding'] = False
     seem_model.model.task_switch['audio'] = False
     seem_model.model.task_switch['grounding'] = True
-    # seem_model.model.task_switch['bbox'] = True
 
     data['text'] = [reftxt]
     batch_inputs = [data]
 
-
     results, image_size, extra = seem_model.model.evaluate_demo(batch_inputs)
-    print(f'extra.keys() = {extra.keys()}')
-    print(f'results.keys() = {results.keys()}')
+    # print(f'extra.keys() = {extra.keys()}')
+    # print(f'results.keys() = {results.keys()}')
 
     pred_masks = results['pred_masks'][0]
     v_emb = results['pred_captions'][0]
@@ -79,15 +68,11 @@ def query_middleware(opt, image: Image, reftxt: str):
     pred_masks_pos = pred_masks[matched_id,:,:]
     pred_masks_pos = (F.interpolate(pred_masks_pos[None,], image_size[-2:], mode='bilinear')[0,:,:data['height'],:data['width']] > 0.0).float().cpu().numpy()
     # mask queried from text
-
-    # pred_box_pos = <?>
     pred_box_pos = None
-
     demo = visual.draw_binary_mask(pred_masks_pos.squeeze(), text=reftxt)  # rgb Image
     res = demo.get_image()
 
     return Image.fromarray(res), pred_masks_pos, pred_box_pos
-
 
 def middleware(opt, image: Image, visual_mode=True):
     """
@@ -101,7 +86,7 @@ def middleware(opt, image: Image, visual_mode=True):
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
     sam_output_dir = os.path.join(opt.base_dir, 'Semantic')
     res, lists = gain_panoptic_seg(seem_model, image)
-    if np.max(res) < 1.001:
+    if np.max(res) <= 1.:
         res = res * 255.
     # dif_res, dif_lists = gain_panoptic_seg(seem_model, diffusion_image)
     cv2.imwrite(f'{sam_output_dir}/panoptic.jpg', cv2.cvtColor(np.uint8(res), cv2.COLOR_BGR2RGB))
@@ -109,11 +94,10 @@ def middleware(opt, image: Image, visual_mode=True):
     
     return res, lists
 
-
 def gain_panoptic_seg(seem_model, image: Image, visual_mode=True):
 
     # image_ori = transform(image)
-    print(image.size)
+    # print(image.size)
     width, height = image.size
     image_ori = np.asarray(image)
     images = torch.from_numpy(image_ori.copy()).permute(2, 0, 1).cuda()

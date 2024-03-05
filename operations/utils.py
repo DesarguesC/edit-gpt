@@ -22,9 +22,6 @@ from lama.saicinpainting.evaluation.data import pad_tensor_to_modulo
 
 from paint.utils import load_img_to_array, save_array_to_img
 
-
-
-
 @torch.no_grad()
 def inpaint_img_with_lama(
         img: np.ndarray,
