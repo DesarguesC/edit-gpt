@@ -75,7 +75,7 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
     assert os.path.exists(opt.base_dir), 'where is base_dir ?'
     ref_dir = os.path.join(opt.base_dir, 'Ref')
     opt.ref_dir = ref_dir
-    os.mkdir(ref_dir)
+    if not os.path.exists(ref_dir): os.mkdir(ref_dir)
     ad_output = os.path.join(ref_dir, 'ad_cond.jpg')
     
     prompts = f'a photo of ONLY a/an {new_noun}, {PROMPT_BASE}'
@@ -176,9 +176,12 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
         print(f'gen_images.size = {gen_images.size}, ori_img.size = {ori_img.size}')
         gen_images = gen_images.resize(ori_img.size)
     assert gen_images.size == ori_img.size, f'gen_images.size = {gen_images.size}, ori_img.size = {ori_img.size}'
+    name_ = f'./{ref_dir}/ref'
+    t = 0
+    while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
+    gen_images.save(f'{name_}-{t}.jpg')
     
-    gen_images.save(f'./{ref_dir}/ref.jpg')
-    print(f'example saved at \'./{ref_dir}/ref.jpg\' --- [sized: {gen_images.size}]')
+    print(f'example saved at \'./{name_}-{t}.jpg\' --- [sized: {gen_images.size}]')
     return gen_images # PIL.Image
 
 def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base_img: Image = None, use_adapter=False, style_mask=None, **kwargs):
@@ -194,12 +197,8 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
         sampler = PLMSSampler(model)
     else:
         sampler = DDIMSampler(model)
-    replace_output = os.path.join(opt.base_dir, 'replaced.jpg')
-    
-    start_code = None
-    if opt.fixed_code:
-        start_code = torch.randn([opt.n_samples, opt.C, opt.H // opt.f, opt.W // opt.f], device=device)
 
+    op_output = os.path.join(opt.base_dir, opt.out_name)
     adapter_features = append_to_context = None
     """
         WARNING: Useless
@@ -248,7 +247,7 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
                     verbose=False,
                     unconditional_guidance_scale=opt.scale,
                     unconditional_conditioning=uc,
-                    x_T=start_code,
+                    x_T=None,
                     adpater_features=adapter_features,
                     append_to_context=append_to_context,
                     test_model_kwargs=test_model_kwargs,
@@ -257,7 +256,7 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
                 x_samples_ddim = model.decode_first_stage(samples_ddim)
                 x_samples_ddim = torch.clamp((x_samples_ddim + 1.) / 2., min=0., max=1.)
     
-    return replace_output, x_samples_ddim
+    return op_output, x_samples_ddim
 
 
 

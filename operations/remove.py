@@ -136,12 +136,7 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     img_pil = img_pil.resize((opt.W, opt.H))
     
     res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
-    sam_output_dir = os.path.join(opt.base_dir, 'Semantic')
-    os.mkdir(sam_output_dir)
-    
-    cv2.imwrite(f'./{sam_output_dir}/panoptic.jpg', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
-    print(f'seg result image saved at \'./{sam_output_dir}/panoptic.jpg\'')
-    
+        
     print(f'target_mask.shape = {target_mask.shape}')
     target_mask_dilate = [dilate_mask(a_mask, dilate_kernel_size) for a_mask in target_mask]
     assert len(target_mask_dilate) == 1
@@ -150,7 +145,7 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     )
     print(img_inpainted.shape)
     
-    rm_output = os.path.join(opt.base_dir, 'removed.jpg')
+    rm_output = os.path.join(opt.base_dir, opt.out_name)
     cv2.imwrite(rm_output, cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
     print(f'removed image saved at \'{rm_output}\'')
     

@@ -10,7 +10,6 @@ from prompt.arguments import get_args
 from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
 
 opt = get_args()
-
 dd = list(pd.read_csv('./key.csv')['key'])
 assert len(dd) == 1
 api_key = dd[0]
@@ -49,14 +48,18 @@ TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrang
 
 if 'remove' in sorted_class:
     folder_name = f'REMOVE-{base_cnt:06}'
+    setattr(opt, 'out_name', 'removed.jpg')
 elif 'replace' in sorted_class:
     folder_name = f'REPLACE-{base_cnt:06}'
+    setattr(opt, 'out_name', 'replaced.jpg')
 elif 'locate' in sorted_class:
     folder_name = f'LOCATE-{base_cnt:06}'
+    setattr(opt, 'out_name', 'located.jpg')
 else:
     folder_name = f'ADD-{base_cnt:06}'
+    setattr(opt, 'out_name', 'added')
+    
 opt.base_folder = folder_name
-
 
 base_dir = os.path.join(opt.out_dir, folder_name)
 opt.base_dir = base_dir
@@ -65,9 +68,6 @@ mask_dir = os.path.join(base_dir, 'Mask')
 opt.mask_dir = mask_dir
 print(f'base_dir: {base_dir}')
 # 去掉opt.out_name这个参数
-if not os.path.exists(opt.base_dir):
-    os.mkdir(opt.base_dir)
-assert os.path.exists(opt.base_dir)
 
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery
@@ -186,6 +186,5 @@ Image.fromarray(np.uint8(img_obj)).save('./tmp/test_out/obj.jpg')
 
 print(f'ori: \n', label_done)
 print(f'final: \n', location)
-
 
 print(edit_his)

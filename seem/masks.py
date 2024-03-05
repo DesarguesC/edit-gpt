@@ -72,6 +72,13 @@ def query_middleware(opt, image: Image, reftxt: str):
     demo = visual.draw_binary_mask(pred_masks_pos.squeeze(), text=reftxt)  # rgb Image
     res = demo.get_image()
 
+    # TODO: save
+    sam_output_dir = os.path.join(opt.base_dir, 'Semantic')
+    if not os.path.exists(sam_output_dir): os.mkdir(sam_output_dir)
+    cv2.imwrite(f'./{sam_output_dir}/panoptic.jpg', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
+    print(f'seg result image saved at \'./{sam_output_dir}/panoptic.jpg\'')
+
+
     return Image.fromarray(res), pred_masks_pos, pred_box_pos
 
 def middleware(opt, image: Image, visual_mode=True):

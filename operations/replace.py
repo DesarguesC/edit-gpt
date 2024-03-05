@@ -121,7 +121,6 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     box_0 = re.split(punctuation, box_0)
     box_0 = [x.strip() for x in box_0 if x!= ' ' and x!='']
     
-    
     new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
     box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
@@ -139,13 +138,13 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
         target_mask = 255. * target_mask
     
     assert os.path.exists(f'{opt.base_dir}/Semantic'), 'where is \'Semantic\' folder????'
-    cv2.imwrite(f'./{opt.base_dir}/Semantic/replace-mask-{opt.out_name}', cv2.cvtColor(np.uint8(repeat(target_mask, '1 ... -> c ...', c=3)), cv2.COLOR_BGR2RGB))
+    cv2.imwrite(f'./{opt.base_dir}/Semantic/target_mask.jpg', cv2.cvtColor(np.uint8(repeat(target_mask, '1 ... -> c ...', c=3)), cv2.COLOR_BGR2RGB))
     # SAVE_MASK_TEST
     print(f'target_mask.shape = {target_mask.shape}, ref_img.size = {np.array(diffusion_pil).shape}, base_img.shape = {np.array(rm_img).shape}')
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
     # mask required: 1 * h * w
     results = tensor2img(results)
-    cv2.imwrite(f'{output_path}/{opt.out_name}', results) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
+    cv2.imwrite(output_path, results) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
     print(f'replace result image saved at \'./{output_path}/{opt.out_name}\'')
     
     print('exit from replace')

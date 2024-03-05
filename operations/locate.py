@@ -132,12 +132,12 @@ def create_location(opt, target, edit_agent=None):
     # cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint8(Ref_Image), cv2.COLOR_BGR2RGB))
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
-    replace_output, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img)
+    op_output, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img)
     print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
 
     x_sample_ddim = tensor2img(x_sample_ddim)
-    cv2.imwrite(replace_output, x_sample_ddim)
-    print(f'locate result image saved at \'{replace_output}\'')
+    cv2.imwrite(op_output, x_sample_ddim)
+    print(f'locate result image saved at \'{op_output}\'')
     # TODO: If I need to Paint-by-Example ?
 
     print('exit from create_location')

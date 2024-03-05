@@ -23,8 +23,6 @@ from einops import repeat, rearrange
 import torch, cv2, os
 from paint.example import generate_example
 
-
-
 def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_agent=None):
     assert edit_agent != None, 'no edit agent!'
     img_pil = Image.open(opt.in_dir).convert('RGB')
@@ -34,7 +32,7 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
     print(f'ADD: (name, num, place) = ({name}, {num}, {place})')
     assert os.path.exists(opt.base_dir), 'where is base_dir ?'
     add_path = os.path.join(opt.base_dir, 'added')
-    os.mkdir(add_path)
+    if not os.path.exists(add_path): os.mkdir(add_path)
 
     if '<NULL>' in place:
         # system_prompt_add -> panoptic
@@ -89,10 +87,11 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
         target_mask = refactor_mask(box_example, mask_example, fixed_box)
         # paint-by-example
         _, painted = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil)
-        output_path = os.path.join(add_path, f'added-{i}.jpg')
+        output_path = os.path.join(add_path, f'added_{i}.jpg')
         painted = tensor2img(painted)
         cv2.imwrite(output_path, painted)
-        print(f'Added image saved at \'{output_path}\' folder (numbered).')
+        img_pil = Image.fromarray(cv2.cvtColor(painted, cv2.COLOR_BGR2RGB))
+        print(f'Added: Image \'added_{i}.jpg\' saved at \'{output_path}\' folder.')
 
     print('exit from add')
     exit(0)

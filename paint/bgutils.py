@@ -158,10 +158,19 @@ def fix_box(gpt_box, img_shape):
     assert len(gpt_box) == 4 and len(img_shape) == 3
     x, y, w, h = gpt_box
     fixed_box = (0,0,0,0)
-    if w < 0: print('?')
-    if h < 0: print('?')
+    if w < 0: 
+        w = -w
+        print('?')
+    if h < 0: 
+        h = -h
+        print('?')
     H_, W_, _ = img_shape # [h, w, 3]
-    if x + w >= W_ or y + h >= H_:
-        return fixed_box
+    flag = 0
+    while x + w >= W_ or y + h >= H_:
+        w //= 2
+        h //= 2
+        flag += 1
+        if flag > 4:
+            return fixed_box
     fixed_box = (x,y,w,h)
     return fixed_box
