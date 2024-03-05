@@ -18,6 +18,7 @@ key.csv
 # *.jpg
 # *.png
 outputs/
+Exp*/
 
 # weights
 *.pt
