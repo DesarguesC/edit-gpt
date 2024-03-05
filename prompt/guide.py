@@ -406,16 +406,19 @@ def get_bot(engine, api_key, system_prompt, proxy):
     iteration = 0
     while True:
         iteration += 1
-        print(f"talking {iteration}......")
+        print(f"talking {iteration}......", end='')
         try:
             agent = Chatbot(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
-        except:
-            time.sleep(10)
-            print('Timed Out', end='\n')
-            if iteration > 3:
+        except Exception as err:
+            print('Error Msg: ', err)
+            print('Apply Agent Timed Out')
+            if iteration > 2:
+                time.sleep(5)
                 os.system("bash ../clash/restart-clash.sh")
+            time.sleep(5)
+            if iteration % 5 == 4: print('')
             continue
-        print('done')
+        print('Done')
         return agent
 
 def get_response(chatbot, asks):
@@ -427,14 +430,14 @@ def get_response(chatbot, asks):
             answer = chatbot.ask(asks)
         except Exception as err:
             print('Error Msg: ', err)
-            print('Timed Out', end='\n')
+            print('Request Timed Out')
             if iteration > 2:
                 time.sleep(5)
                 os.system("bash ../clash/restart-clash.sh")
             time.sleep(5)
             if iteration % 5 == 4: print('')
             continue
-        print('finish')
+        print('Finish')
         # del chatbot
         return answer
 

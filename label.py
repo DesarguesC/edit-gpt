@@ -7,22 +7,20 @@ from PIL import Image
 from einops import repeat, rearrange
 import pandas as pd
 from prompt.arguments import get_args
+from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
+
+opt = get_args()
 
 dd = list(pd.read_csv('./key.csv')['key'])
 assert len(dd) == 1
 api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
 # engine='gpt-3.5-turbo-0613'
-engine='gpt-3.5-turbo'
-
-from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
-
-opt = get_args()
+# engine='gpt-3.5-turbo'
+engine = 'gpt-3.5-turbo-16k-0613'
 
 assert os.path.exists(opt.in_dir), f'File Not Exists: {opt.in_dir}'
-
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
-
 if not os.path.exists(opt.out_dir):
     os.mkdir(opt.out_dir)
 base_cnt = len(os.listdir(opt.out_dir))
@@ -48,19 +46,18 @@ prompt_list = []
 location = str(label_done)
 edit_his = []
 TURN = lambda u, image: Image.fromarray(np.uint8(get_img(image * repeat(rearrange(u[1], 'h w -> h w 1'), '... 1 -> ... c', c=3), u[0])))
-opt.out_name = opt.out_name if opt.out_name.endswith('.jpg') or opt.out_name.endswith('.png') else (opt.out_name+'.jpg')
 
-folder_name = f'<{base_cnt:06}>' + opt.out_name.split('.')[0]
 if 'remove' in sorted_class:
-    folder_name = 'REMOVE' + folder_name
+    folder_name = f'REMOVE-{base_cnt:06}'
 elif 'replace' in sorted_class:
-    folder_name = 'REPLACE' + folder_name
+    folder_name = f'REPLACE-{base_cnt:06}'
 elif 'locate' in sorted_class:
-    folder_name = 'LOCATE' + folder_name
+    folder_name = f'LOCATE-{base_cnt:06}'
 else:
-    folder_name = 'ADD' + folder_name
-
+    folder_name = f'ADD-{base_cnt:06}'
 opt.base_folder = folder_name
+
+
 base_dir = os.path.join(opt.out_dir, folder_name)
 opt.base_dir = base_dir
 os.mkdir(base_dir)
@@ -68,7 +65,9 @@ mask_dir = os.path.join(base_dir, 'Mask')
 opt.mask_dir = mask_dir
 print(f'base_dir: {base_dir}')
 # 去掉opt.out_name这个参数
-
+if not os.path.exists(opt.base_dir):
+    os.mkdir(opt.base_dir)
+assert os.path.exists(opt.base_dir)
 
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery

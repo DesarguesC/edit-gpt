@@ -28,7 +28,6 @@ def get_tensor_clip(normalize=True, toTensor=True):
     transform_list = []
     if toTensor:
         transform_list += [torchvision.transforms.ToTensor()]
-
     if normalize:
         transform_list += [torchvision.transforms.Normalize((0.48145466, 0.4578275, 0.40821073),
                                                 (0.26862954, 0.26130258, 0.27577711))]
@@ -42,14 +41,12 @@ def numpy_to_pil(images):
         images = images[None, ...]
     images = (images * 255).round().astype("uint8")
     pil_images = [Image.fromarray(image) for image in images]
-
     return pil_images
 
 def get_tensor(normalize=True, toTensor=True):
     transform_list = []
     if toTensor:
         transform_list += [torchvision.transforms.ToTensor()]
-
     if normalize:
         transform_list += [torchvision.transforms.Normalize((0.5, 0.5, 0.5),
                                                 (0.5, 0.5, 0.5))]
@@ -59,19 +56,10 @@ def get_tensor_clip(normalize=True, toTensor=True):
     transform_list = []
     if toTensor:
         transform_list += [torchvision.transforms.ToTensor()]
-
     if normalize:
         transform_list += [torchvision.transforms.Normalize((0.48145466, 0.4578275, 0.40821073),
                                                 (0.26862954, 0.26130258, 0.27577711))]
     return torchvision.transforms.Compose(transform_list)
-
-
-"""
-type:
-    XL_adapter   -> SD-XL with T2I-Adapter
-    XL           -> raw SD-XL
-    v1.5_adapter -> SD1.5 with T2I-Adapter
-"""
 
 def fix_mask(mask):
     dest = mask.squeeze()
@@ -93,6 +81,14 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
     prompts = f'a photo of ONLY a/an {new_noun}, {PROMPT_BASE}'
     prompts = f'{prompts}. Simultaneously, {get_response(expand_agent, new_noun)}' if expand_agent != None else prompts
     print(f'prompt: \n {prompts}\n')
+    """
+    type:
+        XL_adapter   -> SD-XL with T2I-Adapter
+        XL           -> raw SD-XL
+        v1.5_adapter -> SD1.5 with T2I-Adapter
+        v1.5         -> SD1.5 purely
+    """
+
     if opt.example_type == 'XL_adapter':
         print('-' * 9 + 'Generating via SDXL-Adapter' + '-' * 9)
         from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL
@@ -142,12 +138,10 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
         pipe.to("cuda")
         gen_images = pipe(prompts, height=opt.H, width=opt.W, steps=int(1.5*opt.steps)).images[0]
     
-    else:  # 'v1.5' in opt.example_type
+    elif '1.5' in opt.example_type:  # stable-diffusion 1.5
         print('-'*9 + 'Generating via sd1.5 with T2I-Adapter' + '-'*9)
         sd_model, sd_sampler = get_sd_models(opt)
-        # ori_img: for depth condition generating
         adapter_features, append_to_context = None, None
-
         if opt.example_type == 'v1.5_adapter':
             print('-'*9 + 'Generating via Style Adapter (depth)' + '-'*9)
             adapter, cond_model = get_adapter(opt, cond_type='depth'), get_depth_model(opt)
@@ -164,15 +158,19 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
             cond = cond * ( cond_mask * (0.8 if opt.mask_ablation else 1.) ) # 1 - cond_mask ?
             cv2.imwrite(ad_output, tensor2img(cond))
             adapter_features, append_to_context = get_adapter_feature(cond, adapter)
-
+        elif opt.example_type == 'v1.5':
+            # difference between v1.5 and v1.5_adapter is just to generate adapter
+            pass
+        
+        
         with torch.inference_mode(), sd_model.ema_scope(), autocast('cuda'):
             seed_everything(opt.seed)
             diffusion_image = diffusion_inference(opt, prompts, sd_model, sd_sampler, adapter_features=adapter_features, append_to_context=append_to_context)
-            diffusion_image = tensor2img(diffusion_image)
-            diffusion_image = cv2.cvtColor(diffusion_image, cv2.COLOR_BGR2RGB)
-        del sd_model, sd_sampler
+            diffusion_image = cv2.cvtColor(tensor2img(diffusion_image), cv2.COLOR_BGR2RGB)
+        del sd_model, sd_sampler # release CUDA memory
+
+        # diffusion_image: PIL.Image
         gen_images = Image.fromarray(np.uint8(diffusion_image)).convert('RGB') # pil
-    
     
     if gen_images.size != ori_img.size:
         print(f'gen_images.size = {gen_images.size}, ori_img.size = {ori_img.size}')
@@ -183,17 +181,12 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
     print(f'example saved at \'./{ref_dir}/ref.jpg\' --- [sized: {gen_images.size}]')
     return gen_images # PIL.Image
 
-
 def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base_img: Image = None, use_adapter=False, style_mask=None, **kwargs):
     # mask: [1, 1, h, w] is required
     mask = fix_mask(mask)
     print(f'Example Mask = {mask.shape}')
     seed_everything(opt.seed)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    # if not hasattr(opt, 'ref_dir'):
-    #     setattr(opt, 'ref_dir', os.path.join(opt.base_dir, 'Ref'))
-    # if not os.path.exists(opt.ref_dir):
-    #     os.mkdir(opt.ref_dir)
     
     config = OmegaConf.load(f"{opt.example_config}")
     model = load_model_from_config(config, f"{opt.example_ckpt}").to(device)
