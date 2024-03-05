@@ -66,6 +66,7 @@ opt.base_dir = base_dir
 os.mkdir(base_dir)
 mask_dir = os.path.join(base_dir, 'Mask')
 opt.mask_dir = mask_dir
+if not os.path.exists(opt.mask_dir): os.mkdir(opt.mask_dir)
 print(f'base_dir: {base_dir}')
 # 去掉opt.out_name这个参数
 
@@ -101,7 +102,7 @@ elif 'replace' in sorted_class:
     yes = get_response(rescale_agent, rescale_first_ask)
     print(f'rescale_agent first answers: {yes}')
     diffusion_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
-    yes = get_response(diffusion_agent, first_ask_expand('XL' in opt.example_type))
+    yes = get_response(diffusion_agent, first_ask_expand(2))
     print(f'diffusion_agent first answers: {yes}')
     replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, expand_agent=diffusion_agent)
 

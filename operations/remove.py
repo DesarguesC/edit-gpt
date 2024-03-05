@@ -145,7 +145,7 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
     )
     print(img_inpainted.shape)
     
-    rm_output = os.path.join(opt.base_dir, opt.out_name)
+    rm_output = os.path.join(opt.base_dir, 'removed.jpg')
     cv2.imwrite(rm_output, cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
     print(f'removed image saved at \'{rm_output}\'')
     

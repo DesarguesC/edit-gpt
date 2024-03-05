@@ -85,6 +85,17 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
                     ])
 
         target_mask = refactor_mask(box_example, mask_example, fixed_box)
+
+        # TODO: save target_mask
+        print(f'In \'add\': target_mask.shape = {target_mask.shape}')
+        name_ = f'./{opt.mask_dir}/mask'
+        t = 0
+        while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
+        cv2.imwrite(f'{name_}-{t}.jpg', tensor2img(
+            (255. if torch.max(target_mask) <= 1. else 1.) * target_mask.squeeze(0)
+        ))
+        print(f'target mask for adding is saved at \'{name_}-{t}.jpg\'')
+        
         # paint-by-example
         _, painted = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil)
         output_path = os.path.join(add_path, f'added_{i}.jpg')

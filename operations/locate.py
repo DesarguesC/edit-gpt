@@ -110,7 +110,7 @@ def create_location(opt, target, edit_agent=None):
         target_mask[target_mask > 0.5] = 0.95 if opt.mask_ablation else 1.
         target_mask[target_mask <= 0.5] = 0.05 if opt.mask_ablation else 0.
     
-    os.mkdir(opt.mask_dir)
+    if not os.path.exists(opt.mask_dir): os.mkdir(opt.mask_dir)
     print(f'target_mask.shape = {target_mask.shape}, destination_mask.shape = {destination_mask.shape}')
     # target_mask: [1, h, w], destination_mask: [1, 3, h, w]
     cv2.imwrite(f'./{opt.mask_dir}/destination.jpg', cv2.cvtColor(np.uint8((255. if torch.max(destination_mask) <= 1. else 1.) \

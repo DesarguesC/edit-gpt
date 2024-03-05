@@ -129,23 +129,35 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     print(f'fixed box: (x,y,w,h) = {box_0}')
     target_mask = refactor_mask(box_2, mask_2, box_0, type=='replace')
     # 1 * h * w 
+    x,y,w,h = box_0
+    print(f'\ntorch.sum(target_mask) = {torch.sum(target_mask)}')
+    print(f'torch.sun(target_mask~part) = {torch.sum(target_mask[:, y:y+h,x:x+w])}')
     
     target_mask[target_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
     target_mask[target_mask < 0.5] = 0.05 if opt.mask_ablation else 0.
-    if len(target_mask.shape) <= 3:
+    if len(target_mask.shape) > 3:
         target_mask = target_mask.unsqueeze(0)
-    if torch.max(target_mask) <= 1.:
+    print('target_mask.shape = ', target_mask.shape)
+    if torch.max(target_mask) <= 1.001:
         target_mask = 255. * target_mask
+        print('plus')
+    print('target_mask.shape = ', target_mask.shape)
     
-    assert os.path.exists(f'{opt.base_dir}/Semantic'), 'where is \'Semantic\' folder????'
-    cv2.imwrite(f'./{opt.base_dir}/Semantic/target_mask.jpg', cv2.cvtColor(np.uint8(repeat(target_mask, '1 ... -> c ...', c=3)), cv2.COLOR_BGR2RGB))
+    assert os.path.exists(f'./{opt.mask_dir}'), 'where is \'Semantic\' folder????'
+    
+    print(f'opt.mask_dir = {opt.mask_dir}')
+    cv2.imwrite(f'./{opt.mask_dir}/target_mask.jpg', tensor2img(
+            repeat(target_mask, '1 ... -> c ...', c=3).clone().detach().cpu())
+        )
+
+    print(f'target_mask for replacement saved at \'./{opt.mask_dir}/target_mask.jpg\'')
     # SAVE_MASK_TEST
     print(f'target_mask.shape = {target_mask.shape}, ref_img.size = {np.array(diffusion_pil).shape}, base_img.shape = {np.array(rm_img).shape}')
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
     # mask required: 1 * h * w
     results = tensor2img(results)
-    cv2.imwrite(output_path, results) # cv2.cvtColor(np.uint8(results), cv2.COLOR_RGB2BGR)
-    print(f'replace result image saved at \'./{output_path}/{opt.out_name}\'')
+    cv2.imwrite(output_path, results)
+    print(f'replace result image saved at \'./{output_path}\'')
     
     print('exit from replace')
     exit(0)
