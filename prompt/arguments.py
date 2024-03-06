@@ -55,5 +55,7 @@ def get_args():
     )
     parser.add_argument('--expand_scale', default=1.0, type=float, help='expansion scale for mask')
 
+    parser.add_argument('--ip2p_config', default='./configs/ip2p_generate.yaml', help='path to InstructPix2Pix config')
+    parser.add_argument('--ip2p_ckpt', default='../autodl-tmp/ip2p.ckpt', help='path to ckpt of InstructPix2Pix')
 
     return parser.parse_args() 

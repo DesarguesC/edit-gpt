@@ -131,8 +131,8 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
         
     print('-'*9 + 'Removing via LaMa' + '-'*9)
     img_pil = Image.open(opt.in_dir).convert('RGB')
-    opt.W, opt.H = img_pil.size
-    opt.W, opt.H = ab64(opt.W), ab64(opt.H)
+    W, H = img_pil.size
+    opt.W, opt.H = ab64(W), ab64(H)
     img_pil = img_pil.resize((opt.W, opt.H))
     
     res, target_mask, _ = query_middleware(opt, img_pil, target_noun)

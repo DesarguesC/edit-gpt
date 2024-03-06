@@ -145,6 +145,20 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        '--txt_cfg',
+        type=float,
+        default=7.5,
+        help='classifier-free guidance of text in InstructPix2Pix'
+    )
+
+    parser.add_argument(
+        '--img_cfg',
+        type=float,
+        default=1.5,
+        help='classifier-free guidance of image in InstructPix2Pix'
+    )
+
+    parser.add_argument(
         '--seed',
         type=int,
         default=42,

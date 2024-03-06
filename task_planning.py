@@ -7,7 +7,7 @@ from PIL import Image
 from einops import repeat, rearrange
 import pandas as pd
 from prompt.arguments import get_args
-from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
+from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object, Transfer_Me_ip2p
 
 opt = get_args()
 setattr(opt, 'api_key', list(pd.read_csv('./key.csv')['key'])[0])
@@ -25,19 +25,19 @@ def gpt_mkdir(Opt, Type = None):
     assert Type is not None, '<?>'
     if Type == 'remove':
         folder_name = f'REMOVE-{base_cnt:06}'
-        setattr(Opt, 'out_name', 'removed.jpg')
+        setattr(Opt, 'out_name', 'removed')
     elif Type == 'replace':
         folder_name = f'REPLACE-{base_cnt:06}'
-        setattr(Opt, 'out_name', 'replaced.jpg')
+        setattr(Opt, 'out_name', 'replaced')
     elif Type ==  'locate':
         folder_name = f'LOCATE-{base_cnt:06}'
-        setattr(Opt, 'out_name', 'located.jpg')
+        setattr(Opt, 'out_name', 'located')
     elif Type == 'add':
         folder_name = f'ADD-{base_cnt:06}'
         setattr(Opt, 'out_name', 'added')
     elif Type == 'transfer':
         folder_name = f'TRANS-{base_cnt:06}'
-        setattr(Opt, 'out_name', 'transfered.jpg')
+        setattr(Opt, 'out_name', 'transfered')
     Opt.base_folder = folder_name
 
     base_dir = os.path.join(Opt.out_dir, folder_name)
@@ -52,7 +52,8 @@ def gpt_mkdir(Opt, Type = None):
 
 def Transfer_Method(opt, current_step: int, tot_step: int):
     opt = gpt_mkdir(opt, 'transfer')
-    
+    Transfer_Me_ip2p(opt, img_cfg=opt.img_cfg, txt_cfg=opt.txt_cfg, dilate_kernel_size=15)
+    print(f'[{current_step:02}|{tot_step:02}]\tTransfer: 「editing has launched via InsrtuctPix2Pix」')
 
 def Remove_Method(opt, current_step: int, tot_step: int):
     opt = gpt_mkdir(opt, 'remove')
