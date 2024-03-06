@@ -198,7 +198,7 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
     else:
         sampler = DDIMSampler(model)
 
-    op_output = os.path.join(opt.base_dir, opt.out_name)
+    op_output = os.path.join(opt.base_dir, opt.out_name.strip('.jpg'))
     adapter_features = append_to_context = None
     """
         WARNING: Useless

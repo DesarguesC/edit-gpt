@@ -145,20 +145,25 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     
     assert os.path.exists(f'./{opt.mask_dir}'), 'where is \'Semantic\' folder????'
     
-    print(f'opt.mask_dir = {opt.mask_dir}')
-    cv2.imwrite(f'./{opt.mask_dir}/target_mask.jpg', tensor2img(
+    name_ = f'./{opt.mask_dir}/target_mask'
+    t = 0
+    while os.path.isfile(f'./{name_}-{t}.jpg'): t += 1
+    cv2.imwrite(f'{name_}-{t}.jpg', tensor2img(
             repeat(target_mask, '1 ... -> c ...', c=3).clone().detach().cpu())
         )
 
-    print(f'target_mask for replacement saved at \'./{opt.mask_dir}/target_mask.jpg\'')
+    print(f'target_mask for replacement saved at \'{name_}-{t}.jpg\'')
     # SAVE_MASK_TEST
     print(f'target_mask.shape = {target_mask.shape}, ref_img.size = {np.array(diffusion_pil).shape}, base_img.shape = {np.array(rm_img).shape}')
     output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
     # mask required: 1 * h * w
     results = tensor2img(results)
-    cv2.imwrite(output_path, results)
-    print(f'replace result image saved at \'./{output_path}\'')
     
-    print('exit from replace')
-    exit(0)
+    t = 0
+    while os.path.isfile(f'./{output_path}-{t}.jpg'): t += 1
+    cv2.imwrite(f'./{output_path}-{t}.jpg', results)
+    print(f'replace result image saved at \'./{output_path}-{t}.jpg\'')
+    
+    # print('exit from replace')
+    # exit(0)
     

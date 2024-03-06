@@ -105,8 +105,8 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
         img_pil = Image.fromarray(cv2.cvtColor(painted, cv2.COLOR_BGR2RGB))
         print(f'Added: Image \'added_{i}.jpg\' saved at \'{output_path}\' folder.')
 
-    print('exit from add')
-    exit(0)
+    # print('exit from add')
+    # exit(0)
 
 
 

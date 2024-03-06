@@ -117,12 +117,19 @@ def create_location(opt, target, edit_agent=None):
     if not os.path.exists(opt.mask_dir): os.mkdir(opt.mask_dir)
     print(f'target_mask.shape = {target_mask.shape}, destination_mask.shape = {destination_mask.shape}')
     # target_mask: [1, h, w], destination_mask: [1, 3, h, w]
-    cv2.imwrite(f'./{opt.mask_dir}/destination.jpg', cv2.cvtColor(np.uint8((255. if torch.max(destination_mask) <= 1. else 1.) \
+
+    name_ = f'./{opt.mask_dir}/destination'
+    t = 0
+    while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
+    cv2.imwrite(f'{name_}-{t}.jpg', cv2.cvtColor(np.uint8((255. if torch.max(destination_mask) <= 1. else 1.) \
                             * rearrange(destination_mask.squeeze(0), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
-    cv2.imwrite(f'./{opt.mask_dir}/target.jpg', cv2.cvtColor(np.uint8((255. if torch.max(target_mask) <= 1. else 1.) \
+    print(f'destination-mask saved: \'{name_}-{t}.jpg\'') # 目的位置的mask (编辑后)
+
+    name = f'./{opt.mask_dir}/target'
+    t = 0
+    cv2.imwrite(f'{name_}-{t}.jpg', cv2.cvtColor(np.uint8((255. if torch.max(target_mask) <= 1. else 1.) \
                             * rearrange(repeat(target_mask, '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
-    print(f'destination-mask saved: \'./{opt.mask_dir}/destination.jpg\'') # 目的位置的mask (编辑后)
-    print(f'destination-mask saved: \'./{opt.mask_dir}/target.jpg\'') # 原始图片的mask (编辑前)
+    print(f'destination-mask saved: \'{name_}-{t}.jpg\'') # 原始图片的mask (编辑前)
 
     # TODO: Validate destination_mask content
     # d1, d2, d3 = destination_mask[0].chunk(3)
@@ -144,7 +151,7 @@ def create_location(opt, target, edit_agent=None):
     print(f'locate result image saved at \'{op_output}\'')
     # TODO: If I need to Paint-by-Example ?
 
-    print('exit from create_location')
-    exit(0)
+    # print('exit from create_location')
+    # exit(0)
 
 
