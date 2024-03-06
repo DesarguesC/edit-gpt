@@ -37,8 +37,8 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
     if '<NULL>' in place:
         # system_prompt_add -> panoptic
         _, panoptic_dict = middleware(opt, img_pil)
-        # print(f'panoptic_dict: {panoptic_dict}')
         question = Label().get_str_add_panoptic(panoptic_dict, name, (opt.W,opt.H))
+        # remained to be debug
     else:
         # system_prompt_addArrange -> name2place
         _, place_mask, _ = query_middleware(opt, img_pil, place)
@@ -62,6 +62,7 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
             if try_time > 0:
                 print(f'Trying to fix... - Iter: {try_time}')
             ans = get_response(edit_agent, question)
+            print(f'question = {question}')
             print(f'ans = {ans}')
             ans_list = [x.strip() for x in re.split(r'[(),{}\[\]]', ans) if x != '' and x != ' ']
             assert len(ans_list) == 5, f'ans = {ans}, ans_list = {ans_list}'

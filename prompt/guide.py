@@ -38,10 +38,10 @@ system_prompt_replace =    'You are a text detection master and need to find a s
                            'In the text input an object will be replaced, and you need to find the replaced object from the text and print its name in full, '\
                            'and you will also need to find the new object from the text to replace the object. Note: Be sure to keep all the attributes '\
                            'given in the discription of the object. '\
-                           'If you find object A is replaced to object B, you are ought to give the answer \'(A,B)\' without any other character or space. '\
+                           'If you find object $$A$$ is replaced to object $$B$$, you are ought to give the answer $$(A,B)$$ without any other character or space. '\
                            'I guarantee only one object was replaced. '
 
-replace_first_ask =     'You need to output both the replaced object A and the replaced object B, in the form (A,B). '\
+replace_first_ask =     'You need to output both the replaced object $$A$$ and the replaced object $$B$$, in the form $$(A,B)$$. '\
                         'For the two items, each is without any other character or space. '\
                         'Be careful to keep the modification about the object when you output the noun, '\
                         'for example if you get an input \"Replace the zebra on the left to a horse\", '\
@@ -67,41 +67,41 @@ replace_first_ask =     'You need to output both the replaced object A and the r
 """
 system_prompt_locate =     'You are a text detection master and need to generate a new bounding box for a specific object. '\
                            'You are going to get a series texts input in the form of the bellow: \n'\
-                           'Size: (W_{img},H{img})\n'\
-                           'Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
-                           '[Name_n, (X_n,Y_n), (W_n,H_n))]}\nTarget: Name_n\nEdit-Text: <edit text guidance>\n'\
-                           'In the input shown above, (W_{img},H_{img}) represents the size of original image input.'\
-                           'And for the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field \"Objects\", '\
+                           'Size: $$(W_{img},H{img})$$\n'\
+                           'Objects: $${[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
+                           '[Name_n, (X_n,Y_n), (W_n,H_n))]}$$\nTarget: Name_n\nEdit-Text: <edit text guidance>\n'\
+                           'In the input shown above, $$(W_{img},H_{img})$$ represents the size of original image input.'\
+                           'And for the i-th item $$[Name_i, (X_i,Y_i), (W_i,H_i)]$$ in the field \"Objects\", '\
                            'Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
-                           'and (X_i,Y_i), (W_i,H_i) represent the location and size respectively in an image(or a photo). '\
-                           'Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, '\
-                           'where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, '\
-                           'And (W_i,H_i) represents the width and height of a rectangular box that including the i-th object. '\
+                           'and $$(X_i,Y_i), (W_i,H_i)$$ represent the location and size respectively in an image(or a photo). '\
+                           'Additianally, $$(X_i,Y_i), (W_i,H_i)$$ is in form of the bounding box, '\
+                           'where $$(X_i,Y_i)$$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
+                           'And $$(W_i,H_i)$$ represents the width and height of a rectangular box that including the i-th object. '\
                            '"Name" in "Target" field also represents a name (editing target), '\
                            'the same as in \"Objects\" field, and we assure '\
-                           'that Name in \"Target\" field is equivalent to the \"Name_n\", which is the same as the name of '\
+                           'that Name in \"Target\" field is equivalent to the $$Name_n$$, which is the same as the name of '\
                            'the last item in \"Objects\" field. Finally, in \"Edit-Text\" field, you will get the edit prompt. '\
                            'For the coordinates designed in bounding box, we give relevant definitions. '\
                            'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
                            'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
                            'The direction "down" is defined as the positive direction of the y axis, '\
                            'and the direction "right" is defined as the positive direction of the x axis. '\
-                           'In addition, for the width and height (i.e. w and h) in bounding box, the former corresponds to the X-axis direction '\
-                           'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple ((x,y), (w,h)) '\
+                           'In addition, for the width and height (i.e. $$w$$ and $$h$$) in bounding box, the former corresponds to the X-axis direction '\
+                           'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple $$((x,y), (w,h))$$ '\
                            'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
-                           '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
-                           'cannot exceed the size of the original image (W_{img},H{img}). Note that bounding boxes can overlap. '
+                           '$$(x,y), (x+w,y), (w,y+h), (x+w,y+h)$$, respectively. From this point of view, the values of $$x+w$$ and $$y+h$$ generated '\
+                           'cannot exceed the size of the original image $$(W_{img},H{img})$$. Note that bounding boxes can overlap. '
           
 locate_first_ask =      'For the coordinates designed in bounding box, we give relevant definitions. '\
                         'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
                         'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
                         'The direction "down" is defined as the positive direction of the y axis, '\
                         'and the direction "right" is defined as the positive direction of the x axis. '\
-                        'In addition, for the width and height (i.e. w and h) in bounding box, the former corresponds to the X-axis direction '\
-                        'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple ((x,y), (w,h)) '\
+                        'In addition, for the width and height (i.e. $$w$$ and $$h$$) in bounding box, the former corresponds to the X-axis direction '\
+                        'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple $$((x,y), (w,h))$$ '\
                         'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
-                        '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
-                        'cannot exceed the size of the original image (W_{img},H{img}).'\
+                        '$$(x,y), (x+w,y), (x,y+h), (x+w,y+h)$$ respectively. From this point of view, the values of x+w and y+h generated '\
+                        'cannot exceed the size of the original image $$(W_{img},H{img})$$.'\
                         'Your task is to modify the position and size of the target specified by the \"Target\" field ' \
                         'in the \"Objects\" field, according to the edit prompt given in \"Edit-Text\" field. '\
                         'You should arrange a proper position and a proper size for the editing target. '\
@@ -111,9 +111,9 @@ locate_first_ask =      'For the coordinates designed in bounding box, we give r
                         'you should consider where is the so called "far place" according to all those objects given in "Objects" field, '\
                         'after which to generate a new bounding box which stands for its new position for the object.'\
                         'For your task, you should output your generation of the target bounding box in the form of '\
-                        '[Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]. \"Name_n\" represents the name of the target '\
-                        '(it stays the same!). And coordinates (X_{new},Y_{new}) is the coordinate of the point at the top left corner in '\
-                        'the edge of the bounding box, while (W_{new},H_{new}) represents the width and height of a '\
+                        '$$[Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]$$. $$Name_n$$ represents the name of the target '\
+                        '(it stays the same!). And coordinates $$(X_{new},Y_{new})$$ is the coordinate of the point at the top left corner in '\
+                        'the edge of the bounding box, while $$(W_{new},H_{new})$$ represents the width and height of a '\
                         'rectangular box that including this object. Note that bounding boxes can overlap. '\
                         'If you have understood your task, '\
                         'please answer "yes" in the round without any extra characters, after which '\
@@ -126,15 +126,15 @@ locate_first_ask =      'For the coordinates designed in bounding box, we give r
 # no place
 system_prompt_add = 'You are a text detection master and need to generate a new bounding box for a specific object. '\
                     'You are going to get a series texts input in the form of the bellow: \n'\
-                    'Size: (W_{img},H{img})\n'\
-                    'Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
-                    '[Name_n, (X_n,Y_n), (W_n,H_n))]}\nTarget: Name\n'\
-                    'For the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field \"Objects\", '\
-                    'Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
-                    'and (X_i,Y_i), (W_i,H_i) represent the location and size respectively in an image(or a photo). '\
-                    'Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, '\
-                    'where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, '\
-                    'and (W_i,H_i) represents the width and height of a rectangular box that including the i-th object. '\
+                    'Size: $$(W_{img},H{img})$$\n'\
+                    'Objects: $$\\{[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
+                    '[Name_n, (X_n,Y_n), (W_n,H_n))]\\}$$\nTarget: Name\n'\
+                    'For the i-th item $$[Name_i, (X_i,Y_i), (W_i,H_i)]$$ in the field \"Objects\", '\
+                    '$$Name_i$$ represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
+                    'and $$(X_i,Y_i), (W_i,H_i)$$ represent the location and size respectively in an image(or a photo). '\
+                    'Additianally, $$(X_i,Y_i), (W_i,H_i)$$ is in form of the bounding box, '\
+                    'where $$(X_i,Y_i)$$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
+                    'and $$(W_i,H_i)$$ represents the width and height of a rectangular box that including the i-th object. '\
                     'You should add the target "Name" to the object list given in "Objects" field. '\
 # TODO: output Form ?
 
@@ -146,9 +146,9 @@ add_first_ask = 'You need to give the position and size of the specified new obj
                 'to comply with the principle of "near big and far small"; for example, the same as "cat", '\
                 '"near cat" is generally much larger than "far cat".'\
                 'For your task, you should output your generation of the target bounding box in the form of '\
-                '[Name, (X,Y), (W, H)]. \"Name\" represents the name of the target to be added. '\
+                '$$[Name, (X,Y), (W, H)]$$. \"Name\" represents the name of the target to be added. '\
                 'And coordinates (X,Y) is the coordinate of the point at the top left corner in '\
-                'the edge of the bounding box, while (W,H) represents the width and height of a '\
+                'the edge of the bounding box, while $$(W,H)$$ represents the width and height of a '\
                 'rectangular box that including this object. If you have understood your task, '\
                 'please answer "yes" in this round without any extra characters, after which '\
                 'I will give you input and ask you to generate the bounding box. '
@@ -169,49 +169,49 @@ addHelp_first_ask = 'For your task, in the output "name", note that you need to 
 system_prompt_addArrange = 'You are a text detection master and need to generate a new bounding box for a specific object. '\
                            'You should add an object to a specified place. '\
                            'You are going to get a series texts input in the form of the bellow: \n'\
-                           'Size: (W_{img},H{img})\n'\
-                           'Place: [Name_p, (X_p,Y_p), (W_p,H_p)]\nTarget: Name\n'\
-                           'In the input shown above, (W_{img},H_{img}) in \"Size\" field represents the size of original image input. '\
-                           'And int \"Place\" field the name of a scenery is given by \"Name_p\", so as its location and range. '\
-                           '\"Place\" is defined by [Name_p, (X_p,Y_p), (W_p,H_p)] where \"Name_p\" represents its name while '\
-                           '(X_p,Y_p) and (W_p,H_p) represent its location and size in an image (or a photo). '\
+                           'Size: $$(W_{img},H{img})$$\n'\
+                           'Place: $$[Name_p, (X_p,Y_p), (W_p,H_p)]$$\nTarget: Name\n'\
+                           'In the input shown above, $$(W_{img},H_{img})$$ in \"Size\" field represents the size of original image input. '\
+                           'And int \"Place\" field the name of a scenery is given by $$Name_p$$, so as its location and range. '\
+                           '\"Place\" is defined by $$[Name_p, (X_p,Y_p), (W_p,H_p)]$$ where $$Name_p$$ represents its name while '\
+                           '$$(X_p,Y_p)$$ and $$(W_p,H_p)$$ represent its location and size in an image (or a photo). '\
                            'WHAT YOU SHOULD DO IS: arrange(generate) a proper location and size for the object \"Name\" '\
                            'with the constrain that the object \"Name\" represents is in the scope of \"Place\"'\
-                           '\"Name_p\" and \"Name\" respectively represent a name (i.e. object class, such as \"cat\", \"dog\", \"apple\", etc.), '\
-                           'and (X_p,Y_p), (W_p,H_p) represent the location and size respectively in an image (or a photo) '\
-                           'and a bounding box is uniquely identified by (X_i,Y_i), (W_i,H_i) '\
-                           'where (X_p,Y_p) represents the coordinate of the point at the top left corner in the edge of bounding box, '\
-                           'And (W_p,H_p) represents the width and height of a rectangular box that including object. '\
+                           '$$Name_p$$ and $$Name$$ respectively represent a name (i.e. object class, such as \"cat\", \"dog\", \"apple\", etc.), '\
+                           'and $$(X_p,Y_p), (W_p,H_p)$$ represent the location and size respectively in an image (or a photo) '\
+                           'and a bounding box is uniquely identified by $$(X_i,Y_i), (W_i,H_i)$$ '\
+                           'where $$(X_p,Y_p)$$ represents the coordinate of the point at the top left corner in the edge of bounding box, '\
+                           'And $$(W_p,H_p)$$ represents the width and height of a rectangular box that including object. '\
                            'For the coordinates designed in bounding box, we give relevant definitions. '\
                            'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
                            'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
                            'The direction "down" is defined as the positive direction of the y axis, '\
                            'and the direction "right" is defined as the positive direction of the x axis. '\
-                           'In addition, for the width and height (i.e. w and h) in bounding box, the former corresponds to the X-axis direction '\
-                           'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple ((x,y), (w,h)) '\
+                           'In addition, for the width and height (i.e. $$w$$ and $$h$$) in bounding box, the former corresponds to the X-axis direction '\
+                           'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple $$((x,y), (w,h))$$ '\
                            'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
-                           '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
-                           'cannot exceed the size of the original image (W_{img},H{img}). Note that bounding boxes can overlap. '
+                           '$$(x,y), (x,y+h), (x+w,y), (x+w,y+h)$$, respectively. From this point of view, the values of $$x+w$$ and $$y+h$$ generated '\
+                           'cannot exceed the size of the original image $$(W_{img},H{img})$$. Note that bounding boxes can overlap. '
 
-addArrange_first_ask =  'For the coordinates designed in bounding box, we give relevant definitions. '\
+addArrange_first_ask =  'For the coordinates designed in bounding box, further definition is: '\
                         'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
-                        'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
+                        'Starting from the origin point, there are only two directions along the edge of the picture, "down" and "right". '\
                         'The direction "down" is defined as the positive direction of the y axis, '\
                         'and the direction "right" is defined as the positive direction of the x axis. '\
-                        'In addition, for the width and height (i.e. w and h) in bounding box, the former corresponds to the X-axis direction '\
-                        'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple ((x,y), (w,h)) '\
+                        'In addition, for the width and height (i.e. $$w$$ and $$h$$) in bounding box, the former corresponds to the X-axis direction '\
+                        'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple $$((x,y), (w,h))$$ '\
                         'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
-                        '(x,y), (x,y+h), (x,y+h), respectively. From this point of view, the values of x+w and y+h generated '\
+                        '$$(x,y), (x+w,y), (x,y+h), (x+w,y+h)$$, respectively. From this point of view, the values of $$x+w$$ and $$y+h$$ generated '\
                         'cannot exceed the size of the original image (W_{img},H{img}).'\
                         'Your task is to arrange the position and size of the target \"Name\" specified in the \"Target\" field ' \
                         'on purpose of adding it to the \"Place\" field. '\
                         'You should arrange a proper position and a proper size for the target. '\
                         'In this way, your task is to generate the position and size according to the information '\
                         'given and representing them in the form of bounding box. '\
-                        'You should output your generation of the target bounding box in the form of '\
-                        '[Name, (X,Y), (W, H)] without any other character. \"Name_n\" represents the name of the target '\
-                        '(it stays the same!). And coordinates (X,Y) is the coordinate of the point at the top left corner in '\
-                        'the edge of the bounding box, while (W,H) represents the width and height of a '\
+                        'You should output your generation of the target bounding box in the form '\
+                        '$$[name_n, (X,Y), (W, H)]$$ without any other character. $$name_n$$ represents the name of the target '\
+                        '(it stays the same!). And coordinates $$(X,Y)$$ is the coordinate of the point at the top left corner in '\
+                        'the edge of the bounding box, while $$(W,H)$$ represents the width and height of a '\
                         'rectangular box that including this object. Note that bounding boxes can overlap. '\
                         'If you have understood your task, '\
                         'please answer "yes" in the round without any extra characters, after which '\
@@ -222,39 +222,39 @@ addArrange_first_ask =  'For the coordinates designed in bounding box, we give r
 system_prompt_rescale =     'You are an object scaler, capable of generating a size and location for an object '\
                             'after considering size and location information of objects comprehensively. '\
                             'You\'ll be told a series of input messages in the form of as follow:\n '\
-                            'Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , [Name_n, (X_n,Y_n), (W_n,H_n))]}\n'\
-                            'Old: Name_{old}\nNew: Name_{new}\n'\
-                            'For the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field "Objects", '\
-                            'Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
-                            'and (X_i,Y_i), (W_i,H_i) represent the location and size respectively. '\
-                            'Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, '\
-                            'where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, '\
-                            'and (W_i,H_i) represents the width and height of a rectangular box that including the i-th object. '\
-                            'Then, in "Old" and "New" field , two nouns are given respectively, which indicates the Name_{old} '\
-                            'should be replaced Name_{new}. '\
+                            'Objects: $$\\{[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , [Name_n, (X_n,Y_n), (W_n,H_n))]\\}$$\n'\
+                            'Old: $$Name_{old}$$\nNew: $$Name_{new}$$\n'\
+                            'For the i-th item $$[Name_i, (X_i,Y_i), (W_i,H_i)]$$ in the field "Objects", '\
+                            '$$Name_i$$ represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
+                            'and $$(X_i,Y_i), (W_i,H_i)$$ represent the location and size respectively. '\
+                            'Additianally, $$(X_i,Y_i), (W_i,H_i)$$ is in form of the bounding box, '\
+                            'where $$(X_i,Y_i)$$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
+                            'and $$(W_i,H_i)$$ represents the width and height of a rectangular box that including the i-th object. '\
+                            'Then, in "Old" and "New" field , two nouns are given respectively, which indicates the $$Name_{old}$$ '\
+                            'should be replaced $$Name_{new}$$. '\
                             'Based on the description above, your task is to generate a new position coordinates and sizes '\
-                            'for the replacement. The out put should be in the form of [Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})]. '\
+                            'for the replacement. The out put should be in the form of $$[Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})]$$. '\
                             'Note that bounding boxes can overlap. '
 
 rescale_first_ask =     'For your task, for details, you should generation modified bounding-box following the bellow rules. \n'\
-                        '1.LOGIC. After the replacement is done, the objects must be placed logically. '\
+                        '1. LOGIC. After the replacement is done, the objects must be placed logically. '\
                         'For example, if you need to replace a dog with a cat, usually the cat will be smaller than the '\
-                        'dog (so the bounding box will be smaller), and if you keep the coordinates (X_{old},Y_{old}) '\
-                        'unchanged, and (W_{old},H_{old}) decreases, then the cat\'s bounding box may be suspended in '\
+                        'dog (so the bounding box will be smaller), and if you keep the coordinates $$(X_{old},Y_{old})$$ '\
+                        'unchanged, and $$(W_{old},H_{old})$$ decreases, then the cat\'s bounding box may be suspended in '\
                         'the air. So in this case, we need to take into account the input "Objects" field and combine '\
                         'the positions of the other objects, so that the generated bounding box of the cat is connected '\
                         'to the ground (or something else), ensuring that it will not be suspended in the air '\
                         '(which is illogical). \n'\
-                        '2.STABILITY. As mentioned in the previous point, the position of the object needs to be '\
+                        '2. STABILITY. As mentioned in the previous point, the position of the object needs to be '\
                         'modified after the replacement, but we still need to maintain the stability of its position, '\
                         'the modification needs to be integrated into the input of the "Objects" field in the position '\
                         'of each object in and overlay, size. In the case of guaranteeing requirement 1., '\
-                        'if we can satisfy the logic stated in 1. without changing X_{old} or Y_{old}, '\
+                        'if we can satisfy the logic stated in 1. without changing $$X_{old}$$ or $$Y_{old}$$, '\
                         'there\'s no necessity to change it. \n'\
                         'After the above two rules taken into consideration and finish the position and size editing, '\
-                        'you should output the result in the form of [Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})] '\
+                        'you should output the result in the form of $$[Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})]$$ '\
                         'without any other character. For each term I ask, you should only output the result in form of '\
-                        '[Name_{new}, (X_{new},Y_{new}), (W_{new}, H_{new})] and mustn\'t output any extra words. '\
+                        '$$[Name_{new}, (X_{new},Y_{new}), (W_{new}, H_{new})]$$ and mustn\'t output any extra words. '\
                         'Now if you have fully understood your task, please answer "yes" and mustn\'t output any extra '\
                         'characters, after which I will give you input. '\
 
@@ -291,66 +291,66 @@ rescale_first_ask =     'For your task, for details, you should generation modif
 system_prompt_edit = 'You are an textual editor who is able to edit images with the given text input. '\
                      'But unlike traditional textual editors, you only need to edit the positions of some objects, '\
                      'which I will give in the following format: the i-th object is represented by the data '\
-                     '[name_i, (X_i,Y_i,W_i,H_i)]. This format is consist of the following elements: '\
-                     '1.name_i, namely a string representing the name of the i-th object, e.g. "apple" or "desk"; '\
-                     '2. The quaternion (X_i,Y_i,W_i,H_i), which is used to represent the rectangle cropping the i-th object '\
-                     'and (X_i,Y_i) represents the coordinates of the upper-left corner of the rectangle '\
-                     'while (W_i,H_i) represents the width and height of the rectangle, respectively. '\
-                     'Thus, an image including N of objects is represented by {(X_0,Y_0), [name_1,(X_1,Y_1,W_1,H_1)], '\
-                     '[name_2, (X_2,Y_2,W_2,H_2)], ..., [name_N,(X_N,Y_N,W_N,H_N)]}. '\
-                     'Additionally, (X_0,Y_0) at the beginning indicates the size of the image canvas, '\
-                     'which is typically recognized as (512, 512) unless the size is given.\n'\
+                     '$$[name_i, (X_i,Y_i,W_i,H_i)]$$. This format is consist of the following elements: '\
+                     '1.$$name_i$$, namely a string representing the name of the i-th object, e.g. "apple" or "desk"; '\
+                     '2. The quaternion $$(X_i,Y_i,W_i,H_i)$$, which is used to represent the rectangle cropping the i-th object '\
+                     'and $$(X_i,Y_i)$$ represents the coordinates of the upper-left corner of the rectangle '\
+                     'while $$(W_i,H_i)$$ represents the width and height of the rectangle, respectively. '\
+                     'Thus, an image including N of objects is represented by $$\\{(X_0,Y_0), [name_1,(X_1,Y_1,W_1,H_1)], '\
+                     '[name_2, (X_2,Y_2,W_2,H_2)], ..., [name_N,(X_N,Y_N,W_N,H_N)]\\}$$. '\
+                     'Additionally, $$(X_0,Y_0)$$ at the beginning indicates the size of the image canvas, '\
+                     'which is typically recognized as $$(512, 512)$$ unless the size is given.\n'\
                      'As I input such an image with a certain number of objects (in the format illustrated above), '\
                      'I\'ll bind all information in the format: "Instruction: ...;Image: ...;Size: ...", in which \'Size\' '\
-                     'represents the size of the original image (if not given, the size is set to 512*512) and \'Instruction\''\
+                     'represents the size of the original image (if not given, the size is set to $$512*512$$) and \'Instruction\''\
                      ' is just the instruction, for example, \"move the apple to the right\", and \'Image\' is the'\
                      ' image formatted as above. What you need to do is to understand \'Instruction\' and output the \'Image\''\
-                     ' in the same format as it input. For each item [name_i,(X_i,Y_i,W_i,H_i)], '\
+                     ' in the same format as it input. For each item $$[name_i,(X_i,Y_i,W_i,H_i)]$$, '\
                      'you need to consider whether and how to modify the value of it in output according to the instruction '\
-                     'in three aspects: 1. Name, namely name_i in inputs. If the instruction specifies that the current '\
-                     'name_i needs to be replaced by another object, then replace it with new object name_i '\
-                     'that menttioned in the instruction. 2. Position, indicated by both X_i and Y_i in inputs. '\
+                     'in three aspects: 1. Name, namely $$name_i$$ in inputs. If the instruction specifies that the current '\
+                     'name_i needs to be replaced by another object, then replace it with new object $$name_i$$ '\
+                     'that menttioned in the instruction. 2. Position, indicated by both $$X_i$$ and $$Y_i$$ in inputs. '\
                      'If the instruction specifies that the current name_i corresponds to the object that needs to be '\
-                     'moved to another place, follow it and amend X_i and Y_i'\
+                     'moved to another place, follow it and amend $$X_i$$ and $$Y_i$$'\
                      '(If no position editing then keep them the same). 3. Size, if instruction specifies the '\
-                     'size of an object named name_i that needs to be changed (to increase it or decrease it), '\
-                     'then modify the width and height of the rectangle box(namely W_i and H_i); '\
-                     'however, you shoulde ensure that the center of the rectangular box, noted as point(x_i,y_i), '\
-                     'which can be calculated by x_i = X_i+0.5*W_i, y_i = Y_i+0.5*H_i, stay the same. '\
+                     'size of an object named $$name_i$$ that needs to be changed (to increase it or decrease it), '\
+                     'then modify the width and height of the rectangle box(namely $$W_i$$ and $$H_i$$); '\
+                     'however, you shoulde ensure that the center of the rectangular box, noted as point $$(x_i,y_i)$$, '\
+                     'which can be calculated by $$x_i = X_i+0.5*W_i, y_i = Y_i+0.5*H_i$$, stay the same. '\
                      'Note that if the instruction makes a request that the image canvas needs to be shrunk or magnified, '\
-                     'you need to simultaneously decrease/increase the size of W_i,H_i respectively. \n'\
-                     'For inputs {(X_0,Y_0), [name_1,(X_1,Y_1,W_1,H_1)], [name_2, (X_2,Y_2,W_2,H_2)], ... , '\
-                     '[name_N,(X_N,Y_N,W_N,H_N)]}, you only need to output {(X_0\',Y_0\'), '\
+                     'you need to simultaneously decrease/increase the size of $$W_i,H_i$$ respectively. \n'\
+                     'For inputs $$\\{(X_0,Y_0), [name_1,(X_1,Y_1,W_1,H_1)], [name_2, (X_2,Y_2,W_2,H_2)], ... , '\
+                     '[name_N,(X_N,Y_N,W_N,H_N)]\\}$$, you only need to output $$\\{(X_0\',Y_0\'), '\
                      '[name_1\',(X_1\',Y_1\',W_1\',H_1\')], [name_2\', (X_2\',Y_2\',W_2\',H_2\')], ..., '\
-                     '[name_N\',(X_N\',Y_N\',W_N\',H_N\')]} and mustn\'t output redundant characters. '
+                     '[name_N\',(X_N\',Y_N\',W_N\',H_N\')]\\}$$ and mustn\'t output any other character. '
 
 first_ask_edit = 'Note that if you are following the instructions to do the modification, '\
-                 'maybe some objects named name_i which is not yet appeared before are added. '\
+                 'maybe some objects named $$name_i$$ which is not yet appeared before are added. '\
                  'For this case, the location to arange the newly added object depends on you. '\
                  'You should consider this issue according to the following aspects: '\
                  'First, if the location has been specified in the instruction, just follow it. '\
                  'Second, if there is no clue of where to arange the new object, you should generate the '\
                  'location after understanding the instruction.\nAs is illustrated before, '\
-                 'the location is in the format of quaternion as (X_i,Y_i,W_i,H_i) '\
-                 '(representing a rectangle that crops the object), where X_i and Y_i represents the coordinates of '\
-                 'the upper-left corner of the rectangle while W_i and H_i represents the width and height '\
-                 'of the rectangle respectively. You should concatenate the name_i and the quaternion together '\
-                 'to the format [name_i, (X_i,Y_i,W_i,H_i)] and add it to the object list (\'Image\'). '\
+                 'the location is in the format of quaternion as $$(X_i,Y_i,W_i,H_i)$$ '\
+                 '(representing a rectangle that crops the object), where $$X_i$$ and $$Y_i$$ represents the coordinates of '\
+                 'the upper-left corner of the rectangle while $$W_i$$ and $$H_i$$ represents the width and height '\
+                 'of the rectangle respectively. You should concatenate the $$name_i$$ and the quaternion together '\
+                 'to the format $$[name_i, (X_i,Y_i,W_i,H_i)]$$ and add it to the object list (\'Image\'). '\
                  'Additionally, if the object mentioned in instruction is required to be removed, '\
                  'just delete it from "Image" when outputing.\nWhen it comes to the output, '\
                  'you should print three lines accoding to the description below: '\
-                 'The first line is in the general output, in format: {(X_0\',Y_0\'), [name_1\',(X_1\',Y_1\',W_1\',H_1\')]'\
-                 ', [name_2\',(X_2\',Y_2\',W_1\',H_1\')], ..., [name_N\',(X_N\',Y_N\',W_N\',H_N\')]}. '\
+                 'The first line is in the general output, in format: $$\\{(X_0\',Y_0\'), [name_1\',(X_1\',Y_1\',W_1\',H_1\')]'\
+                 ', [name_2\',(X_2\',Y_2\',W_1\',H_1\')], ..., [name_N\',(X_N\',Y_N\',W_N\',H_N\')]\\}$$. '\
                  'namely the requirments illustrated before. The second line is new object list, in '\
-                 'format: {\'NEW\':[name_{k1}\',(X_{k1}\',Y_{k1}\',W_{k1}\',H_{k1}\')], ..., [name_{m1}\', '\
-                 '(X_{m1}\',Y_{m1}\',W_{m1}\',H_{m1}\')]}. It gathers all newly added objects in this line. '\
-                 'The third line is disappeared object list, in format: {\'DIS\':[name_{k2}\', '\
-                 '(X_{k2}\',Y_{k2}\',W_{k2}\',H_{k2}\')], ..., [name_{m2}\',(X_{m2}\',Y_{m2}\',W_{m2}\',H_{m2}\')]}. '\
+                 'format: $$\\{\'NEW\':[name_{k1}\',(X_{k1}\',Y_{k1}\',W_{k1}\',H_{k1}\')], ..., [name_{m1}\', '\
+                 '(X_{m1}\',Y_{m1}\',W_{m1}\',H_{m1}\')]\\}$$. It gathers all newly added objects in this line. '\
+                 'The third line is disappeared object list, in format: $$\\{\'DIS\':[name_{k2}\', '\
+                 '(X_{k2}\',Y_{k2}\',W_{k2}\',H_{k2}\')], ..., [name_{m2}\',(X_{m2}\',Y_{m2}\',W_{m2}\',H_{m2}\')]\\}$$. '\
                  'It gathers all objects removed in this line. However, there might be nothing newly added or nothing '\
-                 'disappeared, so you print {\'NEW\': NULL} or {\'DIS\': NULL} instead in the coresponding lines.'\
-                 'For example, I type to input --- Instruction: \'turn the cloud red.\'; Image: {(500,388),[\'cloud\', '\
-                 '(0,0,64,70)],[\'sun\',(400,0,64,64)]}; Size: (500,388). And you should give output: '\
-                 '{(500,388),[\'cloud\',(0,0,64,70)],[\'sun\',(400,0,64,64)]}\n{\'NEW\':NULL}\n{\'DIS\':NULL}.\n\n'\
+                 'disappeared, so you print $$\\{\'NEW\': NULL\\}$$ or $$\\{\'DIS\': NULL\\}$$ instead in the coresponding lines.'\
+                 'For example, I type to input --- Instruction: \'turn the cloud red.\'; Image: $$\\{(500,388),[\'cloud\', '\
+                 '(0,0,64,70)],[\'sun\',(400,0,64,64)]\\}$$; Size: $$(500,388)$$. And you should give output: '\
+                 '$$\\{(500,388),[\'cloud\',(0,0,64,70)],[\'sun\',(400,0,64,64)]\\}\n\\{\'NEW\':NULL\\}\n\\{\'DIS\':NULL\\}$$.\n\n'\
                  'If you have understood the task, please answer \"yes\" without extra characters.'
 
 system_prompt_cut = 'You are an instruction splitter that splits a single instruction into several instructions based on semantics. '\
