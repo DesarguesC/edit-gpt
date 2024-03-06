@@ -61,8 +61,6 @@ def create_location(opt, target, edit_agent=None):
     rm_img, target_mask, _ = Remove_Me_lama(opt, target, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
                         else Remove_Me(opt, target, remove_mask=True, replace_box=opt.replace_box)
     rm_img = Image.fromarray(rm_img)
-    # rm_img.save(f'./static-inpaint/rm-img.jpg')
-    # print(f'removed image saved at \'./static-inpaint/rm-img.jpg\'')
 
     res, panoptic_dict = middleware(opt, rm_img)  # key: name, mask
     # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
@@ -91,11 +89,17 @@ def create_location(opt, target, edit_agent=None):
         if try_time > 0:
             print(f'Trying to fix... - Iter: {try_time}')
         box_ans = get_response(edit_agent, question)
-        print(f'box_ans = {box_ans}')
         # deal with the answer, procedure is the same as in replace.py
-        box_ans = box_ans.split('[')[-1].split(']')[0]
-        punctuation = re.compile('[^\w\s]+')
-        box_ans = [x.strip() for x in re.split(punctuation, box_ans) if x != ' ' and x != '']
+        print(f'box_ans = {box_ans}')
+        punctuation = re.split(r'[\[\],()]', box_ans)
+        print(f'len(punctuation)) == {len(punctuation)}')
+        print(f'punctuation = {punctuation}')
+        if len(punctuation) < 4:
+            print('WARNING: string return')
+            continue
+
+        box_ans = [x.strip() for x in punctuation if x != ' ' and x != '']
+        print(f'box_ans[0] = {box_ans[0]}')
         x, y, w, h = int(box_ans[1]), int(box_ans[2]), int(box_ans[3]), int(box_ans[4])
         box_0 = (x, y, int(w * opt.expand_scale), int(h * opt.expand_scale))
         box_0 = fix_box(box_0, (opt.W,opt.H,3))

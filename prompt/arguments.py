@@ -3,7 +3,19 @@ from prompt.crfill_init import initialize
 from options.base_options import BaseOptions
 from options.test_options import TestOptions
 from ldm.inference_base import get_base_argument_parser
-
+ENGINES = [
+    "gpt-3.5-turbo",
+    "gpt-3.5-turbo-16k",
+    "gpt-3.5-turbo-0301",
+    "gpt-3.5-turbo-0613",
+    "gpt-3.5-turbo-16k-0613",
+    "gpt-4",
+    "gpt-4-0314",
+    "gpt-4-32k",
+    "gpt-4-32k-0314",
+    "gpt-4-0613",
+    "gpt-4-32k-0613",
+]
 
 def get_args():
     parser = argparse.ArgumentParser('SEEM Demo', add_help=False)
@@ -11,6 +23,8 @@ def get_args():
     # parser = BaseOptions().initialize(parser)
     parser = TestOptions().initialize(parser)
     parser = get_base_argument_parser(parser)
+
+    parser.add_argument('--engine', default='gpt-3,5-turbo', choices=ENGINES, help='choose your gpt')
     
     parser.add_argument('--conf_files', default="configs/seem/focall_unicl_lang_demo.yaml", help='path to config file', )
     # set as default

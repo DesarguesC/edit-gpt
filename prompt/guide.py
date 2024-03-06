@@ -92,32 +92,33 @@ system_prompt_locate =     'You are a text detection master and need to generate
                            '$$(x,y), (x+w,y), (w,y+h), (x+w,y+h)$$, respectively. From this point of view, the values of $$x+w$$ and $$y+h$$ generated '\
                            'cannot exceed the size of the original image $$(W_{img},H{img})$$. Note that bounding boxes can overlap. '
           
-locate_first_ask =      'For the coordinates designed in bounding box, we give relevant definitions. '\
-                        'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
-                        'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
-                        'The direction "down" is defined as the positive direction of the y axis, '\
-                        'and the direction "right" is defined as the positive direction of the x axis. '\
-                        'In addition, for the width and height (i.e. $$w$$ and $$h$$) in bounding box, the former corresponds to the X-axis direction '\
-                        'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple $$((x,y), (w,h))$$ '\
-                        'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
-                        '$$(x,y), (x+w,y), (x,y+h), (x+w,y+h)$$ respectively. From this point of view, the values of x+w and y+h generated '\
-                        'cannot exceed the size of the original image $$(W_{img},H{img})$$.'\
-                        'Your task is to modify the position and size of the target specified by the \"Target\" field ' \
-                        'in the \"Objects\" field, according to the edit prompt given in \"Edit-Text\" field. '\
-                        'You should arrange a proper position and a proper size for the editing target. '\
-                        'In this way, your task is to generate the position and size according to the information '\
-                        'given and representing them in the form of bounding box. '\
-                        'For example, if the instruction in "Edit-Text" field told you to move a object to a far place, '\
-                        'you should consider where is the so called "far place" according to all those objects given in "Objects" field, '\
-                        'after which to generate a new bounding box which stands for its new position for the object.'\
-                        'For your task, you should output your generation of the target bounding box in the form of '\
+locate_first_ask =      'For your task, you should output your generation of the target bounding box in the form of '\
                         '$$[Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]$$. $$Name_n$$ represents the name of the target '\
-                        '(it stays the same!). And coordinates $$(X_{new},Y_{new})$$ is the coordinate of the point at the top left corner in '\
+                        '(it stays the same!) and your output mustn\'t contain any other character. And coordinates $$(X_{new},Y_{new})$$ is the coordinate of the point at the top left corner in '\
                         'the edge of the bounding box, while $$(W_{new},H_{new})$$ represents the width and height of a '\
                         'rectangular box that including this object. Note that bounding boxes can overlap. '\
                         'If you have understood your task, '\
                         'please answer "yes" in the round without any extra characters, after which '\
-                        'I will give you input.'
+                        'I will give you input. ' # replace the prompt befere
+                        # 'For the coordinates designed in bounding box, we give relevant definitions. '\
+                        # 'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
+                        # 'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
+                        # 'The direction "down" is defined as the positive direction of the y axis, '\
+                        # 'and the direction "right" is defined as the positive direction of the x axis. '\
+                        # 'In addition, for the width and height (i.e. $$w$$ and $$h$$) in bounding box, the former corresponds to the X-axis direction '\
+                        # 'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple $$((x,y), (w,h))$$ '\
+                        # 'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
+                        # '$$(x,y), (x+w,y), (x,y+h), (x+w,y+h)$$ respectively. From this point of view, the values of x+w and y+h generated '\
+                        # 'cannot exceed the size of the original image $$(W_{img},H{img})$$.'\
+                        # 'Your task is to modify the position and size of the target specified by the \"Target\" field ' \
+                        # 'in the \"Objects\" field, according to the edit prompt given in \"Edit-Text\" field. '\
+                        # 'You should arrange a proper position and a proper size for the editing target. '\
+                        # 'In this way, your task is to generate the position and size according to the information '\
+                        # 'given and representing them in the form of bounding box. '\
+                        # 'For example, if the instruction in "Edit-Text" field told you to move a object to a far place, '\
+                        # 'you should consider where is the so called "far place" according to all those objects given in "Objects" field, '\
+                        # 'after which to generate a new bounding box which stands for its new position for the object.'\
+                        
 
                     # TODO: consider if it's necessary to list the factors that GPT should take into account.
                     # TODO: Illustrate the generation procedure by providing examples ?

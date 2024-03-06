@@ -10,13 +10,15 @@ from prompt.arguments import get_args
 from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
 
 opt = get_args()
+
 dd = list(pd.read_csv('./key.csv')['key'])
 assert len(dd) == 1
 api_key = dd[0]
 net_proxy = 'http://127.0.0.1:7890'
 # engine='gpt-3.5-turbo-0613'
 # engine='gpt-3.5-turbo'
-engine = 'gpt-3.5-turbo-16k-0613'
+engine = opt.engine
+print(f'Using: {engine}')
 
 assert os.path.exists(opt.in_dir), f'File Not Exists: {opt.in_dir}'
 opt.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -68,7 +70,6 @@ mask_dir = os.path.join(base_dir, 'Mask')
 opt.mask_dir = mask_dir
 if not os.path.exists(opt.mask_dir): os.mkdir(opt.mask_dir)
 print(f'base_dir: {base_dir}')
-# 去掉opt.out_name这个参数
 
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery

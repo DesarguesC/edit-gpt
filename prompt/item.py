@@ -18,14 +18,14 @@ class Label():
     def get_str_all(self, objects_masks_list: list[dict]):
         # get [name, (x,y,w,h)]
         length = len(objects_masks_list)
-        out = "{"
+        out = "$$\\{"
         for idx in range(length):
             bb = objects_masks_list[idx]
             name = bb['name']
             x,y,w,h = bb['bbox']
             item = f"[{name}, ({x}, {y}, {w}, {h})]"
             out = out + item + (', ' if idx < length - 1 else '')
-        out = out + "}"
+        out = out + "\\}$$"
         return out
 
     def get_str_location(self, box_mame_list, edit_txt, size: tuple):
@@ -42,14 +42,14 @@ class Label():
         # get [name, (w,h)]
         assert isinstance(objects_masks_list, list), f'type(objects_masks_list) = {type(objects_masks_list)}'
         length = len(objects_masks_list)
-        out = "{"
+        out = "$$\\{"
         for idx in range(length):
             bb = objects_masks_list[idx]
             name = bb['name']
             x, y, w, h = bb['bbox']
             item = f'[{name}, ({x},{y}), ({w},{h})]'
             out = out + item + (', ' if idx < length - 1 else '')
-        out = out + "}"
+        out = out + "\\}$$"
         return out
     
     def get_str_rescale(self, old_noun, new_noun, panoptic_dict: list[dict]):
@@ -72,7 +72,7 @@ class Label():
         return f'Size: {Size}\nPlace: {Place}\nTarget: {name}'
 
     def __str__(self):
-        out = "{"
+        out = "$$\\{"
         cnt = len(self.label_dict)
         
         for (k,v) in self.label_dict.items():
@@ -82,7 +82,7 @@ class Label():
             out = out + ',' + v.__str__().strip() + ']'
             cnt -= 1
             if cnt >=0: out = out + ','
-            else: out = out + '}'
+            else: out = out + '\\}$'
         return out
 
 

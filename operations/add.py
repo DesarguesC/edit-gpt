@@ -64,7 +64,7 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
             ans = get_response(edit_agent, question)
             print(f'question = {question}')
             print(f'ans = {ans}')
-            ans_list = [x.strip() for x in re.split(r'[(),{}\[\]]', ans) if x != '' and x != ' ']
+            ans_list = [x.strip() for x in re.split(r'[(),{}\[\]$]', ans) if x != '' and x != ' ']
             assert len(ans_list) == 5, f'ans = {ans}, ans_list = {ans_list}'
             fixed_box = (int(ans_list[1]), int(ans_list[2]), int(int(ans_list[3]) * opt.expand_scale), int(int(ans_list[4]) * opt.expand_scale))
             fixed_box = fix_box(fixed_box, (opt.W,opt.H,3))
