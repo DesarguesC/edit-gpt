@@ -139,6 +139,7 @@ def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
         
     print(f'target_mask.shape = {target_mask.shape}')
     target_mask_dilate = [dilate_mask(a_mask, dilate_kernel_size) for a_mask in target_mask]
+    # 'dilate' was implemented in LaMa ?
     assert len(target_mask_dilate) == 1
     img_inpainted = inpaint_img_with_lama(
         np.array(np.uint8(img_pil)), target_mask_dilate[0], opt.lama_config, opt.lama_ckpt, device=opt.device
