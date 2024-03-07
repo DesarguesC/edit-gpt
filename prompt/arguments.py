@@ -19,8 +19,7 @@ ENGINES = [
 ]
 
 def create_parse_args():
-    parser = argparse.ArgumentParser('SEEM Demo', add_help=False)
-    
+    parser = argparse.ArgumentParser('GPT-Editor', add_help=True)
     # parser = BaseOptions().initialize(parser)
     parser = TestOptions().initialize(parser)
     parser = get_base_argument_parser(parser)
