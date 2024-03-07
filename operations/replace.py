@@ -66,10 +66,17 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
 
 
 
-def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
+def replace_target(
+        opt, 
+        old_noun: str, 
+        new_noun: str, 
+        input_pil: Image = None, 
+        edit_agent=None, 
+        expand_agent=None
+    ):
     # assert mask_generator != None, 'mask_generator not initialized'
     assert edit_agent != None, 'no edit agent!'
-    img_pil = Image.open(opt.in_dir).convert('RGB')
+    img_pil = Image.open(opt.in_dir).convert('RGB') if input_pil is None else input_pil.convert('RGB')
     
     opt.W, opt.H = img_pil.size
     opt.W, opt.H = ab64(opt.W), ab64(opt.H)
@@ -164,6 +171,5 @@ def replace_target(opt, old_noun, new_noun, edit_agent=None, expand_agent=None):
     cv2.imwrite(f'./{output_path}-{t}.jpg', results)
     print(f'replace result image saved at \'./{output_path}-{t}.jpg\'')
     
-    # print('exit from replace')
-    # exit(0)
+    return Image.fromarray(results)
     

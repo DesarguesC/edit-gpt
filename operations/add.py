@@ -23,7 +23,16 @@ from einops import repeat, rearrange
 import torch, cv2, os
 from paint.example import generate_example
 
-def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_agent=None):
+def Add_Object(
+        opt, 
+        name: str, 
+        num: int, 
+        place: str, 
+        input_pil: Image = None, 
+        edit_agent=None, 
+        expand_agent=None
+    ):
+    
     assert edit_agent != None, 'no edit agent!'
     img_pil = Image.open(opt.in_dir).convert('RGB')
     opt.W, opt.H = img_pil.size
@@ -107,6 +116,7 @@ def Add_Object(opt, name: str, num: int, place: str, edit_agent=None, expand_age
 
     # print('exit from add')
     # exit(0)
+    return img_pil
 
 
 

@@ -125,12 +125,17 @@ def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=Tru
     # if remove_mask:
     return removed_np, target_mask, f'./static-inpaint/RM-{opt.out_name}'
 
-def Remove_Me_lama(opt, target_noun, dilate_kernel_size=15):
+def Remove_Me_lama(
+        opt, 
+        target_noun: str, 
+        input_pil: Image = None, 
+        dilate_kernel_size: int = 15
+    ):
     if not hasattr(opt, 'device'):
         opt.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
     print('-'*9 + 'Removing via LaMa' + '-'*9)
-    img_pil = Image.open(opt.in_dir).convert('RGB')
+    img_pil = Image.open(opt.in_dir).convert('RGB') if input_pil is None else input_pil.convert('RGB')
     W, H = img_pil.size
     opt.W, opt.H = ab64(W), ab64(H)
     img_pil = img_pil.resize((opt.W, opt.H))

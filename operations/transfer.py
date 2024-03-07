@@ -12,7 +12,7 @@ from operations.utils import inpaint_img_with_lama
 from basicsr.utils import tensor2img, img2tensor
 from pytorch_lightning import seed_everything
 
-from ldm.util import loca_model_from_config, instantiate_from_config
+from ldm.util import load_model_from_config, instantiate_from_config
 from omegaconf import OmegaConf
 import k_diffusion as K
 
@@ -35,7 +35,13 @@ class CFGDenoiser(nn.Module):
 
 
 
-def Transfer_Me_ip2p(opt, img_cfg=1.5, txt_cfg=7.5, dilate_kernel_size=15):
+def Transfer_Me_ip2p(
+        opt, 
+        input_pil: Image = None, 
+        img_cfg: float = 1.5, 
+        txt_cfg: float = 7.5, 
+        dilate_kernel_size: int = 15
+    ):
     # 'dilate_kernel_size'  unused
     # Consider: whether mask play some roles in ip2p.
 
@@ -46,7 +52,7 @@ def Transfer_Me_ip2p(opt, img_cfg=1.5, txt_cfg=7.5, dilate_kernel_size=15):
     null_token = ip2p_model.get_learned_conditioning([""])
 
     seed = random.randint(0, 1e5) if opt.seed is None else opt.seed
-    img_pil = Image.open(opt.in_dir).convert('RGB')
+    img_pil = Image.open(opt.in_dir).convert('RGB') if input_pil is None else input_pil.convert('RGB')
     W, H = img_pil.size()
     opt.W, opt.H = ab64(W), ab64(H)
     img_pil = ImageOps.fit(img_pil, (opt.W, opt.H), method=Image.Resampling.LANCZOS)
@@ -88,6 +94,6 @@ def Transfer_Me_ip2p(opt, img_cfg=1.5, txt_cfg=7.5, dilate_kernel_size=15):
     name_ = f'./{opt.base_folder}/{opt.out_name}'
     while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
     edited_image.save(f'{name_}-{t}.jpg')
-    return
+    return edited_image # pil
     
 

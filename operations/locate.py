@@ -39,10 +39,16 @@ def fine_box(box, img_shape):
     pass
     
 
-def create_location(opt, target, edit_agent=None):
+def create_location(
+        opt, 
+        target, 
+        input_pil: Image = None, 
+        edit_agent=None
+    ):
+
     assert edit_agent != None, 'no edit agent'
     # move the target to the destination, editing via GPT (tell the bounding box)
-    img_pil = Image.open(opt.in_dir).convert('RGB')
+    img_pil = Image.open(opt.in_dir).convert('RGB') if input_pil is None else input_pil.convert('RGB')
     opt.W, opt.H = img_pil.size
     opt.W, opt.H = ab64(opt.W), ab64(opt.H)
     img_pil = img_pil.resize((opt.W, opt.H))
@@ -149,9 +155,7 @@ def create_location(opt, target, edit_agent=None):
     x_sample_ddim = tensor2img(x_sample_ddim)
     cv2.imwrite(op_output, x_sample_ddim)
     print(f'locate result image saved at \'{op_output}\'')
-    # TODO: If I need to Paint-by-Example ?
-
-    # print('exit from create_location')
-    # exit(0)
+    
+    return Image.fromarray(x_sample_ddim)
 
 

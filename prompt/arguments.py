@@ -1,4 +1,5 @@
-import argparse
+import argparse, os
+import pandas as pd
 from prompt.crfill_init import initialize
 from options.base_options import BaseOptions
 from options.test_options import TestOptions
@@ -17,14 +18,14 @@ ENGINES = [
     "gpt-4-32k-0613",
 ]
 
-def get_args():
+def create_parse_args():
     parser = argparse.ArgumentParser('SEEM Demo', add_help=False)
     
     # parser = BaseOptions().initialize(parser)
     parser = TestOptions().initialize(parser)
     parser = get_base_argument_parser(parser)
 
-    parser.add_argument('--engine', default='gpt-3,5-turbo', choices=ENGINES, help='choose your gpt')
+    parser.add_argument('--engine', default='gpt-3.5-turbo', choices=ENGINES, help='choose your gpt')
     
     parser.add_argument('--conf_files', default="configs/seem/focall_unicl_lang_demo.yaml", help='path to config file', )
     # set as default
@@ -59,3 +60,16 @@ def get_args():
     parser.add_argument('--ip2p_ckpt', default='../autodl-tmp/ip2p.ckpt', help='path to ckpt of InstructPix2Pix')
 
     return parser.parse_args() 
+
+def get_arguments():
+    opt = create_parse_args()
+    setattr(opt, 'api_key', list(pd.read_csv('./key.csv')['key'])[0])
+    setattr(opt, 'net_proxy', 'http://127.0.0.1:7890')
+    print(f'API is now using: {opt.engine}')
+
+    assert os.path.exists(opt.in_dir), f'File Not Exists: {opt.in_dir}'
+    opt.device = "cuda" if torch.cuda.is_available() else "cpu"
+    if not os.path.exists(opt.out_dir):
+        os.mkdir(opt.out_dir)
+    base_cnt = len(os.listdir(opt.out_dir))
+    setattr(opt, 'base_cnt', base_cnt)
