@@ -1,6 +1,6 @@
 import os, cv2
 from jieba import re
-from prompt.guide import *
+from prompt.guide import get_response, Use_Agent
 from prompt.util import get_image_from_box as get_img
 from prompt.item import Label, get_replace_tuple, get_add_tuple
 import numpy as np
@@ -62,9 +62,8 @@ def Remove_Method(
     ):
     opt = gpt_mkdir(opt, 'remove')
 
-    noun_remove_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=system_prompt_remove, proxy=opt.net_proxy)
-    a = get_response(noun_remove_agent, remove_first_ask)
-    target_noun = get_response(noun_remove_agent, opt.edit_txt)
+    nagent = Use_Agent(opt, TODO='Find target to be removed')
+    target_noun = get_response(agent, opt.edit_txt)
     array_return, *_ = Remove_Me_lama(opt, target_noun, input_pil=input_pil, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
                         else Remove_Me(opt, target_noun, remove_mask=True)
     # TODO: recover the scenery for img_dragged in mask
@@ -80,16 +79,13 @@ def Replace_Method(
     opt = gpt_mkdir(opt, 'replace')
 
     # find the target -> remove -> recover the scenery -> add the new
-    noun_replace_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=system_prompt_replace, proxy=opt.net_proxy)
-    a = get_response(noun_replace_agent, replace_first_ask)
-    replace_tuple = get_response(noun_replace_agent, opt.edit_txt)
+    replace_agent = Use_Agent(opt, TODO='Find target to be replaced')
+    replace_tuple = get_response(replace_agent, opt.edit_txt)
+    print(f'replace_tuple = {replace_tuple}')
     old_noun, new_noun = get_replace_tuple(replace_tuple)
     # TODO: replace has no need of an agent; original mask and box is necessary!
-    rescale_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=system_prompt_rescale, proxy=opt.net_proxy)
-    yes = get_response(rescale_agent, rescale_first_ask)
-    diffusion_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=system_prompt_expand, proxy=opt.net_proxy)
-    yes = get_response(diffusion_agent, first_ask_expand(2)) # max sentences is 2 after expanded
-    
+    rescale_agent = Use_Agent(opt, TODO='Rescale bbox for me')
+    diffusion_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me')
     pil_return = replace_target(opt, old_noun, new_noun, input_pil=input_pil, edit_agent=rescale_agent, expand_agent=diffusion_agent)
     print(f'[{current_step:02}|{tot_step:02}]\tReplace: 「{old_noun}」-> 「{new_noun}」')
 
@@ -104,15 +100,13 @@ def Move_Method(
     opt = gpt_mkdir(opt, 'move')
 
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
-    locate_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=system_prompt_locate, proxy=opt.net_proxy)
-    yes = get_response(locate_agent, locate_first_ask)
-    
-    noun_remove_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=system_prompt_noun, proxy=opt.net_proxy)
-    a = get_response(noun_remove_agent, first_ask_noun)
-    target_noun = get_response(noun_remove_agent, opt.edit_txt)
-    del noun_remove_agent
+    move_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
+    noun_agent = Use_Agent(opt, TODO='find target to be moved')
+    target_noun = get_response(noun_agent, opt.edit_txt)
+    print(f'target_noun: {target_noun}')
+    del noun_agent
 
-    pil_return = create_location(opt, target_noun, input_pil=input_pil, edit_agent=locate_agent)
+    pil_return = create_location(opt, target_noun, input_pil=input_pil, edit_agent=move_agent)
     print(f'[{current_step:02}|{tot_step:02}]\tMove: 「{target_noun}」')
 
     return pil_return
@@ -125,26 +119,17 @@ def Add_Method(
     ):
     opt = gpt_mkdir(opt, 'add')
 
-    add_prompt_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=system_prompt_addHelp, proxy=opt.net_proxy)
-    a = get_response(add_prompt_agent, addHelp_first_ask)
-    # print(f'add_prompt_agent first ask: {a}')
-    ans = get_response(add_prompt_agent, opt.edit_txt)
-    # print(f'tuple_ans: {ans}')
+    add_agent = Use_Agent(opt, TODO='find target to be added')
+    ans = get_response(add_agent, opt.edit_txt)
+    print(f'tuple_ans: {ans}')
     name, num, place = get_add_tuple(ans)
     del add_prompt_agent
-    # print(f'name = {name}, num = {num}, place = {place}')
-
-    if '<NULL>' in place:
-        # bug ?
-        arrange_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=system_prompt_add, proxy=opt.net_proxy)
-        a = get_response(arrange_agent, add_first_ask)
-    else:
-        arrange_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=system_prompt_addArrange, proxy=opt.net_proxy)
-        a = get_response(arrange_agent, addArrange_first_ask)
-    diffusion_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=system_prompt_expand, proxy=opt.net_proxy)
-    
-    yes = get_response(diffusion_agent, first_ask_expand(2)) # max sentences is 2 after expanded
+    print(f'name = {name}, num = {num}, place = {place}')
+    arrange_agent = Use_Agent(opt, TODO='generate a new bbox for me') if '<NULL>' in place \
+                    else Use_Agent(opt, TODO='adjust bbox for me')
+    diffusion_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me')
     pil_return = Add_Object(opt, name, num, place, input_pil=input_pil, edit_agent=arrange_agent, expand_agent=diffusion_agent)
+    
     print(f'[{current_step:02}|{tot_step:02}]\tAdd: 「{name}」')
 
     return pil_return
@@ -197,14 +182,14 @@ def get_planning_system_agent(opt):
     planning_system_first_ask = "If you have understood your task, please answer \"yes\" without any other character and "\
                                 "I\'ll give you the INPUT. Note that when you are giving output, you mustn\'t output any other character"
 
-    plannning_system_agent = get_bot(engine=opt.engine, api_key=opt.api_eky, system_prompt=planning_system_prompt, proxy=opt.net_proxy)
-    a = get_response(planning, planning_system_first_ask)
+    planning_system_agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=planning_system_prompt, proxy=opt.net_proxy)
+    _ = get_response(planning_system_agent, planning_system_first_ask)
 
-    return plannning_system_agent
+    return planning_system_agent
 
 def get_plans(opt, planning_agent):
     planning_system_agent = get_planning_system_agent(opt)
-    response = re.split(r"[;]", get_response(opt.edit_txt, planning_system_agent))
+    response = re.split(r"[;]", get_response(planning_system_agent, opt.edit_txt))
     response = [x.strip() for x in response if x != " " and x != ""]
     for i in range(len(response)):
         task_str = re.split(r"[(),\"\']", response[i])
@@ -228,16 +213,16 @@ def main():
     planning_folder = os.path.join(opt.out_dir, 'plans')
     if not os.path.isfile(planning_folder): os.mkdir(planning_folder)
     plan_step, tot_step = 1, len(task_plannings)
-    img_pil = Image.open(opt.in_dir).convert('RGB') # open input image as PIL.Image
+    # img_pil = Image.open(opt.in_dir).convert('RGB') # open input image as PIL.Image
 
-    for plan_item in task_plannings:
-        plan_type = plan_item['type']
-        edit_tool = operation_menu[plan_type]
-        opt.edit_txt = plan_item['command']
+    # for plan_item in task_plannings:
+    #     plan_type = plan_item['type']
+    #     edit_tool = operation_menu[plan_type]
+    #     opt.edit_txt = plan_item['command']
 
-        img_pil = edit_tool(opt.edit_txt, plan_step, tot_step, img_pil)
-        img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
-        plan_step += 1
+    #     img_pil = edit_tool(opt.edit_txt, plan_step, tot_step, img_pil)
+    #     img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
+    #     plan_step += 1
     
     # print isolation
     print()

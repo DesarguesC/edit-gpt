@@ -16,6 +16,8 @@ from ldm.util import load_model_from_config, instantiate_from_config
 from omegaconf import OmegaConf
 import k_diffusion as K
 
+from operations.utils import get_reshaped_img
+
 
 
 class CFGDenoiser(nn.Module):
@@ -52,10 +54,7 @@ def Transfer_Me_ip2p(
     null_token = ip2p_model.get_learned_conditioning([""])
 
     seed = random.randint(0, 1e5) if opt.seed is None else opt.seed
-    img_pil = Image.open(opt.in_dir).convert('RGB') if input_pil is None else input_pil.convert('RGB')
-    W, H = img_pil.size()
-    opt.W, opt.H = ab64(W), ab64(H)
-    img_pil = ImageOps.fit(img_pil, (opt.W, opt.H), method=Image.Resampling.LANCZOS)
+    opt, img_pil = get_reshaped_img(opt, input_pil)
     # note: difference between ImageOps.fit and .resize ?
     t = 0
     name_ = f'./{opt.base_folder}/{opt.out_name}'

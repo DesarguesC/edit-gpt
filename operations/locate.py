@@ -38,7 +38,6 @@ def fine_box(box, img_shape):
     # TODO: fine a box into ori-img area
     pass
     
-
 def create_location(
         opt, 
         target, 
@@ -48,10 +47,7 @@ def create_location(
 
     assert edit_agent != None, 'no edit agent'
     # move the target to the destination, editing via GPT (tell the bounding box)
-    img_pil = Image.open(opt.in_dir).convert('RGB') if input_pil is None else input_pil.convert('RGB')
-    opt.W, opt.H = img_pil.size
-    opt.W, opt.H = ab64(opt.W), ab64(opt.H)
-    img_pil = img_pil.resize((opt.W, opt.H))
+    opt, img_pil = get_reshaped_img(opt, img_pil)
     # resize and prepare the original image
 
     sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)

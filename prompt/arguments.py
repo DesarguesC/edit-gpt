@@ -67,8 +67,10 @@ def get_arguments():
     print(f'API is now using: {opt.engine}')
 
     assert os.path.exists(opt.in_dir), f'File Not Exists: {opt.in_dir}'
+    import torch
     opt.device = "cuda" if torch.cuda.is_available() else "cpu"
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
+    return opt

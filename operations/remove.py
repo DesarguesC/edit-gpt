@@ -135,11 +135,7 @@ def Remove_Me_lama(
         opt.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
     print('-'*9 + 'Removing via LaMa' + '-'*9)
-    img_pil = Image.open(opt.in_dir).convert('RGB') if input_pil is None else input_pil.convert('RGB')
-    W, H = img_pil.size
-    opt.W, opt.H = ab64(W), ab64(H)
-    img_pil = img_pil.resize((opt.W, opt.H))
-    
+    opt, img_pil = get_reshaped_img(opt, input_pil)
     res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
         
     print(f'target_mask.shape = {target_mask.shape}')

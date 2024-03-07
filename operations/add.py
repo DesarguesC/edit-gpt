@@ -22,6 +22,7 @@ from segment_anything import SamPredictor, sam_model_registry
 from einops import repeat, rearrange
 import torch, cv2, os
 from paint.example import generate_example
+from operations.utils import get_reshaped_img
 
 def Add_Object(
         opt, 
@@ -34,10 +35,7 @@ def Add_Object(
     ):
     
     assert edit_agent != None, 'no edit agent!'
-    img_pil = Image.open(opt.in_dir).convert('RGB')
-    opt.W, opt.H = img_pil.size
-    opt.W, opt.H = ab64(opt.W), ab64(opt.H)
-    img_pil = img_pil.resize((opt.W, opt.H))
+    opt, img_pil = get_reshaped_img(opt, input_pil)
     print(f'ADD: (name, num, place) = ({name}, {num}, {place})')
     assert os.path.exists(opt.base_dir), 'where is base_dir ?'
     add_path = os.path.join(opt.base_dir, 'added')

@@ -21,7 +21,7 @@ from segment_anything import SamPredictor, sam_model_registry
 from einops import repeat, rearrange
 import torch, cv2, os
 from paint.example import generate_example
-
+from operations.utils import get_reshaped_img
 
 
 def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[tuple]):
@@ -76,17 +76,25 @@ def replace_target(
     ):
     # assert mask_generator != None, 'mask_generator not initialized'
     assert edit_agent != None, 'no edit agent!'
-    img_pil = Image.open(opt.in_dir).convert('RGB') if input_pil is None else input_pil.convert('RGB')
-    
-    opt.W, opt.H = img_pil.size
-    opt.W, opt.H = ab64(opt.W), ab64(opt.H)
-    img_pil = img_pil.resize((opt.W, opt.H))
+    opt, img_pil = get_reshaped_img(opt, input_pil)
     
     rm_img, mask_1, _ = Remove_Me_lama(opt, old_noun, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
                         else Remove_Me(opt, old_noun, remove_mask=True, replace_box=opt.replace_box)
     
     rm_img = Image.fromarray(rm_img)
     _, panoptic_dict = middleware(opt, rm_img) # key: name, mask
+    print(f'panoptic_dict - name: ', panoptic_dict['name'])
+    if old_noun not in panoptic_dict['name']:
+        print(f'find no \'{old_noun}\' in panoptic_dict of input, Start Add process...')
+        return Add_Object(
+                    opt, 
+                    name = new_noun, 
+                    num = 1,
+                    place = '<NULL>',
+                    input_pil=img_pil,
+                    edit_agent = ...,
+                    expand_agent = ...
+                    )
 
     diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, ori_img=img_pil, cond_mask=mask_1)
     # TODO: add conditional condition to diffusion via ControlNet
@@ -136,18 +144,14 @@ def replace_target(
     print(f'fixed box: (x,y,w,h) = {box_0}')
     target_mask = refactor_mask(box_2, mask_2, box_0, type=='replace')
     # 1 * h * w 
-    x,y,w,h = box_0
-    print(f'\ntorch.sum(target_mask) = {torch.sum(target_mask)}')
-    print(f'torch.sun(target_mask~part) = {torch.sum(target_mask[:, y:y+h,x:x+w])}')
-    
     target_mask[target_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
     target_mask[target_mask < 0.5] = 0.05 if opt.mask_ablation else 0.
     if len(target_mask.shape) > 3:
         target_mask = target_mask.unsqueeze(0)
     print('target_mask.shape = ', target_mask.shape)
-    if torch.max(target_mask) <= 1.001:
+    if torch.max(target_mask) <= 1. + 1e-5:
         target_mask = 255. * target_mask
-        print('plus')
+        # print('plus')
     print('target_mask.shape = ', target_mask.shape)
     
     assert os.path.exists(f'./{opt.mask_dir}'), 'where is \'Semantic\' folder????'

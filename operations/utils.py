@@ -22,6 +22,17 @@ from lama.saicinpainting.evaluation.data import pad_tensor_to_modulo
 
 from paint.utils import load_img_to_array, save_array_to_img
 
+def get_reshaped_img(opt, img_pil=None):
+    if img_pil is None:
+        img_pil = Image.open(opt.in_dir).convert('RGB')
+        opt.W, opt.H = img_pil.size
+        opt.W, opt.H = ab64(opt.W), ab64(opt.H)
+        img_pil = ImageOps.fit(img_pil, (opt.W, opt.H), method=Image.Resampling.LANCZOS)
+        return opt, img_pil
+    else:
+        return opt, img_pil
+
+
 @torch.no_grad()
 def inpaint_img_with_lama(
         img: np.ndarray,

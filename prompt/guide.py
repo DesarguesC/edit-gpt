@@ -1,5 +1,5 @@
 from revChatGPT.V3 import Chatbot
-import time
+import time, os
 """
     Remove, Replace 作为两个单独的状态，后面一个包括位置移动、大小修改、对象内容修改（ip2p）  【对象修改是否需要？还是我就做好位置、大小这些】
     
@@ -259,36 +259,6 @@ rescale_first_ask =     'For your task, for details, you should generation modif
                         'Now if you have fully understood your task, please answer "yes" and mustn\'t output any extra '\
                         'characters, after which I will give you input. '\
 
-# 在替换完成后，物体的摆放必须符合逻辑。例如需要将一只狗替换成一只猫，通常来说猫可能会比狗小（所以bounding box会小），
-# 此时如果保持坐标(X_{old},Y_{old})不变，而(W_{old},H_{old})减小，那么可能会导致猫的bounding box悬浮在空中。因此在这种情况下，
-# 需要考虑输入的"Objects"字段，综合其他物体的位置，使得生成的猫的bounding box是与地面（或者其他东西）连接的，保证不会悬浮在空中（这是不和逻辑的）。
-
-# I will give you the input consist of 3 fields named "Objects", "Old" and "New". The Input is as follow:\n\
-#                         Objects: {[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , [Name_n, (X_n,Y_n), (W_n,H_n))]}\n\
-#                         Old: Name_{old}\nNew: Name_{new}\n\
-#                         For the i-th item [Name_i, (X_i,Y_i), (W_i,H_i)] in the field "Objects", \
-#                         Name_i represents its name (i.e. object class, such as cat, dog, apple and etc.), \
-#                         and (X_i,Y_i), (W_i,H_i) represent the location and size respectively. \
-#                         Additianally, (X_i,Y_i), (W_i,H_i) is in form of the bounding box, \
-#                         where (X_i,Y_i) represent the coordinate of the point at the top left corner in the edge of bounding box, \
-#                         And (W_i,H_i) represents the width and height of a rectangular box that including the i-th object; \
-#                         Name_{old} in the "Old" field indicates an object to be removed in "Objects" field \
-#                         (we ensure that Name_{old} must appear in "Objects" field), \
-#                         while Name_{new} in the "New" field indicates a new object that will replace Name_{old}. \
-#                         Additionally, The coordinate (X_{new}, Y_{new}) in output bounding box is just to fine-tune the position of object named Name_{new} \
-#                         and it usually stays the same as input.  \
-
-
-# system_prompt_replcace: 你是一个物体缩放器，能够根据一系列已知名字、已知大小的物体的信息，生成一个已知名字的物体的大小。“名字”即物体的类别，例如：猫，狗，苹果，等等。
-#                         已知名字的物体的“大小”将用一个二元tuple (w,h)表示，这表示一个能够将物体包括在内的最小的矩形框的大小。另外，所有的物体其实在一张长方形画布（照片）中，
-#                         所有矩形框（宽度和高度分别为w, h，且对宽度和高度的定义实际上符合opencv-python库的形式）。
-
-# replace_first_ask: 针对你的任务，我会给你这样的输入：Objects: {[name_1, (w_1,h_1))], [name_2, (w_2,h_2))], ..., [name_2, (w_n,h_n))]}; New: name_{new}..
-#                    其中"Objects"字段中[name_i, (w_i,h_i)]表示第i个物体的已知信息，name_i是物体的名字（类别），(w_i,h_i)表示包括第i个物体的矩形框的宽度和高度的大小；
-#                    而“New”字段中name_{new}表示需要新增一个物体，你的工作就是根据已知名字(即name_i)的各种物体的大小(即w_i,h_i)来估计新增物体name_{new}的大小(e.i. w_{new}, h_{new})
-#                    并输出为[name_{new}, (w_{new}, h_{new})]的形式。如果你已经完全明白你的任务，请回答“yes”，不要有任何多余的字符，在此之后我会向你给出输入。
-
-
 system_prompt_edit = 'You are an textual editor who is able to edit images with the given text input. '\
                      'But unlike traditional textual editors, you only need to edit the positions of some objects, '\
                      'which I will give in the following format: the i-th object is represented by the data '\
@@ -400,8 +370,23 @@ first_ask_noun = 'For example, when you type \"Move the kettle on the table to t
                  'However, the answer you output mustn\'t contain any other character, only hte noun you found.'\
                  'If you have understood your task, answer \"yes\" without extra characters.'
 
+system_prompt_expand =  'You are a prompt expander, expert in text expansion. Now you\'ll receive a prompt relative to '\
+                        'text-driven image generation via Diffusion Models. That means your mission is to expand the '\
+                        'prompt to much more elaborate one. The input will be a prompt starting with '\
+                        '"a/an photo of ...", your task is to specify and expand the prompt to let diffusion make sense '\
+                        'of the prompt so that diffusion can be driven to generate images with high quality and high resolution. '
 
-import os
+two, three = 'two', 'three'
+first_ask_expand = lambda x: 'For each of your input, it is ONLY ONE kind of object. '\
+                        'For each input you received, you are only to output the expanded prompt without any other '\
+                        'character. You mustn\'t output any extra characters except the expanded prompt. The expanded prompt is '\
+                        f'ought to be no more than {two if x==2 else three} sentences. If you\'ve '\
+                        'made sense your task, please answer me \'yes\' and mustn\'t output any extra character, either, '\
+                        'after which I\'ll give you input prompts. '
+"""
+    How many sentences generated by expander bot can affect the generation result of SDXL
+    Experiment Result: No more than two sentences! (for the insufficient token)
+"""
 
 def get_bot(engine, api_key, system_prompt, proxy):
     iteration = 0
@@ -439,28 +424,53 @@ def get_response(chatbot, asks):
             if iteration % 5 == 4: print('')
             continue
         print('Finish')
-        # del chatbot
         return answer
 
-system_prompt_expand =  'You are a prompt expander, expert in text expansion. Now you\'ll receive a prompt relative to '\
-                        'text-driven image generation via Diffusion Models. That means your mission is to expand the '\
-                        'prompt to much more elaborate one. The input will be a prompt starting with '\
-                        '"a/an photo of ...", your task is to specify and expand the prompt to let diffusion make sense '\
-                        'of the prompt so that diffusion can be driven to generate images with high quality and high resolution. '
-
-two, three = 'two', 'three'
-first_ask_expand = lambda x: 'For each of your input, it is ONLY ONE kind of object. '\
-                        'For each input you received, you are only to output the expanded prompt without any other '\
-                        'character. You mustn\'t output any extra characters except the expanded prompt. The expanded prompt is '\
-                        f'ought to be no more than {two if x==2 else three} sentences. If you\'ve '\
-                        'made sense your task, please answer me \'yes\' and mustn\'t output any extra character, either, '\
-                        'after which I\'ll give you input prompts. '
-"""
-    How many sentences generated by expander bot can affect the generation result of SDXL
-    Experiment Result: No more than two sentences! (for the insufficient token)
-"""
-
-
-
-
+def Use_Agent(opt, TODO=None, print_first_answer=False):
+    if hasattr(opt, 'print_first_answer'): print_first_answer = opt.print_first_answer
+    TODO = TODO.lower()
+    if TODO == 'find target to be removed':
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)
+        first_ans = get_response(agent, remove_first_ask)
+        if print_first_answer: print(first_ans) # first ask answer
+        return agent
+    elif TODO == 'find target to be replaced':
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy)
+        first_ans = get_response(agent, replace_first_ask)
+        if print_first_answer: print(first_ans)
+        return agent
+    elif TODO == 'rescale bbox for me':
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
+        first_ans = get_response(rescale_agent, rescale_first_ask)
+        if print_first_answer: print(first_ans)
+        return agent
+    elif TODO == 'expand diffusion prompts for me':
+        get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
+        first_ans = get_response(diffusion_agent, first_ask_expand(2))
+        if print_first_answer: print(first_ans)
+    elif TODO == 'arrange a new bbox for me':
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
+        first_ans = get_response(locate_agent, locate_first_ask)
+        if print_first_answer: print(first_ans)
+    elif TODO == 'find target to be moved':
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_noun, proxy=net_proxy)
+        first_ans = get_response(noun_remove_agent, first_ask_noun)
+        if print_first_answer: print(first_ans)
+    elif TODO == 'find target to be added':
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addHelp, proxy=net_proxy)
+        first_ans = get_response(agent, addHelp_first_ask)
+        if print_first_answer: print(first_ans)
+    elif TODO == 'generate a new bbox for me':
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
+        first_ans = get_response(arrange_agent, add_first_ask)
+        if print_first_answer: print(first_ans)
+    elif TODO == 'adjust bbox for me':
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy)
+        first_ans = get_response(arrange_agent, addArrange_first_ask)
+        if print_first_answer: print(first_ans)
+    else:
+        print('no such agent')
+        exit(-1)
+    
+    
 
