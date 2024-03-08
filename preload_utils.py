@@ -8,12 +8,28 @@ from torch import nn, autocast
 
 from basicsr.utils import tensor2img, img2tensor
 from pytorch_lightning import seed_everything
-from ldm.util import load_model_from_config, instantiate_from_config
+from ldm.util import load_model_from_config
 from ldm.inference_base import *
 from paint.control import get_adapter, get_adapter_feature, get_style_model, process_style_cond
 
-from pldm.models.diffusion.ddim import DDIMSampler
-from pldm.models.diffusion.plms import PLMSSampler
+from ldm.models.diffusion.ddim import DDIMSampler
+from ldm.models.diffusion.plms import PLMSSampler
+
+from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
+from segment_anything import SamPredictor, sam_model_registry
+
+from seem.utils.arguments import load_opt_from_config_files
+from seem.modeling.BaseModel import BaseModel
+from seem.modeling import build_model
+from seem.utils.constants import COCO_PANOPTIC_CLASSES
+from seem.demo.seem.tasks import *
+from seem.utils.visualizer import Visualizer
+from detectron2.utils.colormap import random_color
+from detectron2.data import MetadataCatalog
+from detectron2.structures import BitMasks
+from modeling.language.loss import vl_similarity
+from utils.constants import COCO_PANOPTIC_CLASSES
+from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
 
 from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL
 from controlnet_aux.lineart import LineartDetector
@@ -69,7 +85,7 @@ def preload_XL_adapter_generator(opt):
         'detector': detector
     }
 
-def preload_v1.5_generator(opt):
+def preload_v1_5_generator(opt):
     # for both v1.5 and v1.5_adapter
     sd_model, sd_sampler = get_sd_models(opt)
     if opt.example_type == 'v1.5_adapter':
@@ -88,10 +104,12 @@ def preload_v1.5_generator(opt):
         cond = cond * ( cond_mask * (0.8 if opt.mask_ablation else 1.) ) # 1 - cond_mask ?
         cv2.imwrite(ad_output, tensor2img(cond))
         adapter_features, append_to_context = get_adapter_feature(cond, adapter)
-    elif opt.example_type == 'v1.5':
+    else: 
         adapter_features, append_to_context = None, None
+        # opt.example_type == 'v1.5'
         # difference between v1.5 and v1.5_adapter is just to generate adapter
-        
+
+
     return {
         'sd_model': sd_model,
         'sd_sampler': sd_sampler, 
@@ -100,6 +118,8 @@ def preload_v1.5_generator(opt):
     }
 
 def preload_paint_by_example_model(opt):
+    from pldm.models.diffusion.ddim import DDIMSampler
+    from pldm.models.diffusion.plms import PLMSSampler
     seed_everything(opt.seed)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     config = OmegaConf.load(f"{opt.example_config}")
@@ -165,6 +185,6 @@ def preload_lama_remover(opt):
         'predict_config': predict_config
     }
 
-
+# yaml, load_checkpoint ?
 
 

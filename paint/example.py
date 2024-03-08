@@ -179,8 +179,9 @@ def generate_example(
                     cond = cond * (0.95 if opt.mask_ablation else 1.)
                 cv2.imwrite(ad_output, tensor2img(cond))
                 adapter_features, append_to_context = get_adapter_feature(cond, adapter)
-            elif opt.example_type == 'v1.5':
+            else: 
                 adapter_features, append_to_context = None, None
+                # opt.example_type == 'v1.5'
                 # difference between v1.5 and v1.5_adapter is just to generate adapter    
         else:
             sd_model = preloaded_example_generator['sd_model']
