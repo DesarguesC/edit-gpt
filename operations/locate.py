@@ -11,7 +11,7 @@ import torch, cv2, os
 from torch import autocast
 from torch.nn import functional as F
 from prompt.item import Label
-from prompt.guide import get_response
+from prompt.guide import get_response, Use_Agent
 from jieba import re
 from seem.masks import middleware, query_middleware
 from ldm.inference_base import diffusion_inference, get_sd_models

@@ -10,7 +10,7 @@ from detectron2.data import MetadataCatalog as mt
 from torch import autocast
 from torch.nn import functional as F
 from prompt.item import Label
-from prompt.guide import get_response, get_bot, system_prompt_expand
+from prompt.guide import get_response, Use_Agent
 from jieba import re
 from seem.masks import middleware, query_middleware
 from ldm.inference_base import *

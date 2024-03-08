@@ -4,7 +4,7 @@ from torch import nn, autocast
 from paint.bgutils import target_removing
 from paint.crutils import ab64
 # calculate IoU between SAM & SEEM
-from PIL import Image, ImageOps
+from PIL import Image
 from einops import repeat, rearrange
 from paint.bgutils import refactor_mask, match_sam_box
 from paint.utils import (recover_size, resize_and_pad, load_img_to_array, save_array_to_img, dilate_mask)
@@ -42,16 +42,24 @@ def Transfer_Me_ip2p(
         input_pil: Image = None, 
         img_cfg: float = 1.5, 
         txt_cfg: float = 7.5, 
-        dilate_kernel_size: int = 15
+        dilate_kernel_size: int = 15,
+        preloaded_ip2p_dict = None
     ):
     # 'dilate_kernel_size'  unused
     # Consider: whether mask play some roles in ip2p.
+    if preloaded_ip2p_dict is None:
+        config = OmegaConf.load(opt.ip2p_config)
+        ip2p_model = load_model_from_config(config, opt.ip2p_ckpt, opt.vae_ckpt).eval()
+        if torch.cuda.is_available(): ip2p_model = ip2p_model.cuda()
+        ip2p_wrap = K.external.CompVisDenoiser(ip2p_model)
+        null_token = ip2p_model.get_learned_conditioning([""])
+    else:
+        ip2p_model = preloaded_ip2p_dict['model'] # cuda convertion has done
+        if torch.cuda.is_available(): ip2p_model = ip2p_model.cuda()
+        ip2p_wrap = preloaded_ip2p_dict['wrap']
+        null_token = preloaded_ip2p_dict['null_token']
 
-    config = OmegaConf.load(opt.ip2p_config)
-    ip2p_model = load_model_from_config(config, opt.ip2p_ckpt, opt.vae_ckpt).eval()
-    if torch.cuda.is_available(): ip2p_model = ip2p_model.cuda()
-    ip2p_wrap = K.external.CompVisDenoiser(ip2p_model)
-    null_token = ip2p_model.get_learned_conditioning([""])
+
 
     seed = random.randint(0, 1e5) if opt.seed is None else opt.seed
     opt, img_pil = get_reshaped_img(opt, input_pil)

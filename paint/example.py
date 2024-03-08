@@ -23,7 +23,6 @@ from paint.control import get_adapter, get_adapter_feature, get_style_model, pro
 from ldm.inference_base import *
 from prompt.guide import *
 
-
 def get_tensor_clip(normalize=True, toTensor=True):
     transform_list = []
     if toTensor:
@@ -69,7 +68,15 @@ def fix_mask(mask):
         dest = dest.unsqueeze(0).unsqueeze(0)
     return dest
 
-def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, cond_mask=None, **kwargs) -> Image:
+def generate_example(
+            opt, 
+            new_noun, 
+            expand_agent = None, 
+            ori_img: Image = None, 
+            cond_mask = None, 
+            preloaded_generator = None, 
+            **kwargs
+        ) -> Image:
     
     opt.XL_base_path = opt.XL_base_path.strip('/')
     assert os.path.exists(opt.base_dir), 'where is base_dir ?'
@@ -91,28 +98,35 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
 
     if opt.example_type == 'XL_adapter':
         print('-' * 9 + 'Generating via SDXL-Adapter' + '-' * 9)
-        from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL
-        from controlnet_aux.lineart import LineartDetector
-        # load adapter
-        adapter = T2IAdapter.from_pretrained(
-            f"{opt.XL_base_path}/TencentARC/t2i-adapter-lineart-sdxl-1.0", torch_dtype=torch.float16, varient="fp16", local_files_only=True
-        ).to("cuda") if opt.linear else T2IAdapter.from_pretrained(
-            f"{opt.XL_base_path}/TencentARC/t2i-adapter-depth-midas-sdxl-1.0", torch_dtype=torch.float16, varient="fp16", local_files_only=True
-        ).to("cuda")
 
-        # load euler_a scheduler
-        model_id = f'{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0'
-        euler_a = EulerAncestralDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler", local_files_only=True)
-        vae = AutoencoderKL.from_pretrained(f"{opt.XL_base_path}/madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16, local_files_only=True)
-        pipe = StableDiffusionXLAdapterPipeline.from_pretrained(
-            model_id, vae=vae, adapter=adapter, scheduler=euler_a, torch_dtype=torch.float16, variant="fp16", local_files_only=True
-        ).to("cuda")
-        pipe.enable_xformers_memory_efficient_attention()
-        line_detector = LineartDetector.from_pretrained(f"{opt.XL_base_path}/lllyasviel/Annotators").to("cuda")
 
-        image = line_detector(
+        if preload_generator is None:
+            from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL
+            from controlnet_aux.lineart import LineartDetector
+            # load adapter
+            adapter = T2IAdapter.from_pretrained(
+                f"{opt.XL_base_path}/TencentARC/t2i-adapter-lineart-sdxl-1.0", torch_dtype=torch.float16, varient="fp16", local_files_only=True
+            ).to("cuda") if opt.linear else T2IAdapter.from_pretrained(
+                f"{opt.XL_base_path}/TencentARC/t2i-adapter-depth-midas-sdxl-1.0", torch_dtype=torch.float16, varient="fp16", local_files_only=True
+            ).to("cuda")
+
+            # load euler_a scheduler
+            model_id = f'{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0'
+            euler_a = EulerAncestralDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler", local_files_only=True)
+            vae = AutoencoderKL.from_pretrained(f"{opt.XL_base_path}/madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16, local_files_only=True)
+            pipe = StableDiffusionXLAdapterPipeline.from_pretrained(
+                model_id, vae=vae, adapter=adapter, scheduler=euler_a, torch_dtype=torch.float16, variant="fp16", local_files_only=True
+            ).to("cuda")
+            pipe.enable_xformers_memory_efficient_attention()
+            detector = LineartDetector.from_pretrained(f"{opt.XL_base_path}/lllyasviel/Annotators").to("cuda") if opt.linear else None
+        
+        else:
+            pipe = preload_generator['pipe']
+            detector = preloaded_generator['detector']
+
+        image = detector(
             ori_img, detect_resolution=384, image_resolution=opt.H
-        )
+        ) if opt.linear else ori_img
         if cond_mask is not None:
             if np.abs(np.max(cond_mask)-1.) < 0.01:
                 cond_mask[cond_mask < 0.5] = 0.
@@ -131,37 +145,45 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
         ).images[0]
 
     elif opt.example_type == 'XL':
-        print('-' * 9 + 'Generating via SDXL-Base' + '-' * 9)
-        from diffusers import DiffusionPipeline
-        pipe = DiffusionPipeline.from_pretrained(f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0", \
-                                                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16", local_files_only=True)
-        pipe.to("cuda")
+        if preloaded_generator is None:
+            print('-' * 9 + 'Generating via SDXL-Base' + '-' * 9)
+            from diffusers import DiffusionPipeline
+            pipe = DiffusionPipeline.from_pretrained(f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0", \
+                                                    torch_dtype=torch.float16, use_safetensors=True, variant="fp16", local_files_only=True)
+            pipe.to("cuda")
+        else:
+            pipe = preload_generator['pipe']
+        
         gen_images = pipe(prompts, height=opt.H, width=opt.W, steps=int(1.5*opt.steps)).images[0]
     
     elif '1.5' in opt.example_type:  # stable-diffusion 1.5
         print('-'*9 + 'Generating via sd1.5 with T2I-Adapter' + '-'*9)
-        sd_model, sd_sampler = get_sd_models(opt)
-        adapter_features, append_to_context = None, None
-        if opt.example_type == 'v1.5_adapter':
-            print('-'*9 + 'Generating via Style Adapter (depth)' + '-'*9)
-            adapter, cond_model = get_adapter(opt, cond_type='depth'), get_depth_model(opt)
-            print(f'BEFORE: cond_img.size = {ori_img.size}')
-            cond = process_depth_cond(opt, ori_img, cond_model) # not a image
-            print(f'cond.shape = {cond.shape}, cond_mask.shape = {cond_mask.shape}')
-            # resize mask to the shape of style_cond ?
-            cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
-            print(f'cond_mask.shape = {cond_mask.shape}')
-            if cond_mask is not None and torch.max(cond_mask) <= 1.:
-                cond_mask[cond_mask < 0.5] = (0.05 if opt.mask_ablation else 0.)
-                cond_mask[cond_mask >= 0.5] = (0.95 if opt.mask_ablation else 1.)
-                # TODO: check if mask smoothing is needed
-            cond = cond * ( cond_mask * (0.8 if opt.mask_ablation else 1.) ) # 1 - cond_mask ?
-            cv2.imwrite(ad_output, tensor2img(cond))
-            adapter_features, append_to_context = get_adapter_feature(cond, adapter)
-        elif opt.example_type == 'v1.5':
-            # difference between v1.5 and v1.5_adapter is just to generate adapter
-            pass
-        
+        if preload_generator is not None:
+            sd_model, sd_sampler = get_sd_models(opt)
+            if opt.example_type == 'v1.5_adapter':
+                print('-'*9 + 'Generating via Style Adapter (depth)' + '-'*9)
+                adapter, cond_model = get_adapter(opt, cond_type='depth'), get_depth_model(opt)
+                print(f'BEFORE: cond_img.size = {ori_img.size}')
+                cond = process_depth_cond(opt, ori_img, cond_model) # not a image
+                print(f'cond.shape = {cond.shape}, cond_mask.shape = {cond_mask.shape}')
+                # resize mask to the shape of style_cond ?
+                cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
+                print(f'cond_mask.shape = {cond_mask.shape}')
+                if cond_mask is not None and torch.max(cond_mask) <= 1.:
+                    cond_mask[cond_mask < 0.5] = (0.05 if opt.mask_ablation else 0.)
+                    cond_mask[cond_mask >= 0.5] = (0.95 if opt.mask_ablation else 1.)
+                    # TODO: check if mask smoothing is needed
+                cond = cond * ( cond_mask * (0.8 if opt.mask_ablation else 1.) ) # 1 - cond_mask ?
+                cv2.imwrite(ad_output, tensor2img(cond))
+                adapter_features, append_to_context = get_adapter_feature(cond, adapter)
+            elif opt.example_type == 'v1.5':
+                adapter_features, append_to_context = None, None
+                # difference between v1.5 and v1.5_adapter is just to generate adapter    
+        else:
+            sd_model = preload_generator['sd_model']
+            sd_sampler = preload_generator['sd_sampler']
+            adapter_features = preload_generator['adapter_features']
+            append_to_context =preload_generator['append_to_context']
         
         with torch.inference_mode(), sd_model.ema_scope(), autocast('cuda'):
             seed_everything(opt.seed)
@@ -184,26 +206,34 @@ def generate_example(opt, new_noun, expand_agent=None, ori_img: Image = None, co
     print(f'example saved at \'./{name_}-{t}.jpg\' --- [sized: {gen_images.size}]')
     return gen_images # PIL.Image
 
-def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base_img: Image = None, use_adapter=False, style_mask=None, **kwargs):
+def paint_by_example(
+            opt, mask: torch.Tensor = None, 
+            ref_img: Image = None, 
+            base_img: Image = None, 
+            use_adapter = False, 
+            style_mask = None, 
+            preloaded_exampler = None, 
+            **kwargs
+        ):
     # mask: [1, 1, h, w] is required
-    mask = fix_mask(mask)
+    assert ref_img.size == base_img.size, f'ref_img.size = {ref_img.shape}, base_img.size = {base_img.size}'
+    mask = fix_mask(mask) # fix dimensions
     print(f'Example Mask = {mask.shape}')
-    seed_everything(opt.seed)
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    
-    config = OmegaConf.load(f"{opt.example_config}")
-    model = load_model_from_config(config, f"{opt.example_ckpt}").to(device)
-    if opt.plms:
-        sampler = PLMSSampler(model)
+
+    if preloaded_exampler is None:
+        seed_everything(opt.seed)
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        config = OmegaConf.load(f"{opt.example_config}")
+        model = load_model_from_config(config, f"{opt.example_ckpt}").to(device)
+        if opt.plms:
+            sampler = PLMSSampler(model)
+        else:
+            sampler = DDIMSampler(model)
     else:
-        sampler = DDIMSampler(model)
+        model = preloaded_exampler['model']
+        sampler = preloaded_exampler['sampler']
 
     op_output = os.path.join(opt.base_dir, opt.out_name.strip('.jpg'))
-    adapter_features = append_to_context = None
-    """
-        WARNING: Useless
-    """
-
     precision_scope = autocast if opt.precision == "autocast" else nullcontext
     with torch.no_grad():
         with precision_scope("cuda"):
@@ -212,7 +242,7 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
                 mask[mask < 0.5] = 0.
                 mask[mask >= 0.5] = 1.
                 mask_tensor = 1. - mask.to(torch.float32)
-                assert mask_tensor.shape[-2:] == (opt.H, opt.W), f'mask_tensor.shape = {mask_tensor.shape}'
+                assert mask_tensor.shape[-2:] == (opt.H, opt.W), f'mask_tensor.shape = {mask_tensor.shape}, opt(H, W) = {opt.H, opt.W}'
 
                 ref_p = ref_img.convert('RGB').resize((224,224))
                 ref_tensor = get_tensor_clip()(ref_p).unsqueeze(0).to(device)
@@ -248,8 +278,8 @@ def paint_by_example(opt, mask: torch.Tensor = None, ref_img: Image = None, base
                     unconditional_guidance_scale=opt.scale,
                     unconditional_conditioning=uc,
                     x_T=None,
-                    adpater_features=adapter_features,
-                    append_to_context=append_to_context,
+                    adpater_features=None,
+                    append_to_context=None,
                     test_model_kwargs=test_model_kwargs,
                     **kwargs
                 )

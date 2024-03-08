@@ -1,5 +1,5 @@
 import re, torch, os, cv2, time
-from prompt.guide import *
+from prompt.guide import get_response, Use_Agent
 from prompt.util import get_image_from_box as get_img
 from prompt.item import Label, get_replace_tuple, get_add_tuple
 import numpy as np

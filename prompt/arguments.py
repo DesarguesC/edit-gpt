@@ -72,5 +72,6 @@ def get_arguments():
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))
+    print(f'type of base_cnt = {type(base_cnt)}')
     setattr(opt, 'base_cnt', base_cnt)
     return opt

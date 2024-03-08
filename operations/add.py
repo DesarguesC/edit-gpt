@@ -81,8 +81,13 @@ def Add_Object(
         print(f'ans_box = {fixed_box}')
         # generate example
         diffusion_pil = generate_example(opt, name, expand_agent=expand_agent, ori_img=img_pil)
+        
         # query mask-box & rescale
         _, mask_example, _ = query_middleware(opt, diffusion_pil, name)
+        print(f'diffusion_pil.size = {diffusion_pil.size}, mask_example.shape = {mask_example.shape}')
+
+
+        assert mask_example.shape[-2:] == (opt.H, opt.W), f'mask_example.shape = {mask_example.shape}, opt(H, W) = {(opt.H, opt.W)}'
         sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
         sam.to(device=opt.device)
         mask_generator = SamAutomaticMaskGenerator(sam)
@@ -95,7 +100,7 @@ def Add_Object(
         target_mask = refactor_mask(box_example, mask_example, fixed_box)
 
         # TODO: save target_mask
-        print(f'In \'add\': target_mask.shape = {target_mask.shape}')
+        print(f'In \'add\': target_mask.shape = {target_mask.shape}, mask_example.shape = {mask_example.shape}')
         name_ = f'./{opt.mask_dir}/mask'
         t = 0
         while os.path.isfile(f'{name_}-{t}.jpg'): t += 1

@@ -1,13 +1,9 @@
-import os
-import sys
 import numpy as np
-import torch
-import yaml
-import glob
-import argparse
-from PIL import Image
+from PIL import Image, ImageOps
 from omegaconf import OmegaConf
 from pathlib import Path
+import os,sys, torch, yaml, glob, argparse
+from paint.crutils import ab8, ab64
 
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
@@ -23,14 +19,17 @@ from lama.saicinpainting.evaluation.data import pad_tensor_to_modulo
 from paint.utils import load_img_to_array, save_array_to_img
 
 def get_reshaped_img(opt, img_pil=None):
-    if img_pil is None:
-        img_pil = Image.open(opt.in_dir).convert('RGB')
-        opt.W, opt.H = img_pil.size
-        opt.W, opt.H = ab64(opt.W), ab64(opt.H)
-        img_pil = ImageOps.fit(img_pil, (opt.W, opt.H), method=Image.Resampling.LANCZOS)
-        return opt, img_pil
-    else:
-        return opt, img_pil
+
+    img_pil = Image.open(opt.in_dir).convert('RGB') if img_pil is None else img_pil
+    w, h = img_pil.size
+    if not hasattr(opt, 'W'): setattr(opt, 'W', ab64(w))
+    else: opt.W = ab64(w)
+    if not hasattr(opt, 'H'): setattr(opt, 'H', ab64(h))
+    else: opt.H = ab64(h)
+    if opt.W != w and opt.H != h:
+        img_pil = ImageOps.fit(img_pil, (w, h), method=Image.Resampling.LANCZOS)
+    
+    return opt, img_pil
 
 
 @torch.no_grad()

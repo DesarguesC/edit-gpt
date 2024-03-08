@@ -1,6 +1,6 @@
 import os, cv2
 from jieba import re
-from prompt.guide import get_response, Use_Agent
+from prompt.guide import get_response, Use_Agent, get_bot
 from prompt.util import get_image_from_box as get_img
 from prompt.item import Label, get_replace_tuple, get_add_tuple
 import numpy as np
@@ -11,24 +11,25 @@ from operations import Remove_Me, Remove_Me_lama, replace_target, create_locatio
 
 def gpt_mkdir(opt, Type = None):
     assert Type is not None, '<?>'
+    base_cnt = opt.base_cnt
     if Type == 'remove':
-        folder_name = f'REMOVE-{opt.base_cnt:06}'
+        folder_name = f'REMOVE-{base_cnt:06}'
         if not hasattr(opt, 'out_name'): setattr(opt, 'out_name', 'removed')
         else: opt.out_name = 'removed'
     elif Type == 'replace':
-        folder_name = f'REPLACE-{opt.base_cnt:06}'
+        folder_name = f'REPLACE-{base_cnt:06}'
         if not hasattr(opt, 'out_name'): setattr(opt, 'out_name', 'replaced')
         else: opt.out_name = 'replaced'
     elif Type ==  'locate':
-        folder_name = f'LOCATE-{opt.base_cnt:06}'
+        folder_name = f'LOCATE-{base_cnt:06}'
         if not hasattr(opt, 'out_name'): setattr(opt, 'out_name', 'located')
         else: opt.out_name = 'located'
     elif Type == 'add':
-        folder_name = f'ADD-{opt.base_cnt:06}'
+        folder_name = f'ADD-{base_cnt:06}'
         if not hasattr(opt, 'out_name'): setattr(opt, 'out_name', 'added')
         else: opt.out_name = 'added'
     elif Type == 'transfer':
-        folder_name = f'TRANS-{opt.base_cnt:06}'
+        folder_name = f'TRANS-{base_cnt:06}'
         if not hasattr(opt, 'out_name'): setattr(opt, 'out_name', 'transfered')
         else: opt.out_name = 'transfered'
     opt.base_folder = folder_name
@@ -49,7 +50,7 @@ def Transfer_Method(
         tot_step: int, 
         input_pil: Image = None
     ):
-    opt = gpt_mkdir(opt, 'transfer')
+    opt = gpt_mkdir(opt, Type='transfer')
     pil_return = Transfer_Me_ip2p(opt, input_pil=input_pil, img_cfg=opt.img_cfg, txt_cfg=opt.txt_cfg, dilate_kernel_size=15)
     print(f'[{current_step:02}|{tot_step:02}]\tTransfer: 「editing has launched via InsrtuctPix2Pix」')
     return pil_return
@@ -60,7 +61,7 @@ def Remove_Method(
         tot_step: int, 
         input_pil: Image = None
     ):
-    opt = gpt_mkdir(opt, 'remove')
+    opt = gpt_mkdir(opt, Type='remove')
 
     nagent = Use_Agent(opt, TODO='Find target to be removed')
     target_noun = get_response(agent, opt.edit_txt)
@@ -76,7 +77,7 @@ def Replace_Method(
         tot_step: int, 
         input_pil: Image = None
     ):
-    opt = gpt_mkdir(opt, 'replace')
+    opt = gpt_mkdir(opt, Type='replace')
 
     # find the target -> remove -> recover the scenery -> add the new
     replace_agent = Use_Agent(opt, TODO='Find target to be replaced')
@@ -97,7 +98,7 @@ def Move_Method(
         tot_step: int, 
         input_pil: Image = None
     ):
-    opt = gpt_mkdir(opt, 'move')
+    opt = gpt_mkdir(opt, Type='move')
 
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
     move_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
@@ -117,13 +118,13 @@ def Add_Method(
         tot_step: int, 
         input_pil: Image = None
     ):
-    opt = gpt_mkdir(opt, 'add')
+    opt = gpt_mkdir(opt, Type='add')
 
     add_agent = Use_Agent(opt, TODO='find target to be added')
     ans = get_response(add_agent, opt.edit_txt)
     print(f'tuple_ans: {ans}')
     name, num, place = get_add_tuple(ans)
-    del add_prompt_agent
+    del add_agent
     print(f'name = {name}, num = {num}, place = {place}')
     arrange_agent = Use_Agent(opt, TODO='generate a new bbox for me') if '<NULL>' in place \
                     else Use_Agent(opt, TODO='adjust bbox for me')
@@ -200,6 +201,7 @@ def get_plans(opt, planning_agent):
 
 def main():
     opt = get_arguments()
+    print(f'type of opt.base_cnt = {type(opt.base_cnt)}')
     operation_menu = {
         "add": Add_Method,
         "remove": Remove_Method,
@@ -211,18 +213,23 @@ def main():
     task_plannings = get_plans(opt, planning_agent) # [dict("type": ..., "command": ...)]
     
     planning_folder = os.path.join(opt.out_dir, 'plans')
-    if not os.path.isfile(planning_folder): os.mkdir(planning_folder)
+    if not os.path.exists(planning_folder): os.mkdir(planning_folder)
     plan_step, tot_step = 1, len(task_plannings)
-    # img_pil = Image.open(opt.in_dir).convert('RGB') # open input image as PIL.Image
+    img_pil = None # image will automatically be opened as PIL.Image in edit tools.
 
-    # for plan_item in task_plannings:
-    #     plan_type = plan_item['type']
-    #     edit_tool = operation_menu[plan_type]
-    #     opt.edit_txt = plan_item['command']
+    for plan_item in task_plannings:
+        plan_type = plan_item['type']
+        edit_tool = operation_menu[plan_type]
+        opt.edit_txt = plan_item['command']
 
-    #     img_pil = edit_tool(opt.edit_txt, plan_step, tot_step, img_pil)
-    #     img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
-    #     plan_step += 1
+        img_pil = edit_tool(
+                        opt, 
+                        current_step = plan_step, 
+                        tot_step = tot_step, 
+                        input_pil = img_pil
+                    )
+        img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
+        plan_step += 1
     
     # print isolation
     print()

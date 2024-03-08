@@ -158,9 +158,11 @@ system_prompt_addHelp = 'You will receive an instruction for image editing, whic
                         'to the image. Your task is to extract: What objects are to be added and How many respectively . '\
                         'Ensure that the input instruction contains only added operations and only one '\
                         '(but possibly multiple) objects. You need to output in the form (name, num, place), '\
-                        'where name represents the kind of object to be added (for example, cat, dog, tiger), etc.'\
+                        'where \'name\' represents the kind of object to be added (for example, cat, dog, tiger), etc.'\
                         ', and place_n represents the target location to be added. '\
-                        'Besides, if no place is specified, just put \"<NULL>\". '
+                        'Besides, if no place is specified, just put \"<NULL>\". By the way, the word like \'many\', \'some\', '\
+                        'you can consider is as an adejuctive for \'name\', begining with \'some\', \'many\', etc. '\
+                        'And simultaneously set \'num\'=1.'
 
 addHelp_first_ask = 'For your task, in the output "name", note that you need to output the "name" modifier in the '\
                     'input instruction along with it. For example, if the input is "two more cats with black and '\
@@ -429,32 +431,30 @@ def get_response(chatbot, asks):
 def Use_Agent(opt, TODO=None, print_first_answer=False):
     if hasattr(opt, 'print_first_answer'): print_first_answer = opt.print_first_answer
     TODO = TODO.lower()
+    engine, api_key, net_proxy = opt.engine, opt.api_key, opt.net_proxy
     if TODO == 'find target to be removed':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)
         first_ans = get_response(agent, remove_first_ask)
         if print_first_answer: print(first_ans) # first ask answer
-        return agent
     elif TODO == 'find target to be replaced':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy)
         first_ans = get_response(agent, replace_first_ask)
         if print_first_answer: print(first_ans)
-        return agent
     elif TODO == 'rescale bbox for me':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
-        first_ans = get_response(rescale_agent, rescale_first_ask)
+        first_ans = get_response(agent, rescale_first_ask)
         if print_first_answer: print(first_ans)
-        return agent
     elif TODO == 'expand diffusion prompts for me':
-        get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
-        first_ans = get_response(diffusion_agent, first_ask_expand(2))
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
+        first_ans = get_response(agent, first_ask_expand(2))
         if print_first_answer: print(first_ans)
     elif TODO == 'arrange a new bbox for me':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
-        first_ans = get_response(locate_agent, locate_first_ask)
+        first_ans = get_response(agent, locate_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'find target to be moved':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_noun, proxy=net_proxy)
-        first_ans = get_response(noun_remove_agent, first_ask_noun)
+        first_ans = get_response(agent, first_ask_noun)
         if print_first_answer: print(first_ans)
     elif TODO == 'find target to be added':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addHelp, proxy=net_proxy)
@@ -462,15 +462,16 @@ def Use_Agent(opt, TODO=None, print_first_answer=False):
         if print_first_answer: print(first_ans)
     elif TODO == 'generate a new bbox for me':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
-        first_ans = get_response(arrange_agent, add_first_ask)
+        first_ans = get_response(agent, add_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'adjust bbox for me':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy)
-        first_ans = get_response(arrange_agent, addArrange_first_ask)
+        first_ans = get_response(agent, addArrange_first_ask)
         if print_first_answer: print(first_ans)
     else:
+        agent = None
         print('no such agent')
         exit(-1)
-    
+    return agent
     
 
