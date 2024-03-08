@@ -30,9 +30,17 @@ def Add_Object(
         num: int, 
         place: str, 
         input_pil: Image = None, 
-        edit_agent=None, 
-        expand_agent=None
+        edit_agent = None, 
+        expand_agent = None,
+        preloaded_model = None,
     ):
+    """
+    -> preloaded_model
+        Keys in need:
+            preloaded_sam_generator
+            preloaded_example_generator
+            preloaded_example_painter
+    """
     
     assert edit_agent != None, 'no edit agent!'
     opt, img_pil = get_reshaped_img(opt, input_pil)
@@ -40,6 +48,14 @@ def Add_Object(
     assert os.path.exists(opt.base_dir), 'where is base_dir ?'
     add_path = os.path.join(opt.base_dir, 'added')
     if not os.path.exists(add_path): os.mkdir(add_path)
+
+    if preloaded_model is None:
+        # load SAM
+        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+        sam.to(device=opt.device)
+        mask_generator = SamAutomaticMaskGenerator(sam)
+    else:
+        mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
 
     if '<NULL>' in place:
         # system_prompt_add -> panoptic
@@ -49,10 +65,6 @@ def Add_Object(
     else:
         # system_prompt_addArrange -> name2place
         _, place_mask, _ = query_middleware(opt, img_pil, place)
-        # load SAM
-        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
-        sam.to(device=opt.device)
-        mask_generator = SamAutomaticMaskGenerator(sam)
         mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
         place_box = match_sam_box(place_mask, [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]) # old noun
         print(f'place_box = {place_box}')
@@ -80,17 +92,17 @@ def Add_Object(
         
         print(f'ans_box = {fixed_box}')
         # generate example
-        diffusion_pil = generate_example(opt, name, expand_agent=expand_agent, ori_img=img_pil)
+        print(f'before generating examopke: ori_img.size = {img_pil.size}')
+        diffusion_pil = generate_example(
+                            opt, name, expand_agent = expand_agent, ori_img = img_pil, 
+                            preloaded_example_generator = preloaded_model['preloaded_example_generator']
+                        )
         
         # query mask-box & rescale
         _, mask_example, _ = query_middleware(opt, diffusion_pil, name)
         print(f'diffusion_pil.size = {diffusion_pil.size}, mask_example.shape = {mask_example.shape}')
 
-
         assert mask_example.shape[-2:] == (opt.H, opt.W), f'mask_example.shape = {mask_example.shape}, opt(H, W) = {(opt.H, opt.W)}'
-        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
-        sam.to(device=opt.device)
-        mask_generator = SamAutomaticMaskGenerator(sam)
         box_example = match_sam_box(mask_example, [
             (u['bbox'], u['segmentation'], u['area']) for u in \
                     sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), \
@@ -110,7 +122,10 @@ def Add_Object(
         print(f'target mask for adding is saved at \'{name_}-{t}.jpg\'')
         
         # paint-by-example
-        _, painted = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil)
+        _, painted = paint_by_example(
+                            opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil, 
+                            preloaded_paint_by_example_model = preloaded_model['preloaded_example_painter']
+                        )
         output_path = os.path.join(add_path, f'added_{i}.jpg')
         painted = tensor2img(painted)
         cv2.imwrite(output_path, painted)

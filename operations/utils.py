@@ -38,9 +38,10 @@ def inpaint_img_with_lama(
         mask: np.ndarray,
         config_p: str,
         ckpt_p: str,
-        mod=8,
-        device="cuda"
-):
+        mod = 8,
+        device = "cuda",
+        preloaded_lama_remover = None
+    ):
     if isinstance(mask, list):
         print(f'len(mask) = {len(mask)}')
         for i in range(len(mask)):
@@ -53,36 +54,39 @@ def inpaint_img_with_lama(
         mask = mask.squeeze()
     if np.max(mask) == 1:
         mask = mask * 255
-        
-    
-    img = torch.from_numpy(img).float().div(255.)
-    mask = torch.from_numpy(mask).float()
-    
-    predict_config = OmegaConf.load(config_p)
-    predict_config.model.path = ckpt_p
-    # device = torch.device(predict_config.device)
     device = torch.device(device)
 
+    img = torch.from_numpy(img).float().div(255.)
+    mask = torch.from_numpy(mask).float()
     print(' '*6+'-'*9+'loading lama'+'-'*9)
     
-    train_config_path = os.path.join(
-        predict_config.model.path, 'config.yaml')
+    if preloaded_lama_remover is None:
 
-    with open(train_config_path, 'r') as f:
-        train_config = OmegaConf.create(yaml.safe_load(f))
+        predict_config = OmegaConf.load(config_p)
+        predict_config.model.path = ckpt_p
+        
+        train_config_path = os.path.join(
+            predict_config.model.path, 'config.yaml')
 
-    train_config.training_model.predict_only = True
-    train_config.visualizer.kind = 'noop'
+        with open(train_config_path, 'r') as f:
+            train_config = OmegaConf.create(yaml.safe_load(f))
 
-    checkpoint_path = os.path.join(
-        predict_config.model.path, 'models',
-        predict_config.model.checkpoint
-    )
-    model = load_checkpoint(
-        train_config, checkpoint_path, strict=False, map_location='cpu')
-    model.freeze()
-    if not predict_config.get('refine', False):
-        model.to(device)
+        train_config.training_model.predict_only = True
+        train_config.visualizer.kind = 'noop'
+
+        checkpoint_path = os.path.join(
+            predict_config.model.path, 'models',
+            predict_config.model.checkpoint
+        )
+        model = load_checkpoint(
+            train_config, checkpoint_path, strict=False, map_location='cpu')
+        model.freeze()
+        if not predict_config.get('refine', False):
+            model.to(device)
+
+    else:
+        model = preloaded_lama_remover['model']
+        predict_config = preloaded_lama_remover['predict_config']
 
     batch = {}
     batch['image'] = img.permute(2, 0, 1).unsqueeze(0)

@@ -42,29 +42,43 @@ def create_location(
         opt, 
         target, 
         input_pil: Image = None, 
-        edit_agent=None
+        edit_agent = None,
+        preloaded_model = None
     ):
-
+    """
+    -> preloaded_model
+        Keys in need:
+            preloaded_lama_remover
+            preloaded_seem_detector
+            preloaded_example_painter
+    """
     assert edit_agent != None, 'no edit agent'
     # move the target to the destination, editing via GPT (tell the bounding box)
     opt, img_pil = get_reshaped_img(opt, img_pil)
     # resize and prepare the original image
-
-    sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
-    sam.to(device=opt.device)
-    mask_generator = SamAutomaticMaskGenerator(sam)
+    if preloaded_model is None:
+        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+        sam.to(device=opt.device)
+        mask_generator = SamAutomaticMaskGenerator(sam)
+    else:
+        mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
     # prepare SAM, matched via SEEM
     mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), \
                            key=(lambda x: x['area']), reverse=True)
     sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
 
-
     # remove the target, get the mask (for bbox searching via SAM)
-    rm_img, target_mask, _ = Remove_Me_lama(opt, target, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
-                        else Remove_Me(opt, target, remove_mask=True, replace_box=opt.replace_box)
+    rm_img, target_mask, _ = Remove_Me_lama(
+                                    opt, target, dilate_kernel_size = opt.dilate_kernel_size
+                                    preloaded_lama_remover = preloaded_model['preloaded_lama_remover']
+                                ) if opt.use_lama \
+                                else Remove_Me(opt, target, remove_mask=True, replace_box=opt.replace_box)
     rm_img = Image.fromarray(rm_img)
 
-    res, panoptic_dict = middleware(opt, rm_img)  # key: name, mask
+    res, panoptic_dict = middleware(
+                            opt, rm_img
+                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector']
+                        )  # key: name, mask
     # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
     target_box = match_sam_box(target_mask, sam_seg_list)  # target box
     bbox_list = [match_sam_box(x['mask'], sam_seg_list) for x in panoptic_dict]
@@ -145,7 +159,10 @@ def create_location(
     # cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint8(Ref_Image), cv2.COLOR_BGR2RGB))
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
-    op_output, x_sample_ddim = paint_by_example(opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img)
+    op_output, x_sample_ddim = paint_by_example(
+                                    opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img
+                                    preloaded_example_painter = preloaded_model['preloaded_example_painter']
+                                )
     print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
 
     x_sample_ddim = tensor2img(x_sample_ddim)

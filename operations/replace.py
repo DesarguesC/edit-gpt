@@ -64,25 +64,40 @@ def preprocess_image2mask(opt, old_noun, new_noun, img: Image, diffusion_img: Im
     res_all.save('./tmp/panoptic-seg.png')
     return res_all, objects_masks_list
 
-
-
 def replace_target(
         opt, 
         old_noun: str, 
         new_noun: str, 
         input_pil: Image = None, 
-        edit_agent=None, 
-        expand_agent=None
+        edit_agent = None, 
+        expand_agent = None,
+        preloaded_model = None
     ):
+    """
+    -> preloaded_model
+        Keys in need:
+            preloaded_lama_remover
+            preloaded_seem_detector
+            preloaded_sam_generator
+            preloaded_example_generator
+            preloaded_example_painter
+    """
+
     # assert mask_generator != None, 'mask_generator not initialized'
     assert edit_agent != None, 'no edit agent!'
     opt, img_pil = get_reshaped_img(opt, input_pil)
     
-    rm_img, mask_1, _ = Remove_Me_lama(opt, old_noun, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
+    rm_img, mask_1, _ = Remove_Me_lama(
+                            opt, old_noun, dilate_kernel_size = opt.dilate_kernel_size, 
+                            preloaded_lama_remover = preloaded_model['preloaded_lama_remover']
+                        ) if opt.use_lama \
                         else Remove_Me(opt, old_noun, remove_mask=True, replace_box=opt.replace_box)
     
     rm_img = Image.fromarray(rm_img)
-    _, panoptic_dict = middleware(opt, rm_img) # key: name, mask
+    _, panoptic_dict = middleware(
+                            opt, rm_img, 
+                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector']
+                        ) # key: name, mask
     print(f'panoptic_dict - name: ', panoptic_dict['name'])
     if old_noun not in panoptic_dict['name']:
         print(f'find no \'{old_noun}\' in panoptic_dict of input, Start Add process...')
@@ -92,17 +107,28 @@ def replace_target(
                     num = 1,
                     place = '<NULL>',
                     input_pil=img_pil,
-                    edit_agent = ...,
-                    expand_agent = ...
-                    )
+                    edit_agent = Use_Agent(opt, TODO='adjust bbox for me'),
+                    expand_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me')
+                    preloaded_model = preloaded_model
+                )
 
-    diffusion_pil = generate_example(opt, new_noun, expand_agent=expand_agent, ori_img=img_pil, cond_mask=mask_1)
+    diffusion_pil = generate_example(
+                            opt, new_noun, expand_agent = expand_agent, 
+                            ori_img = img_pil, cond_mask = mask_1, 
+                            preloaded_example_generator = preloaded_model['preloaded_example_generator']
+                        )
     # TODO: add conditional condition to diffusion via ControlNet
-    _, mask_2, _ = query_middleware(opt, diffusion_pil, new_noun)
+    _, mask_2, _ = query_middleware(
+                            opt, diffusion_pil, new_noun
+                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector']    
+                        )
     
-    sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
-    sam.to(device=opt.device)
-    mask_generator = SamAutomaticMaskGenerator(sam)
+    if preloaded_model is None:
+        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+        sam.to(device=opt.device)
+        mask_generator = SamAutomaticMaskGenerator(sam)
+    else:
+        mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
     
     mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), \
                                                                 key=(lambda x: x['area']), reverse=True)
@@ -166,7 +192,10 @@ def replace_target(
     print(f'target_mask for replacement saved at \'{name_}-{t}.jpg\'')
     # SAVE_MASK_TEST
     print(f'target_mask.shape = {target_mask.shape}, ref_img.size = {np.array(diffusion_pil).shape}, base_img.shape = {np.array(rm_img).shape}')
-    output_path, results = paint_by_example(opt, mask=target_mask, ref_img=diffusion_pil, base_img=rm_img)
+    output_path, results = paint_by_example(
+                                    opt, mask = target_mask, ref_img = diffusion_pil, base_img = rm_img,
+                                    preloaded_example_painter = preloaded_model['preloaded_example_painter']
+                                )
     # mask required: 1 * h * w
     results = tensor2img(results)
     

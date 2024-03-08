@@ -43,23 +43,27 @@ def Transfer_Me_ip2p(
         img_cfg: float = 1.5, 
         txt_cfg: float = 7.5, 
         dilate_kernel_size: int = 15,
-        preloaded_ip2p_dict = None
+        preloaded_model = None
     ):
+    """
+    -> preloded_model
+        Keys in need:
+            preloaded_ip2p
+    """
     # 'dilate_kernel_size'  unused
     # Consider: whether mask play some roles in ip2p.
-    if preloaded_ip2p_dict is None:
+    if preloaded_model is None:
         config = OmegaConf.load(opt.ip2p_config)
         ip2p_model = load_model_from_config(config, opt.ip2p_ckpt, opt.vae_ckpt).eval()
         if torch.cuda.is_available(): ip2p_model = ip2p_model.cuda()
         ip2p_wrap = K.external.CompVisDenoiser(ip2p_model)
         null_token = ip2p_model.get_learned_conditioning([""])
     else:
+        preloaded_ip2p_dict = preloaded_model['preloaded_ip2p']
         ip2p_model = preloaded_ip2p_dict['model'] # cuda convertion has done
         if torch.cuda.is_available(): ip2p_model = ip2p_model.cuda()
         ip2p_wrap = preloaded_ip2p_dict['wrap']
         null_token = preloaded_ip2p_dict['null_token']
-
-
 
     seed = random.randint(0, 1e5) if opt.seed is None else opt.seed
     opt, img_pil = get_reshaped_img(opt, input_pil)

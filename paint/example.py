@@ -74,7 +74,7 @@ def generate_example(
             expand_agent = None, 
             ori_img: Image = None, 
             cond_mask = None, 
-            preloaded_generator = None, 
+            preloaded_example_generator = None, 
             **kwargs
         ) -> Image:
     
@@ -99,8 +99,7 @@ def generate_example(
     if opt.example_type == 'XL_adapter':
         print('-' * 9 + 'Generating via SDXL-Adapter' + '-' * 9)
 
-
-        if preload_generator is None:
+        if preloaded_example_generator is None:
             from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL
             from controlnet_aux.lineart import LineartDetector
             # load adapter
@@ -212,7 +211,7 @@ def paint_by_example(
             base_img: Image = None, 
             use_adapter = False, 
             style_mask = None, 
-            preloaded_exampler = None, 
+            preloaded_example_painter = None, 
             **kwargs
         ):
     # mask: [1, 1, h, w] is required
@@ -220,7 +219,7 @@ def paint_by_example(
     mask = fix_mask(mask) # fix dimensions
     print(f'Example Mask = {mask.shape}')
 
-    if preloaded_exampler is None:
+    if preloaded_example_painter is None:
         seed_everything(opt.seed)
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         config = OmegaConf.load(f"{opt.example_config}")
@@ -230,8 +229,8 @@ def paint_by_example(
         else:
             sampler = DDIMSampler(model)
     else:
-        model = preloaded_exampler['model']
-        sampler = preloaded_exampler['sampler']
+        model = preloaded_example_painter['model']
+        sampler = preloaded_example_painter['sampler']
 
     op_output = os.path.join(opt.base_dir, opt.out_name.strip('.jpg'))
     precision_scope = autocast if opt.precision == "autocast" else nullcontext

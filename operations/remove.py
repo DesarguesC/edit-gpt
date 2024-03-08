@@ -129,22 +129,34 @@ def Remove_Me_lama(
         opt, 
         target_noun: str, 
         input_pil: Image = None, 
-        dilate_kernel_size: int = 15
+        dilate_kernel_size: int = 15,
+        preloaded_model = None
     ):
+    """
+    -> preloaded_model
+        Keys in need:
+            preloaded_lama_remover
+            preloaded_seem_detector
+    """
     if not hasattr(opt, 'device'):
         opt.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
     print('-'*9 + 'Removing via LaMa' + '-'*9)
     opt, img_pil = get_reshaped_img(opt, input_pil)
-    res, target_mask, _ = query_middleware(opt, img_pil, target_noun)
+    res, target_mask, _ = query_middleware(
+                            opt, img_pil, target_noun, 
+                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector']
+                        )
         
     print(f'target_mask.shape = {target_mask.shape}')
     target_mask_dilate = [dilate_mask(a_mask, dilate_kernel_size) for a_mask in target_mask]
     # 'dilate' was implemented in LaMa ?
     assert len(target_mask_dilate) == 1
     img_inpainted = inpaint_img_with_lama(
-        np.array(np.uint8(img_pil)), target_mask_dilate[0], opt.lama_config, opt.lama_ckpt, device=opt.device
-    )
+                            np.array(np.uint8(img_pil)), target_mask_dilate[0], 
+                            opt.lama_config, opt.lama_ckpt, device=opt.device,
+                            preloaded_lama_remover = preloaded_model['preloaded_lama_remover']
+                        )
     print(img_inpainted.shape)
     
     rm_output = os.path.join(opt.base_dir, 'removed')

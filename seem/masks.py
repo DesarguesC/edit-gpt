@@ -21,16 +21,26 @@ from seem.modeling import build_model
 from seem.utils.constants import COCO_PANOPTIC_CLASSES
 from seem.demo.seem.tasks import *
 
-def query_middleware(opt, image: Image, reftxt: str):
+def query_middleware(
+            opt, 
+            image: Image, 
+            reftxt: str, 
+            preloaded_seem_detector = None
+        ):
     """
         only query mask&box for single target-noun
         
         image: removed pil image
         reftxt: query target text
     """
-    cfg = load_opt_from_config_files([opt.seem_cfg])
-    cfg['device'] = opt.device
-    seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
+    if preloaded_seem_detector is None:
+        cfg = load_opt_from_config_files([opt.seem_cfg])
+        cfg['device'] = opt.device
+        seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
+    else:
+        cfg = preloaded_seem_detector['cfg']
+        seem_mode = preloaded_seem_detector['seem_model']
+
     with torch.no_grad():
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"],
                                                                                  is_eval=True)
@@ -84,14 +94,24 @@ def query_middleware(opt, image: Image, reftxt: str):
 
     return Image.fromarray(res), pred_masks_pos, pred_box_pos
 
-def middleware(opt, image: Image, visual_mode=True):
+def middleware(
+        opt, 
+        image: Image, 
+        visual_mode = True,
+        preloaded_seem_detector = None
+    ):
     """
         image: target not removed PIL image
         only to create Panoptic segmentation
     """
-    cfg = load_opt_from_config_files([opt.seem_cfg])
-    cfg['device'] = opt.device
-    seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
+    if preloaded_seem_detector is  None:
+        cfg = load_opt_from_config_files([opt.seem_cfg])
+        cfg['device'] = opt.device
+        seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
+    else:
+        cfg = preloaded_seem_detector['cfg']
+        seem_model = preloaded_seem_detector['seem_model']
+    
     with torch.no_grad():
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
     sam_output_dir = os.path.join(opt.base_dir, 'Semantic')
