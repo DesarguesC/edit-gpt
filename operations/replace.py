@@ -22,6 +22,7 @@ from einops import repeat, rearrange
 import torch, cv2, os
 from paint.example import generate_example
 from operations.utils import get_reshaped_img
+from operations.add import Add_Object
 
 
 def find_boxes_for_masks(masks: torch.tensor, nouns: list[str], sam_list: list[tuple]):
@@ -89,17 +90,17 @@ def replace_target(
     
     rm_img, mask_1, _ = Remove_Me_lama(
                             opt, old_noun, dilate_kernel_size = opt.dilate_kernel_size, 
-                            preloaded_lama_remover = preloaded_model['preloaded_lama_remover']
+                            preloaded_model = preloaded_model
                         ) if opt.use_lama \
                         else Remove_Me(opt, old_noun, remove_mask=True, replace_box=opt.replace_box)
     
     rm_img = Image.fromarray(rm_img)
     _, panoptic_dict = middleware(
                             opt, rm_img, 
-                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector']
+                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         ) # key: name, mask
-    print(f'panoptic_dict - name: ', panoptic_dict['name'])
-    if old_noun not in panoptic_dict['name']:
+    print(f'total names: ', panoptic_dict[0]['name'])
+    if old_noun not in panoptic_dict[0]['name']:
         print(f'find no \'{old_noun}\' in panoptic_dict of input, Start Add process...')
         return Add_Object(
                     opt, 
@@ -108,19 +109,19 @@ def replace_target(
                     place = '<NULL>',
                     input_pil=img_pil,
                     edit_agent = Use_Agent(opt, TODO='adjust bbox for me'),
-                    expand_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me')
+                    expand_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me'), 
                     preloaded_model = preloaded_model
                 )
 
     diffusion_pil = generate_example(
                             opt, new_noun, expand_agent = expand_agent, 
                             ori_img = img_pil, cond_mask = mask_1, 
-                            preloaded_example_generator = preloaded_model['preloaded_example_generator']
+                            preloaded_example_generator = preloaded_model['preloaded_example_generator'] if preloaded_model is not None else None
                         )
     # TODO: add conditional condition to diffusion via ControlNet
     _, mask_2, _ = query_middleware(
-                            opt, diffusion_pil, new_noun
-                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector']    
+                            opt, diffusion_pil, new_noun, 
+                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         )
     
     if preloaded_model is None:
@@ -194,7 +195,7 @@ def replace_target(
     print(f'target_mask.shape = {target_mask.shape}, ref_img.size = {np.array(diffusion_pil).shape}, base_img.shape = {np.array(rm_img).shape}')
     output_path, results = paint_by_example(
                                     opt, mask = target_mask, ref_img = diffusion_pil, base_img = rm_img,
-                                    preloaded_example_painter = preloaded_model['preloaded_example_painter']
+                                    preloaded_example_painter = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None
                                 )
     # mask required: 1 * h * w
     results = tensor2img(results)

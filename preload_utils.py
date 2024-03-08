@@ -69,7 +69,6 @@ def preload_XL_adapter_generator(opt):
         'detector': detector
     }
 
-
 def preload_v1.5_generator(opt):
     # for both v1.5 and v1.5_adapter
     sd_model, sd_sampler = get_sd_models(opt)
@@ -167,5 +166,5 @@ def preload_lama_remover(opt):
     }
 
 
-    
+
 

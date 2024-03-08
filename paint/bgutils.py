@@ -104,6 +104,7 @@ def target_removing(
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed
 
+@torch.no_grad()
 def match_sam_box(mask: np.array, sam_list: list[tuple]):
     pointer = sam_list
     if isinstance(mask, torch.Tensor):
@@ -149,7 +150,7 @@ def refactor_mask(box_1, mask_1, box_2, type='remove'):
     print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}')
     # 1 * w * h
     mask_2[:,y2:y2+h2,x2:x2+w2] = resized_valid_mask
-    assert mask_2.shape == mask_1.shape, f'mask_1.shape = {mask_1.shape}, mask_2.shape = {mask_2.shape}'
+    assert mask_2.squeeze().shape == mask_1.squeeze().shape, f'mask_1.shape = {mask_1.shape}, mask_2.shape = {mask_2.shape}'
     return repeat(mask_2, '1 h w -> c h w', c = 3).unsqueeze(0) if type == 'remove' else mask_2
     # 1 * 3 * h * w
 

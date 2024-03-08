@@ -36,7 +36,7 @@ def gpt_mkdir(opt, Type = None):
 
     base_dir = os.path.join(opt.out_dir, folder_name)
     opt.base_dir = base_dir
-    os.mkdir(base_dir)
+    if not os.path.exists(base_dir): os.mkdir(base_dir)
     mask_dir = os.path.join(base_dir, 'Mask')
     opt.mask_dir = mask_dir
     if not os.path.exists(opt.mask_dir): os.mkdir(opt.mask_dir)
@@ -52,8 +52,8 @@ def Transfer_Method(
     ):
     opt = gpt_mkdir(opt, Type='transfer')
     pil_return = Transfer_Me_ip2p(opt, input_pil=input_pil, img_cfg=opt.img_cfg, txt_cfg=opt.txt_cfg, dilate_kernel_size=15)
-    print(f'[{current_step:02}|{tot_step:02}]\tTransfer: 「editing has launched via InsrtuctPix2Pix」')
-    return pil_return
+    method_history = (f'[{current_step:02}|{tot_step:02}]\tTransfer: 「editing has launched via InsrtuctPix2Pix」')
+    return pil_return, method_history
 
 def Remove_Method(
         opt, 
@@ -63,13 +63,13 @@ def Remove_Method(
     ):
     opt = gpt_mkdir(opt, Type='remove')
 
-    nagent = Use_Agent(opt, TODO='Find target to be removed')
+    agent = Use_Agent(opt, TODO='Find target to be removed')
     target_noun = get_response(agent, opt.edit_txt)
     array_return, *_ = Remove_Me_lama(opt, target_noun, input_pil=input_pil, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
                         else Remove_Me(opt, target_noun, remove_mask=True)
     # TODO: recover the scenery for img_dragged in mask
-    print(f'[{current_step:02}|{tot_step:02}]\tRemove: 「{target_noun}」')
-    return Image.fromarray(array_return)
+    method_history = (f'[{current_step:02}|{tot_step:02}]\tRemove: 「{target_noun}」')
+    return Image.fromarray(array_return), method_history
 
 def Replace_Method(
         opt, 
@@ -88,9 +88,9 @@ def Replace_Method(
     rescale_agent = Use_Agent(opt, TODO='Rescale bbox for me')
     diffusion_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me')
     pil_return = replace_target(opt, old_noun, new_noun, input_pil=input_pil, edit_agent=rescale_agent, expand_agent=diffusion_agent)
-    print(f'[{current_step:02}|{tot_step:02}]\tReplace: 「{old_noun}」-> 「{new_noun}」')
+    method_history = (f'[{current_step:02}|{tot_step:02}]\tReplace: 「{old_noun}」-> 「{new_noun}」')
 
-    return pil_return
+    return pil_return, method_history
 
 def Move_Method(
         opt, 
@@ -108,9 +108,9 @@ def Move_Method(
     del noun_agent
 
     pil_return = create_location(opt, target_noun, input_pil=input_pil, edit_agent=move_agent)
-    print(f'[{current_step:02}|{tot_step:02}]\tMove: 「{target_noun}」')
+    method_history = (f'[{current_step:02}|{tot_step:02}]\tMove: 「{target_noun}」')
 
-    return pil_return
+    return pil_return, method_history
 
 def Add_Method(
         opt, 
@@ -131,9 +131,9 @@ def Add_Method(
     diffusion_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me')
     pil_return = Add_Object(opt, name, num, place, input_pil=input_pil, edit_agent=arrange_agent, expand_agent=diffusion_agent)
     
-    print(f'[{current_step:02}|{tot_step:02}]\tAdd: 「{name}」')
+    method_history = (f'[{current_step:02}|{tot_step:02}]\tAdd: 「{name}」')
 
-    return pil_return
+    return pil_return, method_history
 
 def get_planning_system_agent(opt):
 
@@ -201,7 +201,6 @@ def get_plans(opt, planning_agent):
 
 def main():
     opt = get_arguments()
-    print(f'type of opt.base_cnt = {type(opt.base_cnt)}')
     operation_menu = {
         "add": Add_Method,
         "remove": Remove_Method,
@@ -216,18 +215,20 @@ def main():
     if not os.path.exists(planning_folder): os.mkdir(planning_folder)
     plan_step, tot_step = 1, len(task_plannings)
     img_pil = None # image will automatically be opened as PIL.Image in edit tools.
+    method_history = []
 
     for plan_item in task_plannings:
         plan_type = plan_item['type']
         edit_tool = operation_menu[plan_type]
         opt.edit_txt = plan_item['command']
 
-        img_pil = edit_tool(
+        img_pil, method_his = edit_tool(
                         opt, 
                         current_step = plan_step, 
                         tot_step = tot_step, 
                         input_pil = img_pil
                     )
+        method_history.append(method_his)
         img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
         plan_step += 1
     
@@ -238,7 +239,13 @@ def main():
         plan_type = plan_item['type']
         command =plan_item['command']
         print(f'plan{plan_step:02}: [{plan_type.upper()}] {command}')
+        plan_step += 1
     print()
+
+    print("Operation History: ")
+
+    for history in method_history:
+        print('\t' + history)
 
 if __name__ == "__main__":
     main()

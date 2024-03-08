@@ -52,7 +52,7 @@ def create_parse_args():
 
     parser.add_argument('--example_type', type=str, default='XL', help="choose the method for generation",
         choices=['XL', 'XL_adapter', 'v1.5', 'v1.5_adapter'],
-    )
+    ) # v1.5 -> depth cond
     parser.add_argument('--expand_scale', default=1.0, type=float, help='expansion scale for mask')
 
     parser.add_argument('--ip2p_config', default='./configs/ip2p_generate.yaml', help='path to InstructPix2Pix config')
@@ -72,6 +72,5 @@ def get_arguments():
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))
-    print(f'type of base_cnt = {type(base_cnt)}')
     setattr(opt, 'base_cnt', base_cnt)
     return opt

@@ -57,16 +57,35 @@ def Add_Object(
     else:
         mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
 
+    mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
+    sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
+
+
     if '<NULL>' in place:
         # system_prompt_add -> panoptic
-        _, panoptic_dict = middleware(opt, img_pil)
-        question = Label().get_str_add_panoptic(panoptic_dict, name, (opt.W,opt.H))
+        _, panoptic_dict = middleware(
+                                opt, img_pil,
+                                preloaded_seem_detector = preloaded_model['preladed_seem_detector'] if preloaded_model is not None else None
+                            )
+
+        place_mask_list = [item['mask'] for item in panoptic_dict]
+        panoptic_list = []
+        
+        for i in range(len(panoptic_dict)):
+            panoptic_list.append({
+                'name': panoptic_dict[i]['name'],
+                'bbox': match_sam_box(place_mask_list[i], sam_seg_list)
+            })
+        question = Label().get_str_add_panoptic(panoptic_list, name, (opt.W,opt.H))
         # remained to be debug
     else:
         # system_prompt_addArrange -> name2place
-        _, place_mask, _ = query_middleware(opt, img_pil, place)
-        mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
-        place_box = match_sam_box(place_mask, [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]) # old noun
+        _, place_mask, _ = query_middleware(
+                                    opt, img_pil, place,
+                                    preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
+                                )
+        
+        place_box = match_sam_box(place_mask, sam_seg_list) # old noun
         print(f'place_box = {place_box}')
         question = Label().get_str_add_place(place, name, (opt.W,opt.H), place_box)
 
@@ -92,10 +111,9 @@ def Add_Object(
         
         print(f'ans_box = {fixed_box}')
         # generate example
-        print(f'before generating examopke: ori_img.size = {img_pil.size}')
         diffusion_pil = generate_example(
                             opt, name, expand_agent = expand_agent, ori_img = img_pil, 
-                            preloaded_example_generator = preloaded_model['preloaded_example_generator']
+                            preloaded_example_generator = preloaded_model['preloaded_example_generator'] if preloaded_model is not None else None
                         )
         
         # query mask-box & rescale
@@ -124,7 +142,7 @@ def Add_Object(
         # paint-by-example
         _, painted = paint_by_example(
                             opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil, 
-                            preloaded_paint_by_example_model = preloaded_model['preloaded_example_painter']
+                            preloaded_paint_by_example_model = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None
                         )
         output_path = os.path.join(add_path, f'added_{i}.jpg')
         painted = tensor2img(painted)

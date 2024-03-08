@@ -120,8 +120,8 @@ def generate_example(
             detector = LineartDetector.from_pretrained(f"{opt.XL_base_path}/lllyasviel/Annotators").to("cuda") if opt.linear else None
         
         else:
-            pipe = preload_generator['pipe']
-            detector = preloaded_generator['detector']
+            pipe = preloaded_example_generator['pipe']
+            detector = preloaded_example_generator['detector']
 
         image = detector(
             ori_img, detect_resolution=384, image_resolution=opt.H
@@ -144,45 +144,49 @@ def generate_example(
         ).images[0]
 
     elif opt.example_type == 'XL':
-        if preloaded_generator is None:
+        if preloaded_example_generator is None:
             print('-' * 9 + 'Generating via SDXL-Base' + '-' * 9)
             from diffusers import DiffusionPipeline
             pipe = DiffusionPipeline.from_pretrained(f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0", \
                                                     torch_dtype=torch.float16, use_safetensors=True, variant="fp16", local_files_only=True)
             pipe.to("cuda")
         else:
-            pipe = preload_generator['pipe']
+            pipe = preloaded_example_generator['pipe']
         
         gen_images = pipe(prompts, height=opt.H, width=opt.W, steps=int(1.5*opt.steps)).images[0]
     
     elif '1.5' in opt.example_type:  # stable-diffusion 1.5
         print('-'*9 + 'Generating via sd1.5 with T2I-Adapter' + '-'*9)
-        if preload_generator is not None:
+        if preloaded_example_generator is None:
             sd_model, sd_sampler = get_sd_models(opt)
             if opt.example_type == 'v1.5_adapter':
                 print('-'*9 + 'Generating via Style Adapter (depth)' + '-'*9)
                 adapter, cond_model = get_adapter(opt, cond_type='depth'), get_depth_model(opt)
                 print(f'BEFORE: cond_img.size = {ori_img.size}')
                 cond = process_depth_cond(opt, ori_img, cond_model) # not a image
-                print(f'cond.shape = {cond.shape}, cond_mask.shape = {cond_mask.shape}')
+                if cond is not None and cond_mask is not None:
+                    print(f'cond.shape = {cond.shape}, cond_mask.shape = {cond_mask.shape}')
                 # resize mask to the shape of style_cond ?
-                cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
-                print(f'cond_mask.shape = {cond_mask.shape}')
+                cond_mask = None if cond_mask is None else torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
                 if cond_mask is not None and torch.max(cond_mask) <= 1.:
+                    print(f'cond_mask.shape = {cond_mask.shape}')
                     cond_mask[cond_mask < 0.5] = (0.05 if opt.mask_ablation else 0.)
                     cond_mask[cond_mask >= 0.5] = (0.95 if opt.mask_ablation else 1.)
                     # TODO: check if mask smoothing is needed
-                cond = cond * ( cond_mask * (0.8 if opt.mask_ablation else 1.) ) # 1 - cond_mask ?
+                if cond_mask is not None:
+                    cond = cond * ( cond_mask * (0.8 if opt.mask_ablation else 1.) ) # 1 - cond_mask ?
+                else:
+                    cond = cond * (0.95 if opt.mask_ablation else 1.)
                 cv2.imwrite(ad_output, tensor2img(cond))
                 adapter_features, append_to_context = get_adapter_feature(cond, adapter)
             elif opt.example_type == 'v1.5':
                 adapter_features, append_to_context = None, None
                 # difference between v1.5 and v1.5_adapter is just to generate adapter    
         else:
-            sd_model = preload_generator['sd_model']
-            sd_sampler = preload_generator['sd_sampler']
-            adapter_features = preload_generator['adapter_features']
-            append_to_context =preload_generator['append_to_context']
+            sd_model = preloaded_example_generator['sd_model']
+            sd_sampler = preloaded_example_generator['sd_sampler']
+            adapter_features = preloaded_example_generator['adapter_features']
+            append_to_context =preloaded_example_generator['append_to_context']
         
         with torch.inference_mode(), sd_model.ema_scope(), autocast('cuda'):
             seed_everything(opt.seed)

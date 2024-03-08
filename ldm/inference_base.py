@@ -202,7 +202,7 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         '--linear',
         type=str2bool,
         help="user linearart adpater or depth adapter in XL",
-        default=False   # default: depth
+        default=True   # default: linear
     )
     
     parser.add_argument(

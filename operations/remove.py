@@ -8,7 +8,7 @@ from PIL import Image
 from einops import repeat, rearrange
 from paint.bgutils import refactor_mask, match_sam_box
 from paint.utils import (recover_size, resize_and_pad, load_img_to_array, save_array_to_img, dilate_mask)
-from operations.utils import inpaint_img_with_lama
+from operations.utils import inpaint_img_with_lama, get_reshaped_img
 
 
 transform = lambda x: repeat(rearrange(x, 'h w -> h w 1'), '... 1 -> ... b', b=3)
@@ -145,7 +145,7 @@ def Remove_Me_lama(
     opt, img_pil = get_reshaped_img(opt, input_pil)
     res, target_mask, _ = query_middleware(
                             opt, img_pil, target_noun, 
-                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector']
+                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         )
         
     print(f'target_mask.shape = {target_mask.shape}')
@@ -155,7 +155,7 @@ def Remove_Me_lama(
     img_inpainted = inpaint_img_with_lama(
                             np.array(np.uint8(img_pil)), target_mask_dilate[0], 
                             opt.lama_config, opt.lama_ckpt, device=opt.device,
-                            preloaded_lama_remover = preloaded_model['preloaded_lama_remover']
+                            preloaded_lama_remover = preloaded_model['preloaded_lama_remover'] if preloaded_model is not None else None
                         )
     print(img_inpainted.shape)
     

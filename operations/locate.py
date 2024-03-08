@@ -1,15 +1,18 @@
+import torch, cv2, os
+from torch import autocast
+from torch.nn import functional as F
+from PIL import Image
+import numpy as np
+from einops import repeat, rearrange
+
 from operations.remove import Remove_Me, Remove_Me_lama
+from operations.utils import get_reshaped_img
 from seem.masks import middleware
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 from paint.example import paint_by_example
 from paint.bgutils import match_sam_box, refactor_mask, fix_box
-from PIL import Image
-import numpy as np
-# from utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog as mt
-import torch, cv2, os
-from torch import autocast
-from torch.nn import functional as F
+
 from prompt.item import Label
 from prompt.guide import get_response, Use_Agent
 from jieba import re
@@ -19,7 +22,7 @@ from basicsr.utils import tensor2img
 from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
-from einops import repeat, rearrange
+
 TURN = lambda x: repeat(rearrange(np.array(x.cpu().detach().numpy()), 'c h w -> h w c'), '... 1 -> ... c', c=3)
 
 def re_mask(mask, dtype=torch.float32):
@@ -69,15 +72,15 @@ def create_location(
 
     # remove the target, get the mask (for bbox searching via SAM)
     rm_img, target_mask, _ = Remove_Me_lama(
-                                    opt, target, dilate_kernel_size = opt.dilate_kernel_size
-                                    preloaded_lama_remover = preloaded_model['preloaded_lama_remover']
+                                    opt, target, dilate_kernel_size = opt.dilate_kernel_size, 
+                                    preloaded_lama_remover = preloaded_model['preloaded_lama_remover'] if preloaded_model is not None else None
                                 ) if opt.use_lama \
                                 else Remove_Me(opt, target, remove_mask=True, replace_box=opt.replace_box)
     rm_img = Image.fromarray(rm_img)
 
     res, panoptic_dict = middleware(
-                            opt, rm_img
-                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector']
+                            opt, rm_img, 
+                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         )  # key: name, mask
     # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
     target_box = match_sam_box(target_mask, sam_seg_list)  # target box
@@ -160,8 +163,8 @@ def create_location(
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
     op_output, x_sample_ddim = paint_by_example(
-                                    opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img
-                                    preloaded_example_painter = preloaded_model['preloaded_example_painter']
+                                    opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img, 
+                                    preloaded_example_painter = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None
                                 )
     print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
 

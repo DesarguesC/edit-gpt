@@ -44,9 +44,9 @@ class Label():
         length = len(objects_masks_list)
         out = "$$\\{"
         for idx in range(length):
-            bb = objects_masks_list[idx]
-            name = bb['name']
-            x, y, w, h = bb['bbox']
+            item_ = objects_masks_list[idx]
+            name = item_['name']
+            x, y, w, h = item_['bbox']
             item = f'[{name}, ({x},{y}), ({w},{h})]'
             out = out + item + (', ' if idx < length - 1 else '')
         out = out + "\\}$$"
