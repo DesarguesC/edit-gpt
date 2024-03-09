@@ -472,6 +472,7 @@ def Use_Agent(opt, TODO=None, print_first_answer=False):
         agent = None
         print('no such agent')
         exit(-1)
+    print(f'Agent for \'{TODO}\' has been loaded')
     return agent
     
 

@@ -9,6 +9,8 @@ from einops import repeat, rearrange
 from prompt.arguments import get_arguments
 from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object, Transfer_Me_ip2p
 
+from preload_utils import preload_all_models, preload_all_agents
+
 def gpt_mkdir(opt, Type = None):
     assert Type is not None, '<?>'
     base_cnt = opt.base_cnt
@@ -48,10 +50,19 @@ def Transfer_Method(
         opt, 
         current_step: int, 
         tot_step: int, 
-        input_pil: Image = None
+        input_pil: Image = None,
+        preloaded_model = None,
+        preloaded_agent = None
     ):
     opt = gpt_mkdir(opt, Type='transfer')
-    pil_return = Transfer_Me_ip2p(opt, input_pil=input_pil, img_cfg=opt.img_cfg, txt_cfg=opt.txt_cfg, dilate_kernel_size=15)
+    # no need of extra agents
+    pil_return = Transfer_Me_ip2p(
+                        opt, input_pil = input_pil, 
+                        img_cfg = opt.img_cfg, 
+                        txt_cfg = opt.txt_cfg, 
+                        dilate_kernel_size = 15, 
+                        preloaded_model = None # preloaded_model    
+                    )
     method_history = (f'[{current_step:02}|{tot_step:02}]\tTransfer: 「editing has launched via InsrtuctPix2Pix」')
     return pil_return, method_history
 
@@ -59,13 +70,20 @@ def Remove_Method(
         opt, 
         current_step: int, 
         tot_step: int, 
-        input_pil: Image = None
+        input_pil: Image = None,
+        preloaded_model = None,
+        preloaded_agent = None
     ):
     opt = gpt_mkdir(opt, Type='remove')
 
-    agent = Use_Agent(opt, TODO='Find target to be removed')
+    agent = Use_Agent(opt, TODO='find target to be removed') if preloaded_agent is None \
+                    else preloaded_agent['find target to be removed']
     target_noun = get_response(agent, opt.edit_txt)
-    array_return, *_ = Remove_Me_lama(opt, target_noun, input_pil=input_pil, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
+    array_return, *_ = Remove_Me_lama(
+                            opt, target_noun, input_pil = input_pil, 
+                            dilate_kernel_size = opt.dilate_kernel_size,
+                            preloaded_model = preloaded_model
+                        ) if opt.use_lama \
                         else Remove_Me(opt, target_noun, remove_mask=True)
     # TODO: recover the scenery for img_dragged in mask
     method_history = (f'[{current_step:02}|{tot_step:02}]\tRemove: 「{target_noun}」')
@@ -75,19 +93,28 @@ def Replace_Method(
         opt, 
         current_step: int, 
         tot_step: int, 
-        input_pil: Image = None
+        input_pil: Image = None,
+        preloaded_model = None,
+        preloaded_agent = None
     ):
     opt = gpt_mkdir(opt, Type='replace')
 
     # find the target -> remove -> recover the scenery -> add the new
-    replace_agent = Use_Agent(opt, TODO='Find target to be replaced')
+    replace_agent = Use_Agent(opt, TODO='find target to be replaced') if preloaded_agent is None\
+                            else preloaded_agent['find target to be replaced']
     replace_tuple = get_response(replace_agent, opt.edit_txt)
     print(f'replace_tuple = {replace_tuple}')
     old_noun, new_noun = get_replace_tuple(replace_tuple)
     # TODO: replace has no need of an agent; original mask and box is necessary!
-    rescale_agent = Use_Agent(opt, TODO='Rescale bbox for me')
-    diffusion_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me')
-    pil_return = replace_target(opt, old_noun, new_noun, input_pil=input_pil, edit_agent=rescale_agent, expand_agent=diffusion_agent)
+    rescale_agent = Use_Agent(opt, TODO='rescale bbox for me') if preloaded_agent is None\
+                            else preloaded_agent['rescale bbox for me']
+    diffusion_agent = Use_Agent(opt, TODO='expand diffusion prompts for me') if preloaded_agent is None\
+                            else preloaded_agent['expand diffusion prompts for me']
+    pil_return = replace_target(
+                        opt, old_noun, new_noun, input_pil = input_pil, 
+                        edit_agent = rescale_agent, expand_agent = diffusion_agent,
+                        preloaded_model = preloaded_model
+                    )
     method_history = (f'[{current_step:02}|{tot_step:02}]\tReplace: 「{old_noun}」-> 「{new_noun}」')
 
     return pil_return, method_history
@@ -96,18 +123,25 @@ def Move_Method(
         opt, 
         current_step: int, 
         tot_step: int, 
-        input_pil: Image = None
+        input_pil: Image = None,
+        preloaded_model = None,
+        preloaded_agent = None
     ):
     opt = gpt_mkdir(opt, Type='move')
 
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
     move_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
-    noun_agent = Use_Agent(opt, TODO='find target to be moved')
+    noun_agent = Use_Agent(opt, TODO='find target to be moved') if preloaded_agent is None\
+                            else preloaded_agent['find target to be moved']
     target_noun = get_response(noun_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
-    del noun_agent
 
-    pil_return = create_location(opt, target_noun, input_pil=input_pil, edit_agent=move_agent)
+    pil_return = create_location(
+                        opt, target_noun, 
+                        input_pil = input_pil, 
+                        edit_agent = move_agent,
+                        preloaded_model = preloaded_model
+                    )
     method_history = (f'[{current_step:02}|{tot_step:02}]\tMove: 「{target_noun}」')
 
     return pil_return, method_history
@@ -116,20 +150,31 @@ def Add_Method(
         opt, 
         current_step: int, 
         tot_step: int, 
-        input_pil: Image = None
+        input_pil: Image = None,
+        preloaded_model = None,
+        preloaded_agent = None
     ):
     opt = gpt_mkdir(opt, Type='add')
 
-    add_agent = Use_Agent(opt, TODO='find target to be added')
+    add_agent = Use_Agent(opt, TODO='find target to be added') if preloaded_agent is None\
+                            else preloaded_agent['find target to be added']
     ans = get_response(add_agent, opt.edit_txt)
     print(f'tuple_ans: {ans}')
     name, num, place = get_add_tuple(ans)
-    del add_agent
+
     print(f'name = {name}, num = {num}, place = {place}')
-    arrange_agent = Use_Agent(opt, TODO='generate a new bbox for me') if '<NULL>' in place \
-                    else Use_Agent(opt, TODO='adjust bbox for me')
-    diffusion_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me')
-    pil_return = Add_Object(opt, name, num, place, input_pil=input_pil, edit_agent=arrange_agent, expand_agent=diffusion_agent)
+    arrange_agent = (Use_Agent(opt, TODO='generate a new bbox for me') if preloaded_agent is None\
+                            else preloaded_agent['generate a new bbox for me']) if '<NULL>' in place \
+                    else (Use_Agent(opt, TODO='adjust bbox for me') if preloaded_agent is None\
+                            else preloaded_agent['adjust bbox for me'])
+    diffusion_agent = Use_Agent(opt, TODO='expand diffusion prompts for me') if preloaded_agent is None\
+                            else preloaded_agent['expand diffusion prompts for me']
+    pil_return = Add_Object(
+                        opt, name, num, place, 
+                        input_pil = input_pil, 
+                        edit_agent = arrange_agent, expand_agent = diffusion_agent,
+                        preloaded_model = preloaded_model
+                    )
     
     method_history = (f'[{current_step:02}|{tot_step:02}]\tAdd: 「{name}」')
 
@@ -156,7 +201,6 @@ def get_planning_system_agent(opt):
         INPUT: "The sun went down, the sky was suddenly dark, and the birds returned to their nests."
         Output: (Remove, "remove the sun"); (Transfer, "the lights are out, darkness"); (Add, "add some birds, they are flying in the sky")
     """
-
     planning_system_prompt = "You are an image editing system that can give editing solutions based on only 5 editing tools. "\
                              "You have and only have the following 5 types of tools for editing: 'Add', 'Remove', 'Replace', 'Move' and 'Transfer'. "\
                              "The commands are explained and their effects are described below. "\
@@ -179,7 +223,6 @@ def get_planning_system_agent(opt):
                              "Output: (Remove, \"remove the sun\"); (Transfer, \"the lights are out, darkness\"); "\
                              "(Add, \"add some birds, they are flying in the sky\")\nNote that when you are giving output, "\
                              "you mustn\'t output any other character"
-    
     planning_system_first_ask = "If you have understood your task, please answer \"yes\" without any other character and "\
                                 "I\'ll give you the INPUT. Note that when you are giving output, you mustn\'t output any other character"
 
@@ -208,9 +251,13 @@ def main():
         "move": Move_Method,
         "transfer": Transfer_Method
     }
+        
+    preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
+    preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
+
     planning_agent = get_planning_system_agent(opt)
     task_plannings = get_plans(opt, planning_agent) # [dict("type": ..., "command": ...)]
-    
+
     planning_folder = os.path.join(opt.out_dir, 'plans')
     if not os.path.exists(planning_folder): os.mkdir(planning_folder)
     plan_step, tot_step = 1, len(task_plannings)
@@ -226,8 +273,11 @@ def main():
                         opt, 
                         current_step = plan_step, 
                         tot_step = tot_step, 
-                        input_pil = img_pil
+                        input_pil = img_pil,
+                        preloaded_model = preloaded_models, 
+                        preloaded_agent = preloaded_agents
                     )
+
         method_history.append(method_his)
         img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
         plan_step += 1

@@ -39,7 +39,7 @@ def query_middleware(
         seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
     else:
         cfg = preloaded_seem_detector['cfg']
-        seem_mode = preloaded_seem_detector['seem_model']
+        seem_model = preloaded_seem_detector['seem_model']
 
     with torch.no_grad():
         seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"],

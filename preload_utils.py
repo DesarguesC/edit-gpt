@@ -38,6 +38,16 @@ from torchvision.transforms import Resize
 
 from lama.saicinpainting.training.trainers import load_checkpoint
 
+A = 'find target to be removed'
+B = 'find target to be replaced'
+C = 'rescale bbox for me'
+D = 'expand diffusion prompts for me'
+E = 'arrange a new bbox for me'
+F = 'find target to be moved'
+G = 'find target to be added'
+H = 'generate a new bbox for me'
+I = 'adjust bbox for me'
+
 
 def preload_ip2p(opt):
     config = OmegaConf.load(opt.ip2p_config)
@@ -119,6 +129,14 @@ def preload_v1_5_generator(opt):
         'append_to_context': append_to_context
     }
 
+def preload_example_generator(opt):
+    if opt.example_type == 'XL_adapter':
+        return preload_XL_generator(opt)
+    elif opt.example_type == 'XL':
+        return preload_XL_adapter_generator(opt)
+    else:  # stable-diffusion 1.5
+        return preload_v1_5_generator(opt)
+
 def preload_paint_by_example_model(opt):
     from pldm.models.diffusion.ddim import DDIMSampler
     from pldm.models.diffusion.plms import PLMSSampler
@@ -153,7 +171,7 @@ def preload_seem_detector(opt):
 
     return {
         'cfg': cfg,
-        'sem_model': seem_model
+        'seem_model': seem_model
     }
     
 def preload_lama_remover(opt):
@@ -188,5 +206,34 @@ def preload_lama_remover(opt):
     }
 
 # yaml, load_checkpoint ?
+
+def preload_all_models(opt):
+    return {
+        'preloaed_ip2p': preload_ip2p(opt), # 8854 MiB
+        'preloaded_example_generator': preload_example_generator(opt), 
+        # XL - 8272 MiB, XL_ad - 8458 MiB, V1.5 - 10446 MiB
+        'preloaded_example_painter': preload_paint_by_example_model(opt), # 10446 MiB
+        'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
+        'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
+        'preloaded_lama_remover': preload_lama_remover(opt) # 10446 MiB
+    }
+
+
+def preload_all_agents(opt):
+    # task planning agent need to be added outside
+    return {
+        A: Use_Agent(opt, TODO = A),
+        B: Use_Agent(opt, TODO = B),
+        C: Use_Agent(opt, TODO = C),
+        D: Use_Agent(opt, TODO = D),
+        E: Use_Agent(opt, TODO = E),
+        F: Use_Agent(opt, TODO = F),
+        G: Use_Agent(opt, TODO = G),
+        H: Use_Agent(opt, TODO = H),
+        I: Use_Agent(opt, TODO = I)
+    }
+
+
+
 
 

@@ -17,6 +17,7 @@ DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fin
 
 PROMPT_BASE = '8K, highly detailed, expressively clear, high resolution'
 
+from prompt.guide import Use_Agent
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -224,6 +225,20 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         type=str2bool,
         help="whether to do the mask ablation",
         default=False
+    )
+
+    parser.add_argument(
+        '--preload_all_models',
+        type=str2bool,
+        default=False,
+        help='preload all models for valuation',
+    )
+
+    parser.add_argument(
+        '--preload_all_agents',
+        type=str2bool,
+        default=False,
+        help='preload all agents for valuation',
     )
 
     return parser
