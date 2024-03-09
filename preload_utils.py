@@ -3,7 +3,7 @@ import k_diffusion as K
 from PIL import Image
 from einops import repeat, rearrange
 import numpy as np
-import torch, cv2, os, random, math
+import torch, cv2, os, random, math, yaml
 from torch import nn, autocast
 
 from basicsr.utils import tensor2img, img2tensor
@@ -35,6 +35,8 @@ from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestr
 from controlnet_aux.lineart import LineartDetector
 from transformers import AutoFeatureExtractor
 from torchvision.transforms import Resize
+
+from lama.saicinpainting.training.trainers import load_checkpoint
 
 
 def preload_ip2p(opt):
