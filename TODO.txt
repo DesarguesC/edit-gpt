@@ -47,3 +47,6 @@ Question：
 
 尝试说明：用GPT4去做这个任务，视觉信息是冗余的 -> 如何证明信息冗余？-> 数据流型
 
+
+2024.3.9
+stable-diffusion XL 部分似乎出了一点问题，remains to be fixed
