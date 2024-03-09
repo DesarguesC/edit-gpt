@@ -9,6 +9,7 @@ checkpoints/
 # static-crfill/  # object removed images
 # static-inpaint/ 
 # static/
+memory_test.txt
 
 key.csv
 # *.txt
