@@ -34,6 +34,9 @@ def gpt_mkdir(opt, Type = None):
         folder_name = f'TRANS-{base_cnt:06}'
         if not hasattr(opt, 'out_name'): setattr(opt, 'out_name', 'transfered')
         else: opt.out_name = 'transfered'
+    else:
+        folder_name = ''
+        exit(-1)
     opt.base_folder = folder_name
 
     base_dir = os.path.join(opt.out_dir, folder_name)
@@ -268,7 +271,7 @@ def main():
         plan_type = plan_item['type']
         edit_tool = operation_menu[plan_type]
         opt.edit_txt = plan_item['command']
-        
+
         img_pil, method_his = edit_tool(
                         opt, 
                         current_step = plan_step, 

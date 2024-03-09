@@ -241,6 +241,13 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         help='preload all agents for valuation',
     )
 
+    parser.add_argument(
+        '--compile',
+        type=str2bool,
+        default=False,
+        help='when you are testing system on a huge system, you should set it as True'
+    )
+
     return parser
 
 def get_sd_models(opt):

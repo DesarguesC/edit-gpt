@@ -65,7 +65,7 @@ def Add_Object(
         # system_prompt_add -> panoptic
         _, panoptic_dict = middleware(
                                 opt, img_pil,
-                                preloaded_seem_detector = preloaded_model['preladed_seem_detector'] if preloaded_model is not None else None
+                                preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                             )
 
         place_mask_list = [item['mask'] for item in panoptic_dict]
@@ -117,7 +117,10 @@ def Add_Object(
                         )
         
         # query mask-box & rescale
-        _, mask_example, _ = query_middleware(opt, diffusion_pil, name)
+        _, mask_example, _ = query_middleware(
+                                    opt, diffusion_pil, name,
+                                    preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
+                                )
         print(f'diffusion_pil.size = {diffusion_pil.size}, mask_example.shape = {mask_example.shape}')
 
         assert mask_example.shape[-2:] == (opt.H, opt.W), f'mask_example.shape = {mask_example.shape}, opt(H, W) = {(opt.H, opt.W)}'
