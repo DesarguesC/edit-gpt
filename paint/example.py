@@ -148,9 +148,9 @@ def generate_example(
             pipe = DiffusionPipeline.from_pretrained(f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0", \
                                                     torch_dtype=torch.float16, use_safetensors=True, variant="fp16", local_files_only=True)
             pipe.to("cuda")
-            pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+            # pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
             refiner = DiffusionPipeline.from_pretrained(
-                                f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0",
+                                f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0",
                                 text_encoder_2 = pipe.text_encoder_2,
                                 vae = pipe.vae,
                                 torch_dtype = torch.float16, 
@@ -164,23 +164,22 @@ def generate_example(
             pipe = preloaded_example_generator['pipe'].to("cuda")
             refiner = preloaded_example_generator['refiner'].to("cuda")
 
-        high_moise_frac = 0.8
+        high_noise_frac = 0.8
 
         gen_images = pipe(
-            prompts,
+            prompt = prompts,
             height = opt.H, width = opt.W, 
-            denoising_end = high_moise_frac,
+            denoising_end = high_noise_frac,
             num_inference_steps = int(1.5*opt.steps),
             output_type = 'latent',
         ).images
 
         gen_images = refiner(
             prompt = prompts,
-            height = opt.H, width = opt.W,
             num_inference_steps = int(1.5*opt.steps),
-            denoising_end = high_moise_frac,
+            denoising_end = high_noise_frac,
             image = gen_images,
-        ).image[0]
+        ).images[0]
     
     elif '1.5' in opt.example_type:  # stable-diffusion 1.5
         print('-'*9 + 'Generating via sd1.5 with T2I-Adapter' + '-'*9)
@@ -250,10 +249,10 @@ def paint_by_example(
     assert ref_img.size == base_img.size, f'ref_img.size = {ref_img.shape}, base_img.size = {base_img.size}'
     mask = fix_mask(mask) # fix dimensions
     print(f'Example Mask = {mask.shape}')
-
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    
     if preloaded_example_painter is None:
         seed_everything(opt.seed)
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         config = OmegaConf.load(f"{opt.example_config}")
         model = load_model_from_config(config, f"{opt.example_ckpt}").to(device)
         if opt.plms:

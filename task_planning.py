@@ -61,7 +61,7 @@ def Transfer_Method(
                         img_cfg = opt.img_cfg, 
                         txt_cfg = opt.txt_cfg, 
                         dilate_kernel_size = 15, 
-                        preloaded_model = None # preloaded_model    
+                        preloaded_model = preloaded_model    
                     )
     method_history = (f'[{current_step:02}|{tot_step:02}]\tTransfer: 「editing has launched via InsrtuctPix2Pix」')
     return pil_return, method_history
@@ -268,7 +268,7 @@ def main():
         plan_type = plan_item['type']
         edit_tool = operation_menu[plan_type]
         opt.edit_txt = plan_item['command']
-
+        
         img_pil, method_his = edit_tool(
                         opt, 
                         current_step = plan_step, 

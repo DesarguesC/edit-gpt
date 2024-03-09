@@ -142,7 +142,7 @@ def Add_Object(
         # paint-by-example
         _, painted = paint_by_example(
                             opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil, 
-                            preloaded_paint_by_example_model = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None
+                            preloaded_example_painter = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None
                         )
         output_path = os.path.join(add_path, f'added_{i}.jpg')
         painted = tensor2img(painted)

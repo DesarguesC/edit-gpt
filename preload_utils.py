@@ -31,7 +31,7 @@ from modeling.language.loss import vl_similarity
 from utils.constants import COCO_PANOPTIC_CLASSES
 from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
 
-from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL, DiffusionPipeline
+from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL, DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
 from controlnet_aux.lineart import LineartDetector
 from transformers import AutoFeatureExtractor
 from torchvision.transforms import Resize
@@ -65,9 +65,10 @@ def preload_ip2p(opt):
 def preload_XL_generator(opt):
     
     pipe = DiffusionPipeline.from_pretrained(f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0", \
-                                                torch_dtype=torch.float16, use_safetensors=True, variant="fp16", local_files_only=True)
+                                                torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
     pipe.to("cuda")
-    pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+    # pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+    
     refiner = DiffusionPipeline.from_pretrained(
                                 f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0",
                                 text_encoder_2 = pipe.text_encoder_2,
@@ -75,7 +76,6 @@ def preload_XL_generator(opt):
                                 torch_dtype=torch.float16, 
                                 use_safetensors=True, 
                                 variant="fp16", 
-                                local_files_only=True
                             )
     refiner.to('cuda')                        
 
