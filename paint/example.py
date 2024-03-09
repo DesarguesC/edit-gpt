@@ -98,7 +98,6 @@ def generate_example(
 
     if opt.example_type == 'XL_adapter':
         print('-' * 9 + 'Generating via SDXL-Adapter' + '-' * 9)
-
         if preloaded_example_generator is None:
             from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL
             from controlnet_aux.lineart import LineartDetector
@@ -118,7 +117,6 @@ def generate_example(
             ).to("cuda")
             pipe.enable_xformers_memory_efficient_attention()
             detector = LineartDetector.from_pretrained(f"{opt.XL_base_path}/lllyasviel/Annotators").to("cuda") if opt.linear else None
-        
         else:
             pipe = preloaded_example_generator['pipe']
             detector = preloaded_example_generator['detector']
@@ -135,25 +133,54 @@ def generate_example(
             image = Image.fromarray(np.uint8(image * cond_mask))
         
         gen_images = pipe(
-            prompt=prompts,
-            negative_prompt=DEFAULT_NEGATIVE_PROMPT,
-            image=image,
-            num_inference_steps=opt.steps,
-            adapter_conditioning_scale=0.8,
-            guidance_scale=7.5,
+            prompt = prompts,
+            negative_prompt = DEFAULT_NEGATIVE_PROMPT,
+            image = image,
+            num_inference_steps = opt.steps,
+            adapter_conditioning_scale = 0.8,
+            guidance_scale = 7.5,
         ).images[0]
 
     elif opt.example_type == 'XL':
+        print('-' * 9 + 'Generating via SDXL-Base' + '-' * 9)
         if preloaded_example_generator is None:
-            print('-' * 9 + 'Generating via SDXL-Base' + '-' * 9)
             from diffusers import DiffusionPipeline
             pipe = DiffusionPipeline.from_pretrained(f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0", \
                                                     torch_dtype=torch.float16, use_safetensors=True, variant="fp16", local_files_only=True)
             pipe.to("cuda")
+            pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+            refiner = DiffusionPipeline.from_pretrained(
+                                f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0",
+                                text_encoder_2 = pipe.text_encoder_2,
+                                vae = pipe.vae,
+                                torch_dtype = torch.float16, 
+                                use_safetensors = True, 
+                                variant = "fp16", 
+                                local_files_only = True
+                            )
+            refiner.to('cuda')
+
         else:
-            pipe = preloaded_example_generator['pipe']
-        
-        gen_images = pipe(prompts, height=opt.H, width=opt.W, steps=int(1.5*opt.steps)).images[0]
+            pipe = preloaded_example_generator['pipe'].to("cuda")
+            refiner = preloaded_example_generator['refiner'].to("cuda")
+
+        high_moise_frac = 0.8
+
+        gen_images = pipe(
+            prompts,
+            height = opt.H, width = opt.W, 
+            denoising_end = high_moise_frac,
+            num_inference_steps = int(1.5*opt.steps),
+            output_type = 'latent',
+        ).images
+
+        gen_images = refiner(
+            prompt = prompts,
+            height = opt.H, width = opt.W,
+            num_inference_steps = int(1.5*opt.steps),
+            denoising_end = high_moise_frac,
+            image = gen_images,
+        ).image[0]
     
     elif '1.5' in opt.example_type:  # stable-diffusion 1.5
         print('-'*9 + 'Generating via sd1.5 with T2I-Adapter' + '-'*9)

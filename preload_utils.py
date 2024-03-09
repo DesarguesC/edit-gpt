@@ -31,7 +31,7 @@ from modeling.language.loss import vl_similarity
 from utils.constants import COCO_PANOPTIC_CLASSES
 from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
 
-from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL
+from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL, DiffusionPipeline
 from controlnet_aux.lineart import LineartDetector
 from transformers import AutoFeatureExtractor
 from torchvision.transforms import Resize
@@ -63,13 +63,25 @@ def preload_ip2p(opt):
     }
 
 def preload_XL_generator(opt):
-    from diffusers import DiffusionPipeline
+    
     pipe = DiffusionPipeline.from_pretrained(f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0", \
                                                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16", local_files_only=True)
     pipe.to("cuda")
+    pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+    refiner = DiffusionPipeline.from_pretrained(
+                                f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0",
+                                text_encoder_2 = pipe.text_encoder_2,
+                                vae = pipe.vae,
+                                torch_dtype=torch.float16, 
+                                use_safetensors=True, 
+                                variant="fp16", 
+                                local_files_only=True
+                            )
+    refiner.to('cuda')                        
 
     return {
-        'pipe': pipe
+        'pipe': pipe,
+        'refiner': refiner
     }
 
 def preload_XL_adapter_generator(opt):
@@ -130,9 +142,9 @@ def preload_v1_5_generator(opt):
     }
 
 def preload_example_generator(opt):
-    if opt.example_type == 'XL_adapter':
+    if opt.example_type == 'XL':
         return preload_XL_generator(opt)
-    elif opt.example_type == 'XL':
+    elif opt.example_type == 'XL_adapter':
         return preload_XL_adapter_generator(opt)
     else:  # stable-diffusion 1.5
         return preload_v1_5_generator(opt)
