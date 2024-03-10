@@ -133,7 +133,8 @@ def Move_Method(
     opt = gpt_mkdir(opt, Type='move')
 
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
-    move_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
+    move_agent = Use_Agent(opt, TODO='arrange a new bbox for me') if preloaded_agent is None\
+                            else preloaded_agent['arrange a new bbox for me']
     noun_agent = Use_Agent(opt, TODO='find target to be moved') if preloaded_agent is None\
                             else preloaded_agent['find target to be moved']
     target_noun = get_response(noun_agent, opt.edit_txt)
