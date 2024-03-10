@@ -1,5 +1,5 @@
 import re, torch, os, cv2, time
-from prompt.guide import get_response, Use_Agent
+from prompt.guide import *
 from prompt.util import get_image_from_box as get_img
 from prompt.item import Label, get_replace_tuple, get_add_tuple
 import numpy as np
@@ -9,14 +9,13 @@ import pandas as pd
 from prompt.arguments import create_parse_args
 from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object
 
-opt = create_parse_args()
+from task_planning import *
 
-dd = list(pd.read_csv('./key.csv')['key'])
-assert len(dd) == 1
-api_key = dd[0]
-net_proxy = 'http://127.0.0.1:7890'
-# engine='gpt-3.5-turbo-0613'
-# engine='gpt-3.5-turbo'
+opt = get_arguments()
+# for test, set "preload_all_models" = True is highly recommanded
+
+api_key = opt.api_key
+net_proxy = opt.net_proxy
 engine = opt.engine
 print(f'Using: {engine}')
 
@@ -71,18 +70,30 @@ opt.mask_dir = mask_dir
 if not os.path.exists(opt.mask_dir): os.mkdir(opt.mask_dir)
 print(f'base_dir: {base_dir}')
 
+
+preloded_model = preload_all_models if opt.preload_all_models else None
+preloaded_agent = preload_all_agents if opt.preload_all_models else None
+
+
+
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery
-    agent = Use_Agent(opt, TODO='Find target to be removed')
+    agent = Use_Agent(opt, TODO='find target to be removed') if preloaded_agent is None \
+                    else preloaded_agent['find target to be removed']
     target_noun = get_response(agent, opt.edit_txt)
     print(f'\'{target_noun}\' will be removed')
-    _ = Remove_Me_lama(opt, target_noun, dilate_kernel_size=opt.dilate_kernel_size) if opt.use_lama \
+    _ = Remove_Me_lama(
+                opt, target_noun, input_pil = None,
+                dilate_kernel_size=opt.dilate_kernel_size,
+                preloaded_model = preloaded_model
+            ) if opt.use_lama \
                         else Remove_Me(opt, target_noun, remove_mask=True)
     # TODO: recover the scenery for img_dragged in mask
 
 elif 'replace' in sorted_class:
     # find the target -> remove -> recover the scenery -> add the new
-    replace_agent = Use_Agent(opt, TODO='Find target to be replaced')
+    replace_agent = Use_Agent(opt, TODO='find target to be replaced') if preloaded_agent is None\
+                            else preloaded_agent['find target to be replaced']
     replace_tuple = get_response(replace_agent, opt.edit_txt)
     print(f'replace_tuple = {replace_tuple}')
     old_noun, new_noun = get_replace_tuple(replace_tuple)
@@ -90,30 +101,38 @@ elif 'replace' in sorted_class:
     del replace_agent
 
     # TODO: replace has no need of an agent; original mask and box is necessary!
-    rescale_agent = Use_Agent(opt, TODO='Rescale bbox for me')
-    diffusion_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me')
+    rescale_agent = Use_Agent(opt, TODO='rescale bbox for me') if preloaded_agent is None\
+                            else preloaded_agent['rescale bbox for me']
+    diffusion_agent = Use_Agent(opt, TODO='expand diffusion prompts for me') if preloaded_agent is None\
+                            else preloaded_agent['expand diffusion prompts for me']
     replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, expand_agent=diffusion_agent)
 
 elif 'locate' in sorted_class:
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
-    move_agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
-    noun_agent = Use_Agent(opt, TODO='find target to be moved')
+    move_agent = Use_Agent(opt, TODO='arrange a new bbox for me') if preloaded_agent is None\
+                            else preloaded_agent['arrange a new bbox for me']
+    noun_agent = Use_Agent(opt, TODO='find target to be moved') if preloaded_agent is None\
+                            else preloaded_agent['find target to be moved']
     target_noun = get_response(noun_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
     del noun_agent
     create_location(opt, target_noun, edit_agent=move_agent)
 
 elif 'add' in sorted_class:
-    add_agent = Use_Agent(opt, TODO='find target to be added')
+    add_agent = Use_Agent(opt, TODO='find target to be added') if preloaded_agent is None\
+                            else preloaded_agent['find target to be added']
     ans = get_response(add_agent, opt.edit_txt)
     print(f'tuple_ans: {ans}')
     name, num, place = get_add_tuple(ans)
     del add_prompt_agent
     print(f'name = {name}, num = {num}, place = {place}')
 
-    arrange_agent = Use_Agent(opt, TODO='generate a new bbox for me') if '<NULL>' in place \
-                    else Use_Agent(opt, TODO='adjust bbox for me')
-    diffusion_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me')
+    arrange_agent = (Use_Agent(opt, TODO='generate a new bbox for me') if preloaded_agent is None\
+                            else preloaded_agent['generate a new bbox for me']) if '<NULL>' in place \
+                    else (Use_Agent(opt, TODO='adjust bbox for me') if preloaded_agent is None\
+                            else preloaded_agent['adjust bbox for me'])
+    diffusion_agent = Use_Agent(opt, TODO='expand diffusion prompts for me') if preloaded_agent is None\
+                            else preloaded_agent['expand diffusion prompts for me']
     Add_Object(opt, name, num, place, edit_agent=arrange_agent, expand_agent=diffusion_agent)
 
 else:
