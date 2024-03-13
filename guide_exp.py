@@ -7,6 +7,7 @@ import numpy as np
 from task_plannings import Replace_Method, Move_Method
 from models.clip import Cal_ClipDirectionalSimilarity as cal_similarity
 from models.clip import Cal_FIDScore as cal_fid
+from detectron2.data import MetadataCatalog
 
 """
     你是一个instruction生成器，你需要根据描述两幅相似图像的caption中的文字差异，生成一条能够通过“replace” 实现图像编辑的指令，例如：
@@ -46,7 +47,6 @@ system_prompt_gen_replace_instructions = "You are an instruction generator, and 
     每个输出中的两个位置A和B用";"分割，你的输出禁止包含多余的无关字符
 """
 
-
 system_prompt_gen_move_instructions = "You are a position generator and you need to generate a textual position "\
                                       "for an object at the position described by a bounding box, based on the input caption and label. "\
                                       "The input you get is: caption, label, (x,y,w,h). Here (x,y,w,h) is the bounding box, "\
@@ -57,7 +57,7 @@ system_prompt_gen_move_instructions = "You are a position generator and you need
                                       "Input: an apple is on the desk, apple, (100,100,50,70)\n"\
                                       "Output: on the desk; under the desk\n"\
                                       "Input: an apple on the desk, desk, (30,140,300,240)\n"\
-                                      "Output: desk on the left; desk on the right\n"\
+                                      "Output: on the left; on the right\n"\
                                       "The two positions A and B in each output are separated by \";\", "\
                                       "and your output is forbidden to contain extra extraneous characters."
     
@@ -130,7 +130,7 @@ def read_original_prompt(path_to_json):
     return (prompt1, prompt2, edit)
 
 
-def Val_Replace_Method(opt):
+def Val_Replace_Method(opt, tot_test_group_num=500):
     from prompt.arguments import get_arguments
     agent = use_exp_agent(opt, system_prompt_edit_sort)
     val_folder = '../autodl-tmp/clip-filtered/shard-00/'
@@ -150,7 +150,7 @@ def Val_Replace_Method(opt):
     caption_after_list = []
 
     # 4-6 images in a folder
-    while len(executed_list) < 500:
+    while len(executed_list) < tot_test_group_num:
         while Ture:
             folder = folders[randint(0, length)]
             if folder in selected_list: continue
@@ -169,6 +169,7 @@ def Val_Replace_Method(opt):
 
         name_list = [img.split('_')[0] for img in os.listdir(work_folder) if img.endswith('.jpg')]
         name_list = list(set(name_list))
+        opt.edit_txt = edit
         for name in name_list:
             img_path = os.path.join(work_folder, f'{name}_0.jpg')
             img_pil = Image.open(img_path)
@@ -181,22 +182,90 @@ def Val_Replace_Method(opt):
 
     clip_directional_similarity = cal_similarity(real_fake_image_list, fake_image_list, caption_before_list, caption_after_list)
     print(f"clip directional similarity: {clip_directional_similarity}")
-    with open("models/clip_directional_similarity.txt", "w") as f:
+    with open("models/clip_directional_similarity<Replace>.txt", "w") as f:
         f.write(clip_directional_similarity)
 
-    fid_score = cal_fid(real_fake_image_list, fake_image_list)
+    fid_score = cal_fid(torch.cat(real_fake_image_list, dim=0), torch.cat(fake_image_list, dim=0))
     print(f"FID Score: {fid_score}")
-    with open("models/fid_score.txt", "w") as f:
+    with open("models/fid_score<Replace>.txt", "w") as f:
         f.write(fid_score)
     
     del preloaded_agent, preloaded_replace_model
     # consider if there is need to save all images replaced
 
     
-def Val_Move_Method(opt):
+def Val_Move_Method(opt, tot_test_group_num=500):
+    metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     from prompt.arguments import get_arguments
-    agent = use_exp_agent(opt, system_prompt_edit_sort)
-    val_folder = '../autodl-tmp/clip-filtered/shard-00/'
+    agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
+    val_folder = '../autodl-tmp/COCO/test2017'
+    
+    caption_before_list = captions_after_list = []
+    image_before_list = image_after_list = []
+
+    # for validation after
+    caption_json = '../autodl-tmp/COCO/annotations/captions_val2017.json'
+    with open(caption_json, 'w') as f:
+        caption = json.load(f)    
+    # query caption via image_id
+    captions_dict = {}
+    for x in caption['annotations']:
+        image_id = str(x['image_id'])
+        if image_id is in captions_dict:
+            captions_dict[image_id] = captions_dict[image_id] + ', ' + x['captions']
+        else:
+            captions_dict[image_id] = x['captions']
+    
+    instance_json = '../autodl-tmp/COCO/annotations/instances_val2017.json'
+    with open(instance_json, 'w') as f:
+        data = json.load(f)
+    
+    length = len(data['annotations'])
+    selected_list = []
+    
+    for len(selected_list) < tot_test_group_num:
+        while True:
+            idx = randint(0, length)
+            if idx in selected_list: continue
+            else: break
+        selected_list.append(idx)
+        annotation = data['annotations'][idx]
+
+        x, y, w, h = annotation['bbox']
+        x, y, w, h = int(x), int(y), int(w), int(h)
+        img_id, label_id = annotation['id'], annotation['category_id']
+        caption = captions_dict[img_id]
+        label = metadata.stuff_classes(label_id)
+        place = get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';').strip()
+        ori_place, gen_place = place[0], place[1]
+
+        img_path =  os.path.join(val_folder, f'{img_id:12}.jpg')
+        img_pil = Image.open(img_path)
+        image_before_list,append(img2tensor(np.array(img_pil)))
+
+        opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
+        out_pil = Move_Method(opt, img_pil, 0, 0, preloaded_move_model, preloaded_agent, record_history=False)
+        image_after_list.append(img2tensor(np.array(out_pil)))
+
+        print(f'Images have been moved: {len(selected_list)}')
+
+    clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
+    print(f"clip directional similarity: {clip_directional_similarity}")
+    with open("models/clip_directional_similarity<Move>.txt", "w") as f:
+        f.write(clip_directional_similarity)
+
+    fid_score = cal_fid(torch.cat(image_before_list, dim=0), torch.cat(image_after_list, dim=0))
+    print(f"FID Score: {fid_score}")
+    with open("models/fid_score<Move>.txt", "w") as f:
+        f.write(fid_score)
+
+
+        
+
+
+
+
+
     folders = os.listdir(val_folder)
     length = len(folders)
     selected_list = []
@@ -212,13 +281,14 @@ def Val_Move_Method(opt):
     caption_before_list = []
     caption_after_list = []
 
-
+    # Read MSCOCO
 
 
 def main():
+    tot_test_group_num = 500
     opt = get_arguments()
-    Val_Replace_Method(opt)
-    Val_Move_Method(opt)
+    Val_Replace_Method(opt, tot_test_group_num)
+    Val_Move_Method(opt, tot_test_group_num)
 
 
 if __name__ == '__main__':
