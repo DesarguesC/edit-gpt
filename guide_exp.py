@@ -1,5 +1,5 @@
 import os, time
-from guide import get_response, get_bot
+from prompt.guide import get_response, get_bot
 
 
 """
@@ -40,14 +40,13 @@ system_prompt_gen_move_instructions = "You are a position generator and you need
                                       "which means: (x,y) represents the coordinates of the point in the upper left corner of "\
                                       "the bounding box, and (w,h) is the width and height of the bounding box. "\
                                       "You need to output the generated descriptive position with another textual description "\
-                                      "of the target position, so that the object can be moved from its current position to the target position, for example: \n"
+                                      "of the target position, so that the object can be moved from its current position to the target position, for example: \n"\
                                       "Input: an apple is on the desk, apple, (100,100,50,70)\n"\
                                       "Output: on the desk; under the desk\n"\
                                       "Input: an apple on the desk, desk, (30,140,300,240)\n"\
                                       "Output: desk on the left; desk on the right\n"\
                                       "The two positions A and B in each output are separated by \";\", "\
-                                      "and your output is forbidden to contain extra extraneous characters.
-"
+                                      "and your output is forbidden to contain extra extraneous characters."
     
 
 def use_exp_agent(opt, system_prompt):
@@ -71,4 +70,10 @@ def write_move_instruction(agent, path, caption, label, bbox):
         f.write(Output)
     return Output
 
-
+if __name__ == "__main__":
+    from prompt.arguments import get_arguments
+    opt = get_arguments()
+    agent = use_exp_agent(opt, system_prompt_gen_replace_instructions)
+    question = '1. Aspen Country II Painting 2. Aspen Country II Cartoon'
+    out = get_response(agent, question)
+    print(out)
