@@ -4,10 +4,11 @@ from basicsr.utils import tensor2img, img2tensor
 from random import randint
 from PIL import Image
 import numpy as np
-from task_plannings import Replace_Method, Move_Method
-from models.clip import Cal_ClipDirectionalSimilarity as cal_similarity
-from models.clip import Cal_FIDScore as cal_fid
+from task_planning import Replace_Method, Move_Method
+from prompt.utils import Cal_ClipDirectionalSimilarity as cal_similarity
+from prompt.utils import Cal_FIDScore as cal_fid
 from detectron2.data import MetadataCatalog
+from preload_utils import *
 
 """
     你是一个instruction生成器，你需要根据描述两幅相似图像的caption中的文字差异，生成一条能够通过“replace” 实现图像编辑的指令，例如：
@@ -78,7 +79,6 @@ system_prompt_edit_sort =   'You are an expert in text classiffication,  and the
 
 
 def preload_replace_model(opt):
-    from preload_utils import *
     return {
         'preloaded_example_generator': preload_example_generator(opt), 
         # XL - 8272 MiB, XL_ad - 8458 MiB, V1.5 - 10446 MiB
@@ -86,11 +86,9 @@ def preload_replace_model(opt):
         'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
         'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
         'preloaded_lama_remover': preload_lama_remover(opt) # 10446 MiB
-
     }
 
 def preload_move_model(opt):
-    from preload_utils import *
     return {
         'preloaded_example_painter': preload_paint_by_example_model(opt), # 10446 MiB
         'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
@@ -130,7 +128,7 @@ def read_original_prompt(path_to_json):
     return (prompt1, prompt2, edit)
 
 
-def Val_Replace_Method(opt, tot_test_group_num=500):
+def Val_Replace_Method(opt):
     from prompt.arguments import get_arguments
     agent = use_exp_agent(opt, system_prompt_edit_sort)
     val_folder = '../autodl-tmp/clip-filtered/shard-00/'
@@ -150,7 +148,7 @@ def Val_Replace_Method(opt, tot_test_group_num=500):
     caption_after_list = []
 
     # 4-6 images in a folder
-    while len(executed_list) < tot_test_group_num:
+    while len(executed_list) < opt.test_group_num:
         while Ture:
             folder = folders[randint(0, length)]
             if folder in selected_list: continue
@@ -194,7 +192,7 @@ def Val_Replace_Method(opt, tot_test_group_num=500):
     # consider if there is need to save all images replaced
 
     
-def Val_Move_Method(opt, tot_test_group_num=500):
+def Val_Move_Method(opt):
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     from prompt.arguments import get_arguments
     agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
@@ -211,7 +209,7 @@ def Val_Move_Method(opt, tot_test_group_num=500):
     captions_dict = {}
     for x in caption['annotations']:
         image_id = str(x['image_id'])
-        if image_id is in captions_dict:
+        if image_id in captions_dict:
             captions_dict[image_id] = captions_dict[image_id] + ', ' + x['captions']
         else:
             captions_dict[image_id] = x['captions']
@@ -223,7 +221,7 @@ def Val_Move_Method(opt, tot_test_group_num=500):
     length = len(data['annotations'])
     selected_list = []
     
-    for len(selected_list) < tot_test_group_num:
+    while len(selected_list) < opt.test_group_num:
         while True:
             idx = randint(0, length)
             if idx in selected_list: continue
@@ -285,10 +283,11 @@ def Val_Move_Method(opt, tot_test_group_num=500):
 
 
 def main():
-    tot_test_group_num = 500
+    
     opt = get_arguments()
-    Val_Replace_Method(opt, tot_test_group_num)
-    Val_Move_Method(opt, tot_test_group_num)
+    setattr(opt, 'test_group_num', 2)
+    Val_Replace_Method(opt)
+    Val_Move_Method(opt)
 
 
 if __name__ == '__main__':

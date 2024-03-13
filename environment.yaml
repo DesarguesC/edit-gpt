@@ -19,7 +19,7 @@ dependencies:
     - json_tricks==3.17.3
     - pudb
     - datasets==2.8.0
-    - torchmetrics==0.6.0
+    - torchmetrics==0.11.0
     - seaborn
     - invisible-watermark==0.1.5
     - imageio==2.9.0
