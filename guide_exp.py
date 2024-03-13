@@ -182,12 +182,12 @@ def Val_Replace_Method(opt):
     clip_directional_similarity = cal_similarity(real_fake_image_list, fake_image_list, caption_before_list, caption_after_list)
     print(f"clip directional similarity: {clip_directional_similarity}")
     with open("models/clip_directional_similarity<Replace>.txt", "w") as f:
-        f.write(clip_directional_similarity)
+        f.write(str(clip_directional_similarity))
 
     fid_score = cal_fid(torch.cat(real_fake_image_list, dim=0), torch.cat(fake_image_list, dim=0))
     print(f"FID Score: {fid_score}")
     with open("models/fid_score<Replace>.txt", "w") as f:
-        f.write(fid_score)
+        f.write(str(fid_score))
     
     del preloaded_agent, preloaded_replace_model
     # consider if there is need to save all images replaced
@@ -208,6 +208,10 @@ def Val_Move_Method(opt):
         caption = json.load(f)    
     # query caption via image_id
     captions_dict = {}
+
+    preloaded_move_model =  preload_move_model(opt) if opt.preload_all_models else None
+    preloaded_agent =  preload_all_agents(opt) if opt.preload_all_agents else None
+
     for x in caption['annotations']:
         image_id = str(x['image_id'])
         if image_id in captions_dict:
@@ -251,13 +255,14 @@ def Val_Move_Method(opt):
     clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
     print(f"clip directional similarity: {clip_directional_similarity}")
     with open("models/clip_directional_similarity<Move>.txt", "w") as f:
-        f.write(clip_directional_similarity)
+        f.write(str(clip_directional_similarity))
 
     fid_score = cal_fid(torch.cat(image_before_list, dim=0), torch.cat(image_after_list, dim=0))
     print(f"FID Score: {fid_score}")
     with open("models/fid_score<Move>.txt", "w") as f:
-        f.write(fid_score)
+        f.write(str(fid_score))
 
+    del preloaded_move_model, preloaded_agents
 
     # Read MSCOCO
 

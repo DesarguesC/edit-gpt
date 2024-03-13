@@ -67,7 +67,7 @@ class DirectionalSimilarity(nn.Module):
     def __init__(self, device = 'cuda'):
         super().__init__()
         self.devive = device
-        clip_id = '../autodl-tmp/openai/cli-vit-large-patch14'
+        clip_id = '../autodl-tmp/openai/clip-vit-large-patch14'
         self.tokenizer = CLIPTokenizer.from_pretrained(clip_id)
         self.text_encoder = CLIPTextModelWithProjection.from_pretrained(clip_id).to(device)
         self.image_processor = CLIPImageProcessor.from_pretrained(clip_id)
@@ -117,7 +117,9 @@ class DirectionalSimilarity(nn.Module):
 def Cal_ClipDirectionalSimilarity(image_before_list, image_after_list, caption_before_list, caption_after_list):
     dir_similarity = DirectionalSimilarity()
     scores = []
-    assert len(image_before_list) == len(image_after_list) == len(caption_before_list) == len(caption_after_list)
+    assert len(image_before_list) == len(image_after_list) and len(caption_before_list) == len(caption_after_list) and len(image_after_list) == len(caption_after_list), \
+            f'len(image_before_list) = {len(image_before_list)}, len(image_after_list) = {len(image_after_list)}, '\
+            f'len(caption_before_list) = {len(caption_before_list)}, len(caption_after_list) = {len(caption_after_list)}'
     for i in range(len(image_before_list)):
         scores.append(dir_similarity(
             image_before_list[i], image_after_list[i], 

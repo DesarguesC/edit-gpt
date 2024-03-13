@@ -104,7 +104,7 @@ def Add_Object(
             print(f'ans = {ans}')
             ans_list = [x.strip() for x in re.split(r'[(),{}\[\]$]', ans) if x != '' and x != ' ']
             assert len(ans_list) == 5, f'ans = {ans}, ans_list = {ans_list}'
-            fixed_box = (int(ans_list[1]), int(ans_list[2]), int(int(ans_list[3]) * opt.expand_scale), int(int(ans_list[4]) * opt.expand_scale))
+            fixed_box = (int(float(ans_list[1])), int(float(ans_list[2])), int(float(ans_list[3]) * opt.expand_scale), int(float(ans_list[4]) * opt.expand_scale))
             fixed_box = fix_box(fixed_box, (opt.W,opt.H,3))
 
             try_time += 1
