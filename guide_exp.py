@@ -4,7 +4,7 @@ from basicsr.utils import tensor2img, img2tensor
 from random import randint
 from PIL import Image
 import numpy as np
-from task_plannings import Replace_Method
+from task_plannings import Replace_Method, Move_Method
 from models.clip import Cal_ClipDirectionalSimilarity as cal_similarity
 from models.clip import Cal_FIDScore as cal_fid
 
@@ -77,7 +77,7 @@ system_prompt_edit_sort =   'You are an expert in text classiffication,  and the
 
 
 
-def preload_replcae_model(opt):
+def preload_replace_model(opt):
     from preload_utils import *
     return {
         'preloaded_example_generator': preload_example_generator(opt), 
@@ -130,9 +130,8 @@ def read_original_prompt(path_to_json):
     return (prompt1, prompt2, edit)
 
 
-def main():
+def Val_Replace_Method(opt):
     from prompt.arguments import get_arguments
-    opt = get_arguments()
     agent = use_exp_agent(opt, system_prompt_edit_sort)
     val_folder = '../autodl-tmp/clip-filtered/shard-00/'
     folders = os.listdir(val_folder)
@@ -190,10 +189,36 @@ def main():
     with open("models/fid_score.txt", "w") as f:
         f.write(fid_score)
     
+    del preloaded_agent, preloaded_replace_model
     # consider if there is need to save all images replaced
 
     
+def Val_Move_Method(opt):
+    from prompt.arguments import get_arguments
+    agent = use_exp_agent(opt, system_prompt_edit_sort)
+    val_folder = '../autodl-tmp/clip-filtered/shard-00/'
+    folders = os.listdir(val_folder)
+    length = len(folders)
+    selected_list = []
+    executed_list = []
+    execute_img_cnt = 0
 
+    from preload_utils import preload_all_agents
+    preloaded_move_model = preload_replace_model(opt)
+    preloaded_agent = preload_all_agents(opt)
+
+    real_fake_image_list = []
+    fake_image_list = []
+    caption_before_list = []
+    caption_after_list = []
+
+
+
+
+def main():
+    opt = get_arguments()
+    Val_Replace_Method(opt)
+    Val_Move_Method(opt)
 
 
 if __name__ == '__main__':
