@@ -163,9 +163,6 @@ def Val_Replace_Method(opt):
         if not 'replace' in sorted.lower(): continue
         else: executed_list.append(folder)
 
-        caption_before_list.append(c1)
-        caption_after_list.append(c2)
-
         name_list = [img.split('_')[0] for img in os.listdir(work_folder) if img.endswith('.jpg')]
         name_list = list(set(name_list))
         opt.edit_txt = edit
@@ -173,6 +170,8 @@ def Val_Replace_Method(opt):
             img_path = os.path.join(work_folder, f'{name}_0.jpg')
             img_pil = Image.open(img_path)
             output_pil = Replace_Method(opt, 0, 0, img_pil, preloaded_replace_model, preloaded_agent, record_history=False)
+            caption_before_list.append(c1)
+            caption_after_list.append(c2)
             fake_image_list.append(img2tensor(np.array(output_pil)))
             real_fake_image_list.append(img2tensor(np.array(Image.open(os.path.join(work_folder, f'{name}_1.jpg')))))
             execute_img_cnt += 1
@@ -184,7 +183,7 @@ def Val_Replace_Method(opt):
     with open("models/clip_directional_similarity<Replace>.txt", "w") as f:
         f.write(str(clip_directional_similarity))
 
-    fid_score = cal_fid(torch.cat(real_fake_image_list, dim=0), torch.cat(fake_image_list, dim=0))
+    fid_score = cal_fid(real_fake_image_list, fake_image_list)
     print(f"FID Score: {fid_score}")
     with open("models/fid_score<Replace>.txt", "w") as f:
         f.write(str(fid_score))
@@ -257,7 +256,7 @@ def Val_Move_Method(opt):
     with open("models/clip_directional_similarity<Move>.txt", "w") as f:
         f.write(str(clip_directional_similarity))
 
-    fid_score = cal_fid(torch.cat(image_before_list, dim=0), torch.cat(image_after_list, dim=0))
+    fid_score = cal_fid(torch.cat(image_before_list, dim=0).to('cuda'), torch.cat(image_after_list, dim=0).to('cuda'))
     print(f"FID Score: {fid_score}")
     with open("models/fid_score<Move>.txt", "w") as f:
         f.write(str(fid_score))

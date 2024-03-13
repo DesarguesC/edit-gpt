@@ -43,8 +43,8 @@ def Cal_FIDScore(real_image_list, fake_image_list):
     # fake_image: list(np.array), with the same shape (512,512) or (256,256)
     assert isinstance(fake_image_list, list) and isinstance(real_image_list, list)
 
-    real_images = torch.cat([tensor2img(img) for img in real_image_list])
-    fake_images = torch.cat([tensor2img(img) for img in fake_image_list])
+    real_images = torch.cat([tensor2img(img) for img in real_image_list], dim=0).detach().cpu().numpy()
+    fake_images = torch.cat([tensor2img(img) for img in fake_image_list], dim=0).detach().cpu().numpy()
 
     fid = FID(normalize=True)
     fid.update(real_images, real=True)
@@ -62,11 +62,10 @@ from transformers import (
     CLIPImageProcessor,
 )
 
-
 class DirectionalSimilarity(nn.Module):
     def __init__(self, device = 'cuda'):
         super().__init__()
-        self.devive = device
+        self.device = device
         clip_id = '../autodl-tmp/openai/clip-vit-large-patch14'
         self.tokenizer = CLIPTokenizer.from_pretrained(clip_id)
         self.text_encoder = CLIPTextModelWithProjection.from_pretrained(clip_id).to(device)
@@ -75,7 +74,7 @@ class DirectionalSimilarity(nn.Module):
 
     def preprocess_image(self, image):
         image = self.image_processor(image, return_tensors="pt")["pixel_values"]
-        return {"pixel_values": image.to(device)}
+        return {"pixel_values": image.to(self.device)}
 
     def tokenize_text(self, text):
         inputs = self.tokenizer(
@@ -85,7 +84,7 @@ class DirectionalSimilarity(nn.Module):
             truncation=True,
             return_tensors="pt",
         )
-        return {"input_ids": inputs.input_ids.to(device)}
+        return {"input_ids": inputs.input_ids.to(self.device)}
 
     def encode_image(self, image):
         preprocessed_image = self.preprocess_image(image)
@@ -124,8 +123,8 @@ def Cal_ClipDirectionalSimilarity(image_before_list, image_after_list, caption_b
         scores.append(dir_similarity(
             image_before_list[i], image_after_list[i], 
             caption_before_list[i], caption_after_list[i]
-        ))
+        ).detach().cpu().numpy())
 
-    return np.mean(scores)
+    return np.mean(np.array(scores))
 
 
