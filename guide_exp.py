@@ -1,13 +1,23 @@
-import os, time
+import os, time, json
 from prompt.guide import get_response, get_bot
-
+from basicsr.utils import tensor2img, img2tensor
+from random import randint
+from PIL import Image
+import numpy as np
+from task_plannings import Replace_Method
+from models.clip import Cal_ClipDirectionalSimilarity as cal_similarity
+from models.clip import Cal_FIDScore as cal_fid
 
 """
     你是一个instruction生成器，你需要根据描述两幅相似图像的caption中的文字差异，生成一条能够通过“replace” 实现图像编辑的指令，例如：
     Input: 1.mountains of scotland under a bright sunny sky 2. mountains of scotland under a rainy sky
     Output: replace "bright sunny sky" with a "rainy sky".
     我们更希望你使用"replace A with B"的句型。另外，如果你认为这两条caption之间不能用一条只用“replace”方法的instruction实现，
-    请输出“NULL”。注意，你的输出中禁止包含其他多余的字符。
+    请输出“NULL”。例如：
+    Input: 1. Aspen Country II Painting 2. Aspen Country II Cartoon
+    Output: NULL
+    因为这是一个风格迁移方面的变换
+    注意，你的输出中禁止包含其他多余的字符。
 """
 
 system_prompt_gen_replace_instructions = "You are an instruction generator, and you need to generate an instruction that "\
@@ -17,6 +27,9 @@ system_prompt_gen_replace_instructions = "You are an instruction generator, and 
                                          "Output: replace \"bright sunny sky\" with a \"rainy sky\". \n"\
                                          "We prefer you to use the \"replace A with B\" pattern. Also, if you think that the two captions "\
                                          "can't be separated by an instruction that only uses the \"replace\" method, just output \"NULL\". "\
+                                         "For instance:\n"\
+                                         "Input: 1. Aspen Country II Painting 2. Aspen Country II Cartoon\n"\
+                                         "Output: NULL\nFor the fact that they are style transfering concerned instructions. "\
                                          "Note that you are forbidden to include any other extra characters in your output."
 
 
@@ -49,6 +62,43 @@ system_prompt_gen_move_instructions = "You are a position generator and you need
                                       "and your output is forbidden to contain extra extraneous characters."
     
 
+system_prompt_edit_sort =   'You are an expert in text classiffication,  and there are 5 classes in total.'\
+                            '1. \"Remove\": determines whether the text removes the object, and if so, it is \"Romove\". '\
+                            '2. \"Replace\": determine whether the text replaces the object, and if so, its category is \"Replace\". '\
+                            '3. \"Move\": determine whether the text moves the object. If it does, the category is \"Move\". '\
+                            '4. \"Add\": determine whether the text add several object. If it does, the category is \"Add\". '\
+                            '5. \"Transfer\": determine whether the text is to do style transfering. If it does, the category is \"Transfer\". '\
+                            'Note that the text is an editing instruction for the picture. We ensure all the text input is included in these 5 classes. \n'\
+                            'For instance: \n'\
+                            'Input: make the Ferris Wheel a giant hamster wheel\nOutput: \"Replace\"\n'\
+                            'Input: make it an oil painting\nOutput: \"Transfer\"\n'\
+                            'Input: have the ranch be a zoo\nOutput: \"Replace\"\n'\
+                            'Note that you are forbidden to include any other extra characters in your output.'
+
+
+
+def preload_replcae_model(opt):
+    from preload_utils import *
+    return {
+        'preloaded_example_generator': preload_example_generator(opt), 
+        # XL - 8272 MiB, XL_ad - 8458 MiB, V1.5 - 10446 MiB
+        'preloaded_example_painter': preload_paint_by_example_model(opt), # 10446 MiB
+        'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
+        'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
+        'preloaded_lama_remover': preload_lama_remover(opt) # 10446 MiB
+
+    }
+
+def preload_move_model(opt):
+    from preload_utils import *
+    return {
+        'preloaded_example_painter': preload_paint_by_example_model(opt), # 10446 MiB
+        'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
+        'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
+        'preloaded_lama_remover': preload_lama_remover(opt) # 10446 MiB
+
+    }
+
 def use_exp_agent(opt, system_prompt):
     agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=system_prompt, proxy=opt.net_proxy)
     return agent
@@ -70,10 +120,81 @@ def write_move_instruction(agent, path, caption, label, bbox):
         f.write(Output)
     return Output
 
-if __name__ == "__main__":
+def read_original_prompt(path_to_json):
+    assert path_to_json.endswith('.json')
+    with open(path_to_json, 'r', encoding = 'utf-8') as f:
+        data = json.load(f)
+    prompt1 = data['input']
+    prompt2 = data['output']
+    edit = data['edit']
+    return (prompt1, prompt2, edit)
+
+
+def main():
     from prompt.arguments import get_arguments
     opt = get_arguments()
-    agent = use_exp_agent(opt, system_prompt_gen_replace_instructions)
-    question = '1. Aspen Country II Painting 2. Aspen Country II Cartoon'
-    out = get_response(agent, question)
-    print(out)
+    agent = use_exp_agent(opt, system_prompt_edit_sort)
+    val_folder = '../autodl-tmp/clip-filtered/shard-00/'
+    folders = os.listdir(val_folder)
+    length = len(folders)
+    selected_list = []
+    executed_list = []
+    execute_img_cnt = 0
+
+    from preload_utils import preload_all_agents
+    preloaded_replace_model = preload_replace_model(opt)
+    preloaded_agent = preload_all_agents(opt)
+
+    real_fake_image_list = []
+    fake_image_list = []
+    caption_before_list = []
+    caption_after_list = []
+
+    # 4-6 images in a folder
+    while len(executed_list) < 500:
+        while Ture:
+            folder = folders[randint(0, length)]
+            if folder in selected_list: continue
+            else:
+                selected_list.append(folder)
+                break
+        work_folder = os.path.join(val_folder, folder)
+        json_path = os.path.join(work_folder, 'prompt.json')
+        c1, c2, edit = read_original_prompt(json_path)
+        sorted = get_response(agent, edit)
+        if not 'replace' in sorted.lower(): continue
+        else: executed_list.append(folder)
+
+        caption_before_list.append(c1)
+        caption_after_list.append(c2)
+
+        name_list = [img.split('_')[0] for img in os.listdir(work_folder) if img.endswith('.jpg')]
+        name_list = list(set(name_list))
+        for name in name_list:
+            img_path = os.path.join(work_folder, f'{name}_0.jpg')
+            img_pil = Image.open(img_path)
+            output_pil = Replace_Method(opt, 0, 0, img_pil, preloaded_replace_model, preloaded_agent, record_history=False)
+            fake_image_list.append(img2tensor(np.array(output_pil)))
+            real_fake_image_list.append(img2tensor(np.array(Image.open(os.path.join(work_folder, f'{name}_1.jpg')))))
+            execute_img_cnt += 1
+        
+        print(f'Images have been Replaced: {execute_img_cnt}')
+
+    clip_directional_similarity = cal_similarity(real_fake_image_list, fake_image_list, caption_before_list, caption_after_list)
+    print(f"clip directional similarity: {clip_directional_similarity}")
+    with open("models/clip_directional_similarity.txt", "w") as f:
+        f.write(clip_directional_similarity)
+
+    fid_score = cal_fid(real_fake_image_list, fake_image_list)
+    print(f"FID Score: {fid_score}")
+    with open("models/fid_score.txt", "w") as f:
+        f.write(fid_score)
+    
+    # consider if there is need to save all images replaced
+
+    
+
+
+
+if __name__ == '__main__':
+    main()

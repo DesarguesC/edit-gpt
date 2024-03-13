@@ -5,20 +5,18 @@ import time, os
     
 """
 
-system_prompt_sort =    'You are an expert in text categorization, and I will input text for you to categorize. '\
-                        'Note that the text I entered has an editing nature, which is an editing instruction for the picture, '\
-                        'and now you need to classify the input text according to the following criteria: '\
-                        '1. Determines whether the text removes the object, and if so, its category is \"romove\". '\
-                        '2. Determine whether the text replaces the object, and if so, its category is \"replace\". '\
-                        '3. Determine whether the text moves the object. If it does, the category is \"locate\". '\
-                        '4. Determine whether the text add several object. If it does, the category is \"add\". '\
-                        '5. If it does not contain any of the first four meanings, just output <null> (i.e. category \'<null>\')'\
-                        'You may find that category 2. \"replace\" actually contains the case of category 1. \"remove\", '\
-                        'but in fact, as long as it conforms to category 2. The edited text of the condition is classified as category 2. \"replace\", '\
-                        'otherwise it is considered whether it is the case of 1. \"remove\". '\
-                        'For another case, if the input is "close her eyes", that should be catogory 5, so you output "<null>"'\
-                        'Also, I guarantee that the text I enter will be in one of these 5 categories and will not contain elements that belong to more than one category. '
-
+system_prompt_sort =    'You are an expert in text classiffication,  and there are 5 classes in total.'\
+                        '1. \"Remove\": determines whether the text removes the object, and if so, it is \"Romove\". '\
+                        '2. \"Replace\": determine whether the text replaces the object, and if so, its category is \"Replace\". '\
+                        '3. \"Move\": determine whether the text moves the object. If it does, the category is \"Move\". '\
+                        '4. \"Add\": determine whether the text add several object. If it does, the category is \"Add\". '\
+                        '5. \"Transfer\": determine whether the text is to do style transfering. If it does, the category is \"Transfer\". '\
+                        'Note that the text is an editing instruction for the picture. We ensure all the text input is included in these 5 classes. \n'\
+                        'For instance: \n'\
+                        'Input: make the Ferris Wheel a giant hamster wheel\nOutput: \"Replace\"\n'\
+                        'Input: make it an oil painting\nOutput: \"Transfer\"\n'\
+                        'Input: have the ranch be a zoo\nOutput: \"Replace\"'
+                        
 first_ask_sort =    'For the text I entered, you only need to answer one of the three categories and print its name, '\
                     'one of \"remove\", \"replace\", \"locate\" and \"add\", or \'<null>\', with no extra characters. If you have already understood your task, '\
                     'please answer \"yes\" to me in this round without any extra characters, after which I will give you input and ask you to judge. '

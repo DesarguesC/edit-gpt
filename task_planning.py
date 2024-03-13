@@ -55,7 +55,8 @@ def Transfer_Method(
         tot_step: int, 
         input_pil: Image = None,
         preloaded_model = None,
-        preloaded_agent = None
+        preloaded_agent = None,
+        record_history = True
     ):
     opt = gpt_mkdir(opt, Type='transfer')
     # no need of extra agents
@@ -66,8 +67,11 @@ def Transfer_Method(
                         dilate_kernel_size = 15, 
                         preloaded_model = preloaded_model    
                     )
-    method_history = (f'[{current_step:02}|{tot_step:02}]\tTransfer: 「editing has launched via InsrtuctPix2Pix」')
-    return pil_return, method_history
+
+    if record_history:
+        method_history = (f'[{current_step:02}|{tot_step:02}]\tTransfer: 「editing has launched via InsrtuctPix2Pix」')
+        return pil_return, method_history
+    else: return pil_return
 
 def Remove_Method(
         opt, 
@@ -75,7 +79,8 @@ def Remove_Method(
         tot_step: int, 
         input_pil: Image = None,
         preloaded_model = None,
-        preloaded_agent = None
+        preloaded_agent = None,
+        record_history = True
     ):
     opt = gpt_mkdir(opt, Type='remove')
 
@@ -89,8 +94,11 @@ def Remove_Method(
                         ) if opt.use_lama \
                         else Remove_Me(opt, target_noun, remove_mask=True)
     # TODO: recover the scenery for img_dragged in mask
-    method_history = (f'[{current_step:02}|{tot_step:02}]\tRemove: 「{target_noun}」')
-    return Image.fromarray(array_return), method_history
+
+    if record_history:
+        method_history = (f'[{current_step:02}|{tot_step:02}]\tRemove: 「{target_noun}」')
+        return Image.fromarray(array_return), method_history
+    else: return Image.fromarray(array_return)
 
 def Replace_Method(
         opt, 
@@ -98,7 +106,8 @@ def Replace_Method(
         tot_step: int, 
         input_pil: Image = None,
         preloaded_model = None,
-        preloaded_agent = None
+        preloaded_agent = None,
+        record_history = True
     ):
     opt = gpt_mkdir(opt, Type='replace')
 
@@ -118,9 +127,11 @@ def Replace_Method(
                         edit_agent = rescale_agent, expand_agent = diffusion_agent,
                         preloaded_model = preloaded_model
                     )
-    method_history = (f'[{current_step:02}|{tot_step:02}]\tReplace: 「{old_noun}」-> 「{new_noun}」')
 
-    return pil_return, method_history
+    if record_history:
+        method_history = (f'[{current_step:02}|{tot_step:02}]\tReplace: 「{old_noun}」-> 「{new_noun}」')
+        return pil_return, method_history
+    else: return pil_return
 
 def Move_Method(
         opt, 
@@ -128,7 +139,8 @@ def Move_Method(
         tot_step: int, 
         input_pil: Image = None,
         preloaded_model = None,
-        preloaded_agent = None
+        preloaded_agent = None,
+        record_history = True
     ):
     opt = gpt_mkdir(opt, Type='move')
 
@@ -146,9 +158,11 @@ def Move_Method(
                         edit_agent = move_agent,
                         preloaded_model = preloaded_model
                     )
-    method_history = (f'[{current_step:02}|{tot_step:02}]\tMove: 「{target_noun}」')
 
-    return pil_return, method_history
+    if record_history:
+        method_history = (f'[{current_step:02}|{tot_step:02}]\tMove: 「{target_noun}」')
+        return pil_return, method_history
+    else: return pil_return
 
 def Add_Method(
         opt, 
@@ -156,7 +170,8 @@ def Add_Method(
         tot_step: int, 
         input_pil: Image = None,
         preloaded_model = None,
-        preloaded_agent = None
+        preloaded_agent = None,
+        record_history = True
     ):
     opt = gpt_mkdir(opt, Type='add')
 
@@ -180,9 +195,10 @@ def Add_Method(
                         preloaded_model = preloaded_model
                     )
     
-    method_history = (f'[{current_step:02}|{tot_step:02}]\tAdd: 「{name}」')
-
-    return pil_return, method_history
+    if record_history:
+        method_history = (f'[{current_step:02}|{tot_step:02}]\tAdd: 「{name}」')
+        return pil_return, method_history
+    else: return pil_return
 
 def get_planning_system_agent(opt):
 
