@@ -5,8 +5,9 @@ from random import randint
 from PIL import Image
 import numpy as np
 from task_planning import Replace_Method, Move_Method
-from prompt.utils import Cal_ClipDirectionalSimilarity as cal_similarity
-from prompt.utils import Cal_FIDScore as cal_fid
+from prompt.arguments import get_arguments
+from prompt.util import Cal_ClipDirectionalSimilarity as cal_similarity
+from prompt.util import Cal_FIDScore as cal_fid
 from detectron2.data import MetadataCatalog
 from preload_utils import *
 
@@ -139,8 +140,8 @@ def Val_Replace_Method(opt):
     execute_img_cnt = 0
 
     from preload_utils import preload_all_agents
-    preloaded_replace_model = preload_replace_model(opt)
-    preloaded_agent = preload_all_agents(opt)
+    preloaded_replace_model =  preload_replace_model(opt) if opt.preload_all_models else None
+    preloaded_agent =  preload_all_agents(opt) if opt.preload_all_agents else None
 
     real_fake_image_list = []
     fake_image_list = []
@@ -149,7 +150,7 @@ def Val_Replace_Method(opt):
 
     # 4-6 images in a folder
     while len(executed_list) < opt.test_group_num:
-        while Ture:
+        while True:
             folder = folders[randint(0, length)]
             if folder in selected_list: continue
             else:
@@ -258,35 +259,16 @@ def Val_Move_Method(opt):
         f.write(fid_score)
 
 
-        
-
-
-
-
-
-    folders = os.listdir(val_folder)
-    length = len(folders)
-    selected_list = []
-    executed_list = []
-    execute_img_cnt = 0
-
-    from preload_utils import preload_all_agents
-    preloaded_move_model = preload_replace_model(opt)
-    preloaded_agent = preload_all_agents(opt)
-
-    real_fake_image_list = []
-    fake_image_list = []
-    caption_before_list = []
-    caption_after_list = []
-
     # Read MSCOCO
 
 
 def main():
     
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 2)
+    setattr(opt, 'test_group_num', 1)
+    print('Start to valuate Replace Method...')
     Val_Replace_Method(opt)
+    print('Start to valuate Move Method...')
     Val_Move_Method(opt)
 
 
