@@ -124,8 +124,8 @@ def read_original_prompt(path_to_json):
     with open(path_to_json, 'r', encoding = 'utf-8') as f:
         data = json.load(f)
     prompt1 = data['input']
-    prompt2 = data['output']
     edit = data['edit']
+    prompt2 = f'{prompt1}, with {edit}'
     return (prompt1, prompt2, edit)
 
 
@@ -180,12 +180,12 @@ def Val_Replace_Method(opt):
 
     clip_directional_similarity = cal_similarity(real_fake_image_list, fake_image_list, caption_before_list, caption_after_list)
     print(f"clip directional similarity: {clip_directional_similarity}")
-    with open("models/clip_directional_similarity<Replace>.txt", "w") as f:
+    with open("models/clip_directional_similarity_Replace.txt", "w") as f:
         f.write(str(clip_directional_similarity))
 
-    fid_score = cal_fid(img2tensor(real_fake_image_list), img2tensor(fake_image_list))
+    fid_score = cal_fid(real_fake_image_list, fake_image_list)
     print(f"FID Score: {fid_score}")
-    with open("models/fid_score<Replace>.txt", "w") as f:
+    with open("models/fid_score_Replace_.txt", "w") as f:
         f.write(str(fid_score))
     
     del preloaded_agent, preloaded_replace_model
@@ -193,33 +193,33 @@ def Val_Replace_Method(opt):
 
     
 def Val_Move_Method(opt):
+    val_folder = '../autodl-tmp/COCO/val2017/'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     from prompt.arguments import get_arguments
     agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
-    val_folder = '../autodl-tmp/COCO/test2017'
     
     caption_before_list = captions_after_list = []
     image_before_list = image_after_list = []
 
     # for validation after
-    caption_json = '../autodl-tmp/COCO/annotations/captions_val2017.json'
-    with open(caption_json, 'w') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
         caption = json.load(f)    
     # query caption via image_id
     captions_dict = {}
 
-    preloaded_move_model =  preload_move_model(opt) if opt.preload_all_models else None
+
     preloaded_agent =  preload_all_agents(opt) if opt.preload_all_agents else None
+    preloaded_move_model =  preload_move_model(opt) if opt.preload_all_models else None
+    
 
     for x in caption['annotations']:
         image_id = str(x['image_id'])
         if image_id in captions_dict:
-            captions_dict[image_id] = captions_dict[image_id] + ', ' + x['captions']
+            captions_dict[image_id] = captions_dict[image_id] + ', ' + x['caption']
         else:
-            captions_dict[image_id] = x['captions']
-    
-    instance_json = '../autodl-tmp/COCO/annotations/instances_val2017.json'
-    with open(instance_json, 'w') as f:
+            captions_dict[image_id] = x['caption']
+
+    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
         data = json.load(f)
     
     length = len(data['annotations'])
@@ -235,30 +235,40 @@ def Val_Move_Method(opt):
 
         x, y, w, h = annotation['bbox']
         x, y, w, h = int(x), int(y), int(w), int(h)
-        img_id, label_id = annotation['id'], annotation['category_id']
-        caption = captions_dict[img_id]
-        label = metadata.stuff_classes(label_id)
-        place = get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';').strip()
-        ori_place, gen_place = place[0], place[1]
+        img_id, label_id = annotation['image_id'], annotation['category_id']
+        caption = captions_dict[str(img_id)]
+        label = metadata.stuff_classes[int(float(label_id))]
+        try:
+            print('-'*60)
+            response = get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';')
+            place = [x for x in response if x != '' and x != ' ']
+            print('place = ', place)
+            print('+'*60) 
+            # WHY: process suddenly exits by itself ?
+        except Exception as e:
+            print(e)
 
-        img_path =  os.path.join(val_folder, f'{img_id:12}.jpg')
+        assert len(place) == 2, f'place = {place}'
+        ori_place, gen_place = place[0], place[1]
+        # id_ = annotation['id']
+        img_path =  os.path.join(val_folder, f'{img_id:0{12}}.jpg')
         img_pil = Image.open(img_path)
-        image_before_list,append(img2tensor(np.array(img_pil)))
+        image_before_list.append(img_pil)
 
         opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
         out_pil = Move_Method(opt, img_pil, 0, 0, preloaded_move_model, preloaded_agent, record_history=False)
-        image_after_list.append(img2tensor(np.array(out_pil)))
+        image_after_list.append(out_pil)
 
         print(f'Images have been moved: {len(selected_list)}')
 
     clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
     print(f"clip directional similarity: {clip_directional_similarity}")
-    with open("models/clip_directional_similarity<Move>.txt", "w") as f:
+    with open("models/clip_directional_similarity_Move.txt", "w") as f:
         f.write(str(clip_directional_similarity))
 
-    fid_score = cal_fid(torch.cat(image_before_list, dim=0).to('cuda'), torch.cat(image_after_list, dim=0).to('cuda'))
+    fid_score = cal_fid(image_before_list, image_after_list)
     print(f"FID Score: {fid_score}")
-    with open("models/fid_score<Move>.txt", "w") as f:
+    with open("models/fid_score_Move.txt", "w") as f:
         f.write(str(fid_score))
 
     del preloaded_move_model, preloaded_agents
@@ -269,9 +279,9 @@ def Val_Move_Method(opt):
 def main():
     
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 0)
-    print('Start to valuate Replace Method...')
-    Val_Replace_Method(opt)
+    setattr(opt, 'test_group_num', 1)
+    # print('Start to valuate Replace Method...')
+    # Val_Replace_Method(opt)
     print('Start to valuate Move Method...')
     Val_Move_Method(opt)
 
