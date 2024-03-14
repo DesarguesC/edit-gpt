@@ -122,10 +122,8 @@ def refactor_mask(box_1, mask_1, box_2, type='remove'):
         reshape mask_1 into box_2, as mask_2, return
         TODO: refactor mask_1 into box_2 (tend to get smaller ?)
     """
-    mask_1 = torch.tensor(mask_1.squeeze(), dtype=torch.float32)
-    # h * w
-    mask_2 = torch.zeros_like(mask_1.unsqueeze(0))
-    # 1 * h * w
+    mask_1 = torch.tensor(mask_1.squeeze(), dtype=torch.float32) # h * w
+    mask_2 = torch.zeros_like(mask_1.unsqueeze(0)) # 1 * h * w
     print(f'box_1 = {box_1}, mask_1.shape = {mask_1.shape}, box_2 = {box_2}, mask_2.shape = {mask_2.shape}')
     x1, y1, w1, h1 = box_1
     x2, y2, w2, h2 = box_2
@@ -145,10 +143,8 @@ def refactor_mask(box_1, mask_1, box_2, type='remove'):
     resized_valid_mask = resized_valid_mask.unsqueeze(0)
     resized_valid_mask[resized_valid_mask > 0.5] = 1.
     resized_valid_mask[resized_valid_mask <= 0.5] = 0.
-    print(f'resized_valid_mask.shape = {resized_valid_mask.shape}')
-    # 1 * h * w
-    print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}')
-    # 1 * w * h
+    # print(f'resized_valid_mask.shape = {resized_valid_mask.shape}') # 1 * h * w
+    # print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}') # 1 * w * h
     mask_2[:,y2:y2+h2,x2:x2+w2] = resized_valid_mask
     assert mask_2.squeeze().shape == mask_1.squeeze().shape, f'mask_1.shape = {mask_1.shape}, mask_2.shape = {mask_2.shape}'
     return repeat(mask_2, '1 h w -> c h w', c = 3).unsqueeze(0) if type == 'remove' else mask_2
@@ -169,10 +165,16 @@ def fix_box(gpt_box, img_shape):
     H_, W_, _ = img_shape # [h, w, 3]
     flag = 0
     while x + w >= W_ or y + h >= H_:
-        w //= 2
-        h //= 2
+        if x < W_ and y < H_:
+            print(f'1-Fixing: with (W,H) = {(W_, H_)}')
+            w //= 2
+            h //= 2
+        else:
+            print(f'2-Fixing: with (W,H) = {(W_, H_)}')
+            x //= 2
+            y //= 2
         flag += 1
         if flag > 4:
             return fixed_box
-    fixed_box = (x,y,w,h)
-    return fixed_box
+            
+    return (x,y,w,h)

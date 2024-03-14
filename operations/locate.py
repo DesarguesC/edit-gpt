@@ -34,8 +34,7 @@ def get_area(ref_img, box):
     assert len(box) == 4
     # if box cooresponds to an area out of the ref image, then move back the box
     x, y, w, h = box
-    x1, y1 = x + w, y + h
-    return ref_img[y:y1, x:x1, :]
+    return ref_img[y:y+h, x:x+w, :]
     
 def fine_box(box, img_shape):
     # TODO: fine a box into ori-img area
@@ -109,20 +108,16 @@ def create_location(
     while box_0 == (0,0,0,0):
         if try_time > 0:
             print(f'Trying to fix... - Iter: {try_time}')
-        box_ans = get_response(edit_agent, question)
+        box_ans = [x.strip() for x in re.split(r'[\[\],()]', get_response(edit_agent, question)) if x != '' and x != ' ']
         # deal with the answer, procedure is the same as in replace.py
         print(f'box_ans = {box_ans}')
-        punctuation = re.split(r'[\[\],()]', box_ans)
-        print(f'len(punctuation)) == {len(punctuation)}')
-        print(f'punctuation = {punctuation}')
-        if len(punctuation) < 4:
+        if len(box_ans) < 4:
             print('WARNING: string return')
             continue
-
-        box_ans = [x.strip() for x in punctuation if x != ' ' and x != '']
-        print(f'box_ans[0] = {box_ans[0]}')
-        x, y, w, h = int(box_ans[1]), int(box_ans[2]), int(box_ans[3]), int(box_ans[4])
-        box_0 = (x, y, int(w * opt.expand_scale), int(h * opt.expand_scale))
+        print(f'box_ans[0](i.e. target) = {box_ans[0]}')
+        x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]), float(box_ans[4])
+        box_0 = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
+        print(f'box_0 = {box_0}')
         box_0 = fix_box(box_0, (opt.W,opt.H,3))
         
         try_time += 1
@@ -161,7 +156,6 @@ def create_location(
     Ref_Image = get_area(img_np * TURN(target_mask), target_box)
 
     print(f'img_np.shape = {img_np.shape}, Ref_Image.shape = {Ref_Image.shape}')
-    # cv2.imwrite('./static/Ref-location.jpg', cv2.cvtColor(np.uint8(Ref_Image), cv2.COLOR_BGR2RGB))
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
     op_output, x_sample_ddim = paint_by_example(
@@ -170,6 +164,7 @@ def create_location(
                                 )
     print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
 
+    op_output = op_output if op_output.endswith('.jpg') else (op_output + '.jpg')
     x_sample_ddim = tensor2img(x_sample_ddim)
     cv2.imwrite(op_output, x_sample_ddim)
     print(f'locate result image saved at \'{op_output}\'')

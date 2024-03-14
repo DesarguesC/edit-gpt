@@ -2,7 +2,7 @@ import os, time, json
 from prompt.guide import get_response, get_bot
 from basicsr.utils import tensor2img, img2tensor
 from random import randint
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 from task_planning import Replace_Method, Move_Method
 from prompt.arguments import get_arguments
@@ -168,8 +168,9 @@ def Val_Replace_Method(opt):
         opt.edit_txt = edit
         for name in name_list:
             img_path = os.path.join(work_folder, f'{name}_0.jpg')
-            img_pil = Image.open(img_path).convert('RGB')
+            img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
             output_pil = Replace_Method(opt, 0, 0, img_pil, preloaded_replace_model, preloaded_agent, record_history=False)
+            output_pil = ImageOps.fit(output_pil, (512,512), method=Image.Resampling.LANCZOS)
             caption_before_list.append(c1)
             caption_after_list.append(c2)
             fake_image_list.append(output_pil) # pil list
@@ -198,7 +199,7 @@ def Val_Move_Method(opt):
     from prompt.arguments import get_arguments
     agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
     
-    caption_before_list = captions_after_list = []
+    caption_before_list = caption_after_list = []
     image_before_list = image_after_list = []
 
     # for validation after
@@ -239,14 +240,17 @@ def Val_Move_Method(opt):
         place = [x for x in get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
         assert len(place) == 2, f'place = {place}'
         ori_place, gen_place = place[0], place[1]
+
+        caption_before_list.append(f'{label} at \'{ori_place}\'')
+        caption_after_list.append(f'{label} at \'{gen_place}\'')
         
         # id_ = annotation['id']
         img_path =  os.path.join(val_folder, f'{img_id:0{12}}.jpg')
-        img_pil = Image.open(img_path)
+        img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
         image_before_list.append(img_pil)
         opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
-        
         out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
+        out_pil = ImageOps.fit(out_pil, (512,512), method=Image.Resampling.LANCZOS)
         image_after_list.append(out_pil)
 
         print(f'Images have been moved: {len(selected_list)}')
