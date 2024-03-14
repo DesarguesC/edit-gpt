@@ -57,7 +57,7 @@ def create_location(
     """
     assert edit_agent != None, 'no edit agent'
     # move the target to the destination, editing via GPT (tell the bounding box)
-    opt, img_pil = get_reshaped_img(opt, img_pil)
+    opt, img_pil = get_reshaped_img(opt, input_pil)
     # resize and prepare the original image
     if preloaded_model is None:
         sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
