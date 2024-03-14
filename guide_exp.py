@@ -168,12 +168,12 @@ def Val_Replace_Method(opt):
         opt.edit_txt = edit
         for name in name_list:
             img_path = os.path.join(work_folder, f'{name}_0.jpg')
-            img_pil = Image.open(img_path)
+            img_pil = Image.open(img_path).convert('RGB')
             output_pil = Replace_Method(opt, 0, 0, img_pil, preloaded_replace_model, preloaded_agent, record_history=False)
             caption_before_list.append(c1)
             caption_after_list.append(c2)
-            fake_image_list.append(img2tensor(np.array(output_pil)))
-            real_fake_image_list.append(img2tensor(np.array(Image.open(os.path.join(work_folder, f'{name}_1.jpg')))))
+            fake_image_list.append(output_pil) # pil list
+            real_fake_image_list.append(Image.open(os.path.join(work_folder, f'{name}_1.jpg')).convert('RGB')) # pil list
             execute_img_cnt += 1
         
         print(f'Images have been Replaced: {execute_img_cnt}')
@@ -183,7 +183,7 @@ def Val_Replace_Method(opt):
     with open("models/clip_directional_similarity<Replace>.txt", "w") as f:
         f.write(str(clip_directional_similarity))
 
-    fid_score = cal_fid(real_fake_image_list, fake_image_list)
+    fid_score = cal_fid(img2tensor(real_fake_image_list), img2tensor(fake_image_list))
     print(f"FID Score: {fid_score}")
     with open("models/fid_score<Replace>.txt", "w") as f:
         f.write(str(fid_score))
@@ -269,7 +269,7 @@ def Val_Move_Method(opt):
 def main():
     
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 1)
+    setattr(opt, 'test_group_num', 0)
     print('Start to valuate Replace Method...')
     Val_Replace_Method(opt)
     print('Start to valuate Move Method...')

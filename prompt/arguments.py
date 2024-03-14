@@ -62,15 +62,15 @@ def create_parse_args():
 
 def get_arguments():
     opt = create_parse_args()
+    import torch
+    opt.device = "cuda" if torch.cuda.is_available() else "cpu"
     setattr(opt, 'api_key', list(pd.read_csv('./key.csv')['key'])[0])
     setattr(opt, 'net_proxy', 'http://127.0.0.1:7890')
     print(f'API is now using: {opt.engine}')
 
-    assert os.path.exists(opt.in_dir), f'File Not Exists: {opt.in_dir}'
-    import torch
-    opt.device = "cuda" if torch.cuda.is_available() else "cpu"
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
+
     return opt

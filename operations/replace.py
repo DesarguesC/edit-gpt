@@ -90,7 +90,7 @@ def replace_target(
     
     rm_img, mask_1, _ = Remove_Me_lama(
                             opt, old_noun, dilate_kernel_size = opt.dilate_kernel_size, 
-                            intput_pil = input_pil, preloaded_model = preloaded_model
+                            input_pil = input_pil, preloaded_model = preloaded_model
                         ) if opt.use_lama \
                         else Remove_Me(opt, old_noun, remove_mask=True, replace_box=opt.replace_box)
     

@@ -42,13 +42,13 @@ def Cal_FIDScore(real_image_list, fake_image_list):
     # real_image: list(np.array), with the same shape (512,512) or (256,256)
     # fake_image: list(np.array), with the same shape (512,512) or (256,256)
     assert isinstance(fake_image_list, list) and isinstance(real_image_list, list)
-
-    real_images = torch.cat([tensor2img(img) for img in real_image_list], dim=0).detach().cpu().numpy()
-    fake_images = torch.cat([tensor2img(img) for img in fake_image_list], dim=0).detach().cpu().numpy()
+    real_images = torch.cat([img2tensor(np.array(img)).unsqueeze(0) for img in real_image_list], dim=0)
+    fake_images = torch.cat([img2tensor(np.array(img)).unsqueeze(0) for img in fake_image_list], dim=0)
 
     fid = FID(normalize=True)
+    # update target: tensor
     fid.update(real_images, real=True)
-    fid_inited.update(fake_images, real=False)
+    fid.update(fake_images, real=False)
 
     return float(fid.compute())
 
@@ -114,6 +114,7 @@ class DirectionalSimilarity(nn.Module):
 
 
 def Cal_ClipDirectionalSimilarity(image_before_list, image_after_list, caption_before_list, caption_after_list):
+    # image list: pil list
     dir_similarity = DirectionalSimilarity()
     scores = []
     assert len(image_before_list) == len(image_after_list) and len(caption_before_list) == len(caption_after_list) and len(image_after_list) == len(caption_after_list), \

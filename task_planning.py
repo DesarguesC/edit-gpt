@@ -241,7 +241,8 @@ def get_planning_system_agent(opt):
                              "OUTPUT: (Remove, \"remove the box on the desk\");  (Add, \"add a cukoo in the house\"). \n\n"\
                              "INPUT: \"The sun went down, the sky was suddenly dark, and the birds returned to their nests. \"\n"\
                              "Output: (Remove, \"remove the sun\"); (Transfer, \"the lights are out, darkness\"); "\
-                             "(Add, \"add some birds, they are flying in the sky\")\nNote that when you are giving output, "\
+                             "(Add, \"add some birds, they are flying in the sky\")\nNote that when you are giving output, \n"\
+                             "A pair of parentheses with only a \"type\" and an \"edit instruction\", "\
                              "you mustn\'t output any other character"
     planning_system_first_ask = "If you have understood your task, please answer \"yes\" without any other character and "\
                                 "I\'ll give you the INPUT. Note that when you are giving output, you mustn\'t output any other character"
@@ -253,11 +254,13 @@ def get_planning_system_agent(opt):
 
 def get_plans(opt, planning_agent):
     planning_system_agent = get_planning_system_agent(opt)
-    response = re.split(r"[;]", get_response(planning_system_agent, opt.edit_txt))
+    response = get_response(planning_system_agent, opt.edit_txt)
+    print(response)
+    response = re.split(r"[;]", response)
     response = [x.strip() for x in response if x != " " and x != ""]
     for i in range(len(response)):
-        task_str = re.split(r"[(),\"\']", response[i])
-        task_str = [x.strip() for x in task_str if x != " " and x != ""]
+        task_str = re.split(r"[()\"\']", response[i])
+        task_str = [x.strip().strip(',') for x in task_str if x != " " and x != ""]
         assert len(task_str) == 2, f'len(task_str) != 2, task_str: {task_str}'
         response[i] = {"type": task_str[0].lower(), "command": task_str[1]}
     return response
