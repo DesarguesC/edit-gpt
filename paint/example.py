@@ -149,39 +149,36 @@ def generate_example(
                                                     torch_dtype=torch.float16, use_safetensors=True, variant="fp16", local_files_only=True)
             pipe.to("cuda")
             # pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
-            # refiner = DiffusionPipeline.from_pretrained(
-            #                     f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0",
-            #                     text_encoder_2 = pipe.text_encoder_2,
-            #                     vae = pipe.vae,
-            #                     torch_dtype = torch.float16, 
-            #                     use_safetensors = True, 
-            #                     variant = "fp16", 
-            #                     local_files_only = True
-            #                 )
-            # refiner.to('cuda')
+            refiner = DiffusionPipeline.from_pretrained(
+                                f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0",
+                                text_encoder_2 = pipe.text_encoder_2,
+                                vae = pipe.vae,
+                                torch_dtype = torch.float16, 
+                                use_safetensors = True, 
+                                variant = "fp16", 
+                                local_files_only = True
+                            )
+            refiner.to('cuda')
 
         else:
             pipe = preloaded_example_generator['pipe'].to("cuda")
-            # refiner = preloaded_example_generator['refiner'].to("cuda")
+            refiner = preloaded_example_generator['refiner'].to("cuda")
 
-        high_noise_frac = 0.8
 
         gen_images = pipe(
             prompt = prompts,
             negative_prompt = DEFAULT_NEGATIVE_PROMPT,
             height = opt.H, width = opt.W, 
-            denoising_end = high_noise_frac,
             num_inference_steps = opt.steps,
             guidance_scale = 7.5,
-            # output_type = 'latent',
+            output_type = 'latent',
         ).images[0]
 
-        # gen_images = refiner(
-        #     prompt = prompts,
-        #     num_inference_steps = opt.steps,
-        #     denoising_end = high_noise_frac,
-        #     image = gen_images,
-        # ).images[0]
+        gen_images = refiner(
+            prompt = prompts,
+            num_inference_steps = opt.steps,
+            image = gen_images,
+        ).images[0]
     
     elif '1.5' in opt.example_type:  # stable-diffusion 1.5
         print('-'*9 + 'Generating via sd1.5 with T2I-Adapter' + '-'*9)
