@@ -207,10 +207,8 @@ def Val_Move_Method(opt):
     # query caption via image_id
     captions_dict = {}
 
-
+    preloaded_move_model = preload_move_model(opt) if opt.preload_all_models else None
     preloaded_agent =  preload_all_agents(opt) if opt.preload_all_agents else None
-    preloaded_move_model =  preload_move_model(opt) if opt.preload_all_models else None
-    
 
     for x in caption['annotations']:
         image_id = str(x['image_id'])
@@ -238,25 +236,17 @@ def Val_Move_Method(opt):
         img_id, label_id = annotation['image_id'], annotation['category_id']
         caption = captions_dict[str(img_id)]
         label = metadata.stuff_classes[int(float(label_id))]
-        try:
-            print('-'*60)
-            response = get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';')
-            place = [x for x in response if x != '' and x != ' ']
-            print('place = ', place)
-            print('+'*60) 
-            # WHY: process suddenly exits by itself ?
-        except Exception as e:
-            print(e)
-
+        place = [x for x in get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
         assert len(place) == 2, f'place = {place}'
         ori_place, gen_place = place[0], place[1]
+        
         # id_ = annotation['id']
         img_path =  os.path.join(val_folder, f'{img_id:0{12}}.jpg')
         img_pil = Image.open(img_path)
         image_before_list.append(img_pil)
-
         opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
-        out_pil = Move_Method(opt, img_pil, 0, 0, preloaded_move_model, preloaded_agent, record_history=False)
+        
+        out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
         image_after_list.append(out_pil)
 
         print(f'Images have been moved: {len(selected_list)}')
