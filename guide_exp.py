@@ -270,8 +270,20 @@ def main():
     
     opt = get_arguments()
     setattr(opt, 'test_group_num', 1)
+    
+    opt.out_dir = '../autodl-tmp/Exp_Replace'
+    if not os.path.exists(opt.out_dir):
+        os.mkdir(opt.out_dir)
+    base_cnt = len(os.listdir(opt.out_dir))
+    setattr(opt, 'base_cnt', base_cnt)
     # print('Start to valuate Replace Method...')
     # Val_Replace_Method(opt)
+    
+    opt.out_dir = '../autodl-tmp/Exp_Move'
+    if not os.path.exists(opt.out_dir):
+        os.mkdir(opt.out_dir)
+    base_cnt = len(os.listdir(opt.out_dir))
+    setattr(opt, 'base_cnt', base_cnt)
     print('Start to valuate Move Method...')
     Val_Move_Method(opt)
 

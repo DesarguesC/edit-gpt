@@ -245,7 +245,7 @@ def paint_by_example(
             **kwargs
         ):
     # mask: [1, 1, h, w] is required
-    assert ref_img.size == base_img.size, f'ref_img.size = {ref_img.shape}, base_img.size = {base_img.size}'
+    assert ref_img.size == base_img.size, f'ref_img.size = {ref_img.size}, base_img.size = {base_img.size}'
     mask = fix_mask(mask) # fix dimensions
     print(f'Example Mask = {mask.shape}')
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

@@ -90,7 +90,7 @@ def replace_target(
     
     rm_img, mask_1, _ = Remove_Me_lama(
                             opt, old_noun, dilate_kernel_size = opt.dilate_kernel_size, 
-                            input_pil = input_pil, preloaded_model = preloaded_model
+                            input_pil = img_pil, preloaded_model = preloaded_model
                         ) if opt.use_lama \
                         else Remove_Me(opt, old_noun, remove_mask=True, replace_box=opt.replace_box)
     
@@ -107,7 +107,7 @@ def replace_target(
                     name = new_noun, 
                     num = 1,
                     place = '<NULL>',
-                    input_pil=img_pil,
+                    input_pil = img_pil,
                     edit_agent = Use_Agent(opt, TODO='adjust bbox for me'),
                     expand_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me'), 
                     preloaded_model = preloaded_model

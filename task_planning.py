@@ -143,7 +143,6 @@ def Move_Method(
         record_history = True
     ):
     opt = gpt_mkdir(opt, Type='move')
-    print('m'*90)
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
     move_agent = Use_Agent(opt, TODO='arrange a new bbox for me') if preloaded_agent is None\
                             else preloaded_agent['arrange a new bbox for me']

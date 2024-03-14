@@ -72,8 +72,10 @@ def create_location(
 
     # remove the target, get the mask (for bbox searching via SAM)
     rm_img, target_mask, _ = Remove_Me_lama(
-                                    opt, target, dilate_kernel_size = opt.dilate_kernel_size, 
-                                    preloaded_lama_remover = preloaded_model['preloaded_lama_remover'] if preloaded_model is not None else None
+                                    opt, target, 
+                                    input_pil = img_pil, 
+                                    dilate_kernel_size = opt.dilate_kernel_size, 
+                                    preloaded_model = preloaded_model['preloaded_lama_remover'] if preloaded_model is not None else None
                                 ) if opt.use_lama \
                                 else Remove_Me(opt, target, remove_mask=True, replace_box=opt.replace_box)
     rm_img = Image.fromarray(rm_img)
