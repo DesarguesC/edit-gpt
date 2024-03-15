@@ -128,9 +128,13 @@ def read_original_prompt(path_to_json):
     prompt2 = f'{prompt1}, with {edit}'
     return (prompt1, prompt2, edit)
 
-
 def Val_Replace_Method(opt):
-    from prompt.arguments import get_arguments
+    import logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format = '%(asctime)s : %(levelname)s : %(message)s', 
+        filename='Replace.log'
+    )
     agent = use_exp_agent(opt, system_prompt_edit_sort)
     val_folder = '../autodl-tmp/clip-filtered/shard-00/'
     folders = os.listdir(val_folder)
@@ -151,33 +155,48 @@ def Val_Replace_Method(opt):
     # 4-6 images in a folder
     while len(executed_list) < opt.test_group_num:
         while True:
-            folder = folders[randint(0, length)]
-            if folder in selected_list: continue
+            idx = randint(0, length)
+            if idx in selected_list: continue
             else:
-                selected_list.append(folder)
+                selected_list.append(idx)
                 break
+        folder = folders[idx]
         work_folder = os.path.join(val_folder, folder)
         json_path = os.path.join(work_folder, 'prompt.json')
         c1, c2, edit = read_original_prompt(json_path)
         sorted = get_response(agent, edit)
         if not 'replace' in sorted.lower(): continue
-        else: executed_list.append(folder)
+        else: executed_list.append(idx)
 
-        name_list = [img.split('_')[0] for img in os.listdir(work_folder) if img.endswith('.jpg')]
-        name_list = list(set(name_list))
-        opt.edit_txt = edit
-        for name in name_list:
-            img_path = os.path.join(work_folder, f'{name}_0.jpg')
-            img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
-            output_pil = Replace_Method(opt, 0, 0, img_pil, preloaded_replace_model, preloaded_agent, record_history=False)
-            output_pil = ImageOps.fit(output_pil, (512,512), method=Image.Resampling.LANCZOS)
-            caption_before_list.append(c1)
-            caption_after_list.append(c2)
-            fake_image_list.append(output_pil) # pil list
-            real_fake_image_list.append(Image.open(os.path.join(work_folder, f'{name}_1.jpg')).convert('RGB')) # pil list
-            execute_img_cnt += 1
-        
-        print(f'Images have been Replaced: {execute_img_cnt}')
+        try:
+            start_time = time.time()
+
+            name_list = [img.split('_')[0] for img in os.listdir(work_folder) if img.endswith('.jpg')]
+            name_list = list(set(name_list))
+            opt.edit_txt = edit
+            for name in name_list:
+                img_path = os.path.join(work_folder, f'{name}_0.jpg')
+                img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
+                output_pil = Replace_Method(opt, 0, 0, img_pil, preloaded_replace_model, preloaded_agent, record_history=False)
+                output_pil = ImageOps.fit(output_pil, (512,512), method=Image.Resampling.LANCZOS)
+                caption_before_list.append(c1)
+                caption_after_list.append(c2)
+                fake_image_list.append(output_pil) # pil list
+                real_fake_image_list.append(Image.open(os.path.join(work_folder, f'{name}_0.jpg')).convert('RGB')) # pil list
+                # use _0 or _1 ?
+                execute_img_cnt += 1
+
+            end_time = time.time()
+            string = f'Images have been Replaced: {execute_img_cnt} | Time Cost: {end_time - start_time}'
+            print(string)
+            logging.info(string)
+
+        except Exception as e:
+            string = f'Exceptino Occurred: {e}'
+            print(string)
+            logging.error(string)
+            del executed_list[-1]
+
 
     clip_directional_similarity = cal_similarity(real_fake_image_list, fake_image_list, caption_before_list, caption_after_list)
     print(f"clip directional similarity: {clip_directional_similarity}")
@@ -186,14 +205,19 @@ def Val_Replace_Method(opt):
 
     fid_score = cal_fid(real_fake_image_list, fake_image_list)
     print(f"FID Score: {fid_score}")
-    with open("models/fid_score_Replace_.txt", "w") as f:
+    with open("models/fid_score_Replace.txt", "w") as f:
         f.write(str(fid_score))
     
     del preloaded_agent, preloaded_replace_model
     # consider if there is need to save all images replaced
 
-    
 def Val_Move_Method(opt):
+    import logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format = '%(asctime)s : %(levelname)s : %(message)s', 
+        filename='Move.log'
+    )
     val_folder = '../autodl-tmp/COCO/val2017/'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     from prompt.arguments import get_arguments
@@ -231,29 +255,39 @@ def Val_Move_Method(opt):
             else: break
         selected_list.append(idx)
         annotation = data['annotations'][idx]
+        try:
+            start_time = time.time()
+            
+            x, y, w, h = annotation['bbox']
+            x, y, w, h = int(x), int(y), int(w), int(h)
+            img_id, label_id = annotation['image_id'], annotation['category_id']
+            caption = captions_dict[str(img_id)]
+            label = metadata.stuff_classes[int(float(label_id))]
+            place = [x for x in get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
+            assert len(place) == 2, f'place = {place}'
+            ori_place, gen_place = place[0], place[1]
 
-        x, y, w, h = annotation['bbox']
-        x, y, w, h = int(x), int(y), int(w), int(h)
-        img_id, label_id = annotation['image_id'], annotation['category_id']
-        caption = captions_dict[str(img_id)]
-        label = metadata.stuff_classes[int(float(label_id))]
-        place = [x for x in get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
-        assert len(place) == 2, f'place = {place}'
-        ori_place, gen_place = place[0], place[1]
+            caption_before_list.append(f'{label} at \'{ori_place}\'')
+            caption_after_list.append(f'{label} at \'{gen_place}\'')
+            
+            img_path =  os.path.join(val_folder, f'{img_id:0{12}}.jpg')
+            img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
+            image_before_list.append(img_pil)
+            opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
+            out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
+            out_pil = ImageOps.fit(out_pil, (512,512), method=Image.Resampling.LANCZOS)
+            image_after_list.append(out_pil)
 
-        caption_before_list.append(f'{label} at \'{ori_place}\'')
-        caption_after_list.append(f'{label} at \'{gen_place}\'')
-        
-        # id_ = annotation['id']
-        img_path =  os.path.join(val_folder, f'{img_id:0{12}}.jpg')
-        img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
-        image_before_list.append(img_pil)
-        opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
-        out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
-        out_pil = ImageOps.fit(out_pil, (512,512), method=Image.Resampling.LANCZOS)
-        image_after_list.append(out_pil)
+            end_time = time.time()
+            string = f'Images have been moved: {len(selected_list)} | Time cost: {end_time - start_time}'
+            print(string)
+            logging.info(string)
 
-        print(f'Images have been moved: {len(selected_list)}')
+        except Exception as e:
+            string = f'Exception Occurred: {e}'
+            print(string)
+            logging.error(string)
+            del selected_list[-1]
 
     clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
     print(f"clip directional similarity: {clip_directional_similarity}")
@@ -265,25 +299,29 @@ def Val_Move_Method(opt):
     with open("models/fid_score_Move.txt", "w") as f:
         f.write(str(fid_score))
 
-    del preloaded_move_model, preloaded_agents
-
-    # Read MSCOCO
+    del preloaded_move_model, preloaded_agent
 
 
 def main():
     
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 1)
+    setattr(opt, 'test_group_num', 10)
+
     
-    opt.out_dir = '../autodl-tmp/Exp_Replace'
+    if os.path.isfile('Replace.log'): os.system('rm Replace.log')
+    if os.path.isfile('Move.log'): os.system('rm Move.log')
+    
+    opt.out_dir = '../autodl-tmp/Exp_Replace/'
+    if os.path.exists(opt.out_dir): os.system('rm -rf ' + opt.out_dir)
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
-    # print('Start to valuate Replace Method...')
-    # Val_Replace_Method(opt)
+    print('Start to valuate Replace Method...')
+    Val_Replace_Method(opt)
     
-    opt.out_dir = '../autodl-tmp/Exp_Move'
+    opt.out_dir = '../autodl-tmp/Exp_Move/'
+    if os.path.exists(opt.out_dir): os.system('rm -rf'+ opt.out_dir)
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))
@@ -293,4 +331,7 @@ def main():
 
 
 if __name__ == '__main__':
+    start_time = time.time()
     main()
+    end_time = time.time()
+    print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

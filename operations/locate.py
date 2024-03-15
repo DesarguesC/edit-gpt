@@ -74,7 +74,7 @@ def create_location(
                                     opt, target, 
                                     input_pil = img_pil, 
                                     dilate_kernel_size = opt.dilate_kernel_size, 
-                                    preloaded_model = preloaded_model['preloaded_lama_remover'] if preloaded_model is not None else None
+                                    preloaded_model = preloaded_model
                                 ) if opt.use_lama \
                                 else Remove_Me(opt, target, remove_mask=True, replace_box=opt.replace_box)
     rm_img = Image.fromarray(rm_img)
