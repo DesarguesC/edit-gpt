@@ -1,4 +1,4 @@
-import os, time, json
+import os, time, json, logging
 from prompt.guide import get_response, get_bot
 from basicsr.utils import tensor2img, img2tensor
 from random import randint
@@ -129,12 +129,7 @@ def read_original_prompt(path_to_json):
     return (prompt1, prompt2, edit)
 
 def Val_Replace_Method(opt):
-    import logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format = '%(asctime)s : %(levelname)s : %(message)s', 
-        filename='Replace.log'
-    )
+    
     agent = use_exp_agent(opt, system_prompt_edit_sort)
     val_folder = '../autodl-tmp/clip-filtered/shard-00/'
     folders = os.listdir(val_folder)
@@ -151,6 +146,7 @@ def Val_Replace_Method(opt):
     fake_image_list = []
     caption_before_list = []
     caption_after_list = []
+    os.mkdir(f'{opt.out_dir}/Inputs-Replace/')
 
     # 4-6 images in a folder
     while len(executed_list) < opt.test_group_num:
@@ -177,6 +173,7 @@ def Val_Replace_Method(opt):
             for name in name_list:
                 img_path = os.path.join(work_folder, f'{name}_0.jpg')
                 img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
+                img_pil.save(f'{opt.out_dir}/Inputs-Replace/{name}_0.jpg')
                 output_pil = Replace_Method(opt, 0, 0, img_pil, preloaded_replace_model, preloaded_agent, record_history=False)
                 output_pil = ImageOps.fit(output_pil, (512,512), method=Image.Resampling.LANCZOS)
                 caption_before_list.append(c1)
@@ -212,12 +209,7 @@ def Val_Replace_Method(opt):
     # consider if there is need to save all images replaced
 
 def Val_Move_Method(opt):
-    import logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format = '%(asctime)s : %(levelname)s : %(message)s', 
-        filename='Move.log'
-    )
+    
     val_folder = '../autodl-tmp/COCO/val2017/'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     from prompt.arguments import get_arguments
@@ -248,6 +240,8 @@ def Val_Move_Method(opt):
     length = len(data['annotations'])
     selected_list = []
     
+    os.mkdir(f'{opt.out_dir}/Inputs-Move/')
+
     while len(selected_list) < opt.test_group_num:
         while True:
             idx = randint(0, length)
@@ -272,6 +266,7 @@ def Val_Move_Method(opt):
             
             img_path =  os.path.join(val_folder, f'{img_id:0{12}}.jpg')
             img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
+            img_pil.save(f'{opt.out_dir}/Inputs-Move/{img_id:0{12}}.jpg')
             image_before_list.append(img_pil)
             opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
             out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
@@ -305,11 +300,14 @@ def Val_Move_Method(opt):
 def main():
     
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 10)
+    setattr(opt, 'test_group_num', 100)
 
-    
-    if os.path.isfile('Replace.log'): os.system('rm Replace.log')
-    if os.path.isfile('Move.log'): os.system('rm Move.log')
+    logging.basicConfig(
+        level=logging.INFO,
+        format = '%(asctime)s : %(levelname)s : %(message)s', 
+        filename='Replace&Move.log'
+    )
+    if os.path.isfile('Replace&Move.log'): os.system('Replace&Move.log')
     
     opt.out_dir = '../autodl-tmp/Exp_Replace/'
     if os.path.exists(opt.out_dir): os.system('rm -rf ' + opt.out_dir)
