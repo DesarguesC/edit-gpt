@@ -11,12 +11,7 @@ checkpoints/
 # static/
 memory_test.txt
 
-models/clip_directional_similarity_Replace.txt
-models/fid_score_Replace.txt
-models/fid_score_Move.txt
-models/clip_directional_similarity_Move.txt
-
-
+models/*.txt
 
 key.csv
 # *.txt
