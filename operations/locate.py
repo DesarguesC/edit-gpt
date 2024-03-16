@@ -104,9 +104,9 @@ def create_location(
 
     box_0 = (0,0,0,0)
     try_time = 0
-    notes = '\n(Note that: Your response must not contain $(0,0,0,0)$ as bounding box!)'
+    notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
 
-    while box_0 == (0,0,0,0):
+    while box_0 == (0,0,0,0) or box_0[2] == 0 or box_0[3] == 0:
         if try_time > 0:
             if try_time > 6:
                 box_0 = (50,50,50,50)

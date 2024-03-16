@@ -176,6 +176,7 @@ def Val_Replace_Method(opt):
                 img_pil.save(f'{opt.out_dir}/Inputs-Replace/{name}_0.jpg')
                 output_pil = Replace_Method(opt, 0, 0, img_pil, preloaded_replace_model, preloaded_agent, record_history=False)
                 output_pil = ImageOps.fit(output_pil, (512,512), method=Image.Resampling.LANCZOS)
+                
                 caption_before_list.append(c1)
                 caption_after_list.append(c2)
                 fake_image_list.append(output_pil) # pil list
@@ -261,23 +262,24 @@ def Val_Move_Method(opt):
             place = [x for x in get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
             assert len(place) == 2, f'place = {place}'
             ori_place, gen_place = place[0], place[1]
-
-            caption_before_list.append(f'{label} at \'{ori_place}\'')
-            caption_after_list.append(f'{label} at \'{gen_place}\'')
             
             img_path =  os.path.join(val_folder, f'{img_id:0{12}}.jpg')
             img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
             img_pil.save(f'{opt.out_dir}/Inputs-Move/{img_id:0{12}}.jpg')
-            image_before_list.append(img_pil)
+            
             opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
             out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
             out_pil = ImageOps.fit(out_pil, (512,512), method=Image.Resampling.LANCZOS)
-            image_after_list.append(out_pil)
-
+            
             end_time = time.time()
             string = f'Images have been moved: {len(selected_list)} | Time cost: {end_time - start_time}'
             print(string)
             logging.info(string)
+
+            image_before_list.append(img_pil)
+            image_after_list.append(out_pil)
+            caption_before_list.append(f'{label} at \'{ori_place}\'')
+            caption_after_list.append(f'{label} at \'{gen_place}\'')
 
         except Exception as e:
             string = f'Exception Occurred: {e}'
@@ -301,7 +303,7 @@ def Val_Move_Method(opt):
 def main():
     
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 400)
+    setattr(opt, 'test_group_num', 100)
 
     logging.basicConfig(
         level=logging.INFO,

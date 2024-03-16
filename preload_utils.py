@@ -221,7 +221,7 @@ def preload_lama_remover(opt):
 
 def preload_all_models(opt):
     return {
-        'preloaed_ip2p': preload_ip2p(opt), # 8854 MiB
+        'preloaded_ip2p': preload_ip2p(opt), # 8854 MiB
         'preloaded_example_generator': preload_example_generator(opt), 
         # XL - 8272 MiB, XL_ad - 8458 MiB, V1.5 - 10446 MiB
         'preloaded_example_painter': preload_paint_by_example_model(opt), # 10446 MiB

@@ -58,7 +58,7 @@ def create_parse_args():
     parser.add_argument('--ip2p_config', default='./configs/ip2p_generate.yaml', help='path to InstructPix2Pix config')
     parser.add_argument('--ip2p_ckpt', default='../autodl-tmp/ip2p.ckpt', help='path to ckpt of InstructPix2Pix')
 
-    parser.add_argument('--vqa_base_path', default='../autodl-tmp/', help='path to vqa model')
+    parser.add_argument('--vqa_model_path', default='../autodl-tmp/', help='path to vqa model')
 
     return parser.parse_args() 
 

@@ -65,7 +65,8 @@ def Transfer_Method(
                         img_cfg = opt.img_cfg, 
                         txt_cfg = opt.txt_cfg, 
                         dilate_kernel_size = 15, 
-                        preloaded_model = preloaded_model    
+                        preloaded_model = preloaded_model,
+                        record_history = record_history    
                     )
 
     if record_history:

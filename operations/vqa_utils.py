@@ -14,25 +14,29 @@ def preload_vqa_model(model_path, device='cuda'):
     if not model_path.endswith('dandelin/vilt-b32-finetuned-vqa'):
         model_path = os.path.join(model_path,'dandelin/vilt-b32-finetuned-vqa')
     processor = ViltProcessor.from_pretrained(model_path)
-    model = ViltForQuestionAnswering.from_pretrained(model_path)
+    model = ViltForQuestionAnswering.from_pretrained(model_path).to(device)
     return {
         'processor': processor, 
         'model': model.to(device)
     }
 
-def How_Many_label(model_dict, image, label):
+def How_Many_label(model_dict, image, label, device='cuda'):
     processor = model_dict['processor']
     model = model_dict['model']
     text = "How many" + label + "are in the image?"
-    encoding = processor(image, text, return_tensors="pt")
+    encoding = processor(image, text, return_tensors="pt").to(device)
     outputs = model(**encoding)
     logits = outputs.logits
     idx = logits.argmax(-1).item()
     return int(model.config.id2label[idx])
 
-def Val_add_amount(model_dict, label, image_ori, image_edited):
+def Val_add_amount(model_dict, label, image_ori, image_edited, device='cuda'):
     # return How_Many_label(model, image_edited, label)
-    return How_Many_label(model_dict, image_edited, label) - How_Many_label(model, image_ori, label)
+    if isinstance(image_edited, list):
+        a = How_Many_label(model_dict, image_ori, label, device=device)
+        return [(How_Many_label(model_dict, img, label, device=device) - a) for img in image_edited]
+
+    return How_Many_label(model_dict, image_edited, label, device=device) - How_Many_label(model_dict, image_ori, label, device=device)
 
 
 def choose_noun(text):

@@ -95,17 +95,36 @@ def Add_Object(
 
         fixed_box = (0,0,0,0)
         try_time = 0
+        notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
 
-        while fixed_box == (0,0,0,0):
+        while fixed_box == (0,0,0,0) or fixed_box[2] == 0 or fixed_box[3] == 0:
             if try_time > 0:
+                if try_time > 6:
+                    box_0 = (50,50,50,50)
+                    break
                 print(f'Trying to fix... - Iter: {try_time}')
-            ans = get_response(edit_agent, question)
-            print(f'question = {question}')
-            print(f'ans = {ans}')
-            ans_list = [x.strip() for x in re.split(r'[(),{}\[\]$]', ans) if x != '' and x != ' ']
-            assert len(ans_list) == 5, f'ans = {ans}, ans_list = {ans_list}'
-            fixed_box = (int(float(ans_list[1])), int(float(ans_list[2])), int(float(ans_list[3]) * opt.expand_scale), int(float(ans_list[4]) * opt.expand_scale))
+                print(f'QUESTION: \n{question}')
+            box_ans = [x.strip() for x in re.split(r'[\[\],()]', get_response(edit_agent, question if try_time < 3 else (question + notes))) if x != '' and x != ' ']
+            # deal with the answer, procedure is the same as in replace.py
+            print(f'box_ans = {box_ans}')
+            if len(box_ans) < 4:
+                print('WARNING: string return')
+                try_time += 1
+                continue
+            print(f'box_ans[0](i.e. target) = {box_ans[0]}')
+            x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]), float(box_ans[4])
+            fixed_box = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
+            print(f'box_0 before fixed: {fixed_box}')
             fixed_box = fix_box(fixed_box, (opt.W,opt.H,3))
+            print(f'box_0 after fixed = {fixed_box}')
+
+            # ans = get_response(edit_agent, question)
+            # print(f'question = {question}')
+            # print(f'ans = {ans}')
+            # ans_list = [x.strip() for x in re.split(r'[(),{}\[\]$]', ans) if x != '' and x != ' ']
+            # assert len(ans_list) == 5, f'ans = {ans}, ans_list = {ans_list}'
+            # fixed_box = (int(float(ans_list[1])), int(float(ans_list[2])), int(float(ans_list[3]) * opt.expand_scale), int(float(ans_list[4]) * opt.expand_scale))
+            # fixed_box = fix_box(fixed_box, (opt.W,opt.H,3))
 
             try_time += 1
         
