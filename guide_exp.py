@@ -240,16 +240,18 @@ def Val_Move_Method(opt):
     length = len(data['annotations'])
     selected_list = []
     
-    os.mkdir(f'{opt.out_dir}/Inputs-Move/')
+    if not os.path.exists(f'{opt.out_dir}/Inputs-Move/'):
+        os.mkdir(f'{opt.out_dir}/Inputs-Move/')
 
     while len(selected_list) < opt.test_group_num:
         while True:
             idx = randint(0, length)
             if idx in selected_list: continue
             else: break
-        selected_list.append(idx)
-        annotation = data['annotations'][idx]
+        
         try:
+            selected_list.append(idx)
+            annotation = data['annotations'][idx]
             start_time = time.time()
             
             x, y, w, h = annotation['bbox']
@@ -300,23 +302,23 @@ def Val_Move_Method(opt):
 def main():
     
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 100)
+    setattr(opt, 'test_group_num', 400)
 
     logging.basicConfig(
         level=logging.INFO,
         format = '%(asctime)s : %(levelname)s : %(message)s', 
         filename='Replace&Move.log'
     )
-    if os.path.isfile('Replace&Move.log'): os.system('Replace&Move.log')
+    # if os.path.isfile('Replace&Move.log'): os.system('Replace&Move.log')
     
-    opt.out_dir = '../autodl-tmp/Exp_Replace/'
-    if os.path.exists(opt.out_dir): os.system('rm -rf ' + opt.out_dir)
-    if not os.path.exists(opt.out_dir):
-        os.mkdir(opt.out_dir)
-    base_cnt = len(os.listdir(opt.out_dir))
-    setattr(opt, 'base_cnt', base_cnt)
-    print('Start to valuate Replace Method...')
-    Val_Replace_Method(opt)
+    # opt.out_dir = '../autodl-tmp/Exp_Replace/'
+    # if os.path.exists(opt.out_dir): os.system('rm -rf ' + opt.out_dir)
+    # if not os.path.exists(opt.out_dir):
+    #     os.mkdir(opt.out_dir)
+    # base_cnt = len(os.listdir(opt.out_dir))
+    # setattr(opt, 'base_cnt', base_cnt)
+    # print('Start to valuate Replace Method...')
+    # Val_Replace_Method(opt)
     
     opt.out_dir = '../autodl-tmp/Exp_Move/'
     if os.path.exists(opt.out_dir): os.system('rm -rf'+ opt.out_dir)
