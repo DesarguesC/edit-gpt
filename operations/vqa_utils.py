@@ -9,7 +9,7 @@ if not nltk.data.find('taggers/averaged_perceptron_tagger'):
     nltk.download('averaged_perceptron_tagger')
 
 # preload: load the model and processor
-def preload(model_path, device='cuda'):
+def preload_vqa_model(model_path, device='cuda'):
     # use opt.vqa_model_path & opt.device
     if not model_path.endswith('dandelin/vilt-b32-finetuned-vqa'):
         model_path = os.path.join(model_path,'dandelin/vilt-b32-finetuned-vqa')
@@ -30,7 +30,7 @@ def How_Many_label(model_dict, image, label):
     idx = logits.argmax(-1).item()
     return int(model.config.id2label[idx])
 
-def Val(model_dict, label, image_ori, image_edited):
+def Val_add_amount(model_dict, label, image_ori, image_edited):
     # return How_Many_label(model, image_edited, label)
     return How_Many_label(model_dict, image_edited, label) - How_Many_label(model, image_ori, label)
 
@@ -82,8 +82,8 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # device = "cpu"
     model_path = "../autodl-tmp/vilt-b32-finetuned-vqa"
-    processor, model = preload(model_path, device)
+    processor, model = preload_vqa_model(model_path, device)
 
-    result = Val(model, "cat", image_ori = Image.open("cat.png"), image_edited = Image.open("nocat.jpg"))
+    result = Val_add_amount(model, "cat", image_ori = Image.open("cat.png"), image_edited = Image.open("nocat.jpg"))
 
     print(result)
