@@ -104,21 +104,28 @@ def create_location(
 
     box_0 = (0,0,0,0)
     try_time = 0
+    notes = '\n(Note that: Your response must not contain $(0,0,0,0)$ as bounding box!)'
 
     while box_0 == (0,0,0,0):
         if try_time > 0:
+            if try_time > 6:
+                box_0 = (50,50,50,50)
+                break
             print(f'Trying to fix... - Iter: {try_time}')
-        box_ans = [x.strip() for x in re.split(r'[\[\],()]', get_response(edit_agent, question)) if x != '' and x != ' ']
+            print(f'QUESTION: \n{question}')
+        box_ans = [x.strip() for x in re.split(r'[\[\],()]', get_response(edit_agent, question if try_time < 3 else (question + notes))) if x != '' and x != ' ']
         # deal with the answer, procedure is the same as in replace.py
         print(f'box_ans = {box_ans}')
         if len(box_ans) < 4:
             print('WARNING: string return')
+            try_time += 1
             continue
         print(f'box_ans[0](i.e. target) = {box_ans[0]}')
         x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]), float(box_ans[4])
         box_0 = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
-        print(f'box_0 = {box_0}')
+        print(f'box_0 before fixed: {box_0}')
         box_0 = fix_box(box_0, (opt.W,opt.H,3))
+        print(f'box_0 after fixed = {box_0}')
         
         try_time += 1
 

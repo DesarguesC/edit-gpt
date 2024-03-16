@@ -65,25 +65,25 @@ replace_first_ask =     'You need to output both the replaced object $$A$$ and t
 """
 system_prompt_locate =     'You are a text detector, expert at generating a new bounding box for a specific object. '\
                            'Inputs are in the form of the bellow: \n'\
-                           'Size: $$(W_{img},H{img})$$\n'\
-                           'Objects: $${[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],..., '\
-                           '[Name_n, (X_n,Y_n), (W_n,H_n))]}$$\nTarget: Name_n\nEdit-Text: <edit text guidance>\n'\
+                           'Size: $(W_{img},H{img})$\n'\
+                           'Objects: ${[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],..., '\
+                           '[Name_n, (X_n,Y_n), (W_n,H_n))]}$\nTarget: Name_n\nEdit-Text: <text prompt>. \n'\
                            'As inputs from shown above, $$(W_{img},H_{img})$$ represents the size of original image input.'\
                            'And for the i-th item $$[Name_i, (X_i,Y_i), (W_i,H_i)]$$ in the field \"Objects\", '\
                            'Name_i labels its name (i.e. object class, such as cat, dog, apple and etc.), '\
                            'and $$(X_i,Y_i), (W_i,H_i)$$ represent the location and size respectively in an image(or a photo). '\
                            'Additianally, $$(X_i,Y_i), (W_i,H_i)$$ is in form of the bounding box, '\
                            'where $$(X_i,Y_i)$$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
-                           'And $$(W_i,H_i)$$ represents the width and height of a rectangular box that including the i-th object. '\
+                           'And $(W_i,H_i)$$ represents the width and height of a rectangular box that including the i-th object. '\
                            '"Target" indicates a target to be edited, and we enssure '\
                            'that Name in \"Target\" field is equivalent to $$Name_n$$ in \"Objects\" field. '\
                            'Finally, in \"Edit-Text\" field, you will get the edit prompt. '\
                            'Your task is to arrange a proper place and size, in form of bounding box, '\
                            'For your task, you should output your generation of the target bounding box in the form of '\
                             '$$[Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]$$. $$Name_n$$ represents the name of the target '\
-                            '(it stays the same!) and your output mustn\'t contain any other character. And coordinates $$(X_{new},Y_{new})$$ is the coordinate of the point at the top left corner in '\
-                            'the edge of the bounding box, while $$(W_{new},H_{new})$$ represents the width and height of a '\
-                            'rectangular box that including this object. Note that bounding boxes can overlap. '
+                            '(it stays the same!) and $[Name, (0,0), (0,0)]$ is strictly forbidden is your output. '\
+                            'And your output mustn\'t contain any other character. '
+                            
                         #    'for "Target" among objects in "Objects" field. '\
                         #    'For the coordinates designed in bounding box, we give relevant definitions. '\
                         #    'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
@@ -96,8 +96,7 @@ system_prompt_locate =     'You are a text detector, expert at generating a new 
                         #    '$$(x,y), (x+w,y), (w,y+h), (x+w,y+h)$$, respectively. From this point of view, the values of $$x+w$$ and $$y+h$$ generated '\
                         #    'cannot exceed the size of the original image $$(W_{img},H{img})$$. Note that bounding boxes can overlap. '
           
-locate_first_ask =      'Attention: Your output mustn\'t contain $(0,0,0,0)$ as bounding box and outputing any other character is forbidden. '\
-                        'If you have fully understood your task, '\
+locate_first_ask =      'If you have fully understood your task, '\
                         'please answer "yes" in the round without any extra characters. ' # replace the prompt befere
                         # 'For the coordinates designed in bounding box, we give relevant definitions. '\
                         # 'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\

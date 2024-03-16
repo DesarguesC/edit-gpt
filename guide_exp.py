@@ -212,7 +212,6 @@ def Val_Move_Method(opt):
     
     val_folder = '../autodl-tmp/COCO/val2017/'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
-    from prompt.arguments import get_arguments
     agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
     
     caption_before_list = caption_after_list = []
