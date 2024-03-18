@@ -38,6 +38,7 @@ gradio
 open-clip-torch
 jieba
 ninja
+scikit-image
 pycocotools
 IPython
 matplotlib
