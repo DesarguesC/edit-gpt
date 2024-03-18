@@ -462,5 +462,72 @@ def Use_Agent(opt, TODO=None, print_first_answer=False):
         exit(-1)
     print(f'Agent for \'{TODO}\' has been loaded')
     return agent
-    
+
+# for experiments
+
+# 输入：cpation, label, bounding box
+"""
+    你是一个位置生成器，你需要根据输入的caption和label，为处在bounding box描述位置处的物体生成一个使用文字描述的位置。
+    你获得的输入是：caption，label，（x,y,w,h）
+    这里的(x,y,w,h)是bounding box，其含义为：(x,y)表示bounding box左上角的点的坐标，(w,h)为bounding box的宽度和高度。
+    你需要将生成的描述性位置输出，同时给出另一个目标位置的文字描述，使得物体可以从当前位置被移动到目标位置，例如：
+    Input: an apple is on the desk, apple, (100,100,50,70)
+    Output: on the desk; under the desk
+    Input: an apple on the desk, desk, (30,140,300,240)
+    Output: desk on the left; desk on the right
+    每个输出中的两个位置A和B用";"分割，你的输出禁止包含多余的无关字符
+"""
+
+system_prompt_gen_move_instructions = "You are a position generator and you need to generate a textual position " \
+                                      "for an object at the position described by a bounding box, based on the input caption and label. " \
+                                      "The input you get is: caption, label, (x,y,w,h). Here (x,y,w,h) is the bounding box, " \
+                                      "which means: (x,y) represents the coordinates of the point in the upper left corner of " \
+                                      "the bounding box, and (w,h) is the width and height of the bounding box. " \
+                                      "You need to output the generated descriptive position with another textual description " \
+                                      "of the target position, so that the object can be moved from its current position to the target position, for example: \n" \
+                                      "Input: an apple is on the desk, apple, (100,100,50,70)\n" \
+                                      "Output: on the desk; under the desk\n" \
+                                      "Input: an apple on the desk, desk, (30,140,300,240)\n" \
+                                      "Output: on the left; on the right\n" \
+                                      "The two positions A and B in each output are separated by \";\", " \
+                                      "and your output is forbidden to contain extra extraneous characters."
+
+system_prompt_edit_sort = 'You are an expert in text classiffication,  and there are 5 classes in total.' \
+                          '1. \"Remove\": determines whether the text removes the object, and if so, it is \"Romove\". ' \
+                          '2. \"Replace\": determine whether the text replaces the object, and if so, its category is \"Replace\". ' \
+                          '3. \"Move\": determine whether the text moves the object. If it does, the category is \"Move\". ' \
+                          '4. \"Add\": determine whether the text add several object. If it does, the category is \"Add\". ' \
+                          '5. \"Transfer\": determine whether the text is to do style transfering. If it does, the category is \"Transfer\". ' \
+                          'Note that the text is an editing instruction for the picture. We ensure all the text input is included in these 5 classes. \n' \
+                          'For instance: \n' \
+                          'Input: make the Ferris Wheel a giant hamster wheel\nOutput: \"Replace\"\n' \
+                          'Input: make it an oil painting\nOutput: \"Transfer\"\n' \
+                          'Input: have the ranch be a zoo\nOutput: \"Replace\"\n' \
+                          'Note that you are forbidden to include any other extra characters in your output.'
+
+# not used yes
+
+"""
+    你是一个instruction生成器，你需要根据描述两幅相似图像的caption中的文字差异，生成一条能够通过“replace” 实现图像编辑的指令，例如：
+    Input: 1.mountains of scotland under a bright sunny sky 2. mountains of scotland under a rainy sky
+    Output: replace "bright sunny sky" with a "rainy sky".
+    我们更希望你使用"replace A with B"的句型。另外，如果你认为这两条caption之间不能用一条只用“replace”方法的instruction实现，
+    请输出“NULL”。例如：
+    Input: 1. Aspen Country II Painting 2. Aspen Country II Cartoon
+    Output: NULL
+    因为这是一个风格迁移方面的变换
+    注意，你的输出中禁止包含其他多余的字符。
+"""
+
+system_prompt_gen_replace_instructions = "You are an instruction generator, and you need to generate an instruction that "\
+                                         "enables image editing via \"replace\" based on the textual differences in a "\
+                                         "caption describing two similar images, for example: \n"\
+                                         "Input: 1.mountains of scotland under a bright sunny sky 2. mountains of scotland under a rainy sky\n"\
+                                         "Output: replace \"bright sunny sky\" with a \"rainy sky\". \n"\
+                                         "We prefer you to use the \"replace A with B\" pattern. Also, if you think that the two captions "\
+                                         "can't be separated by an instruction that only uses the \"replace\" method, just output \"NULL\". "\
+                                         "For instance:\n"\
+                                         "Input: 1. Aspen Country II Painting 2. Aspen Country II Cartoon\n"\
+                                         "Output: NULL\nFor the fact that they are style transfering concerned instructions. "\
+                                         "Note that you are forbidden to include any other extra characters in your output."
 
