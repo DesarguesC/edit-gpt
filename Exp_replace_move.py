@@ -131,7 +131,7 @@ def Val_Replace_Method(opt):
             logging.error(string)
             del executed_list[-1]
 
-    # TODO: Clip Image Score
+    # TODO: Clip Image Score & PSNR && SSIM
 
     clip_directional_similarity = cal_similarity(real_fake_image_list, fake_image_list, caption_before_list, caption_after_list)
     print(f"clip directional similarity: {clip_directional_similarity}")
@@ -231,6 +231,8 @@ def Val_Move_Method(opt):
             print(string)
             logging.error(string)
             del selected_list[-1]
+
+    # TODO: Clip Image Score & PSNR && SSIM
 
     clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
     print(f"clip directional similarity: {clip_directional_similarity}")
