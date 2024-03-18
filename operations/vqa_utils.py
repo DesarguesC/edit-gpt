@@ -75,11 +75,12 @@ def remove_test_coco():
 
 def IsRemoved(model_dict, label, image_ori, image_edited, device='cuda'):
     back1 = IsThereExists(model_dict, image_ori, label, device=device)
-    back2 = IsThereExists(model_dict, image_edited, label)
-    if back1 == "yes" and back2 == "no":
-        return True
+    if not isinstance(image_edited, list):
+        back2 = IsThereExists(model_dict, image_edited, label)
+        return (back1 == "yes" and back2 == "no")
     else:
-        return False
+        return [(back1 == "yes" and IsThereExists(model_dict, img_, label) == "no" for img_ in image_edited)]
+
 
 
 if __name__ == "__main__":
