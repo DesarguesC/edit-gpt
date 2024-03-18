@@ -4,7 +4,7 @@ from PIL import Image
 def get_image_from_box(image, box):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if isinstance(image, str):
-        image = cv2.imread(path)
+        image = cv2.imread(image)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     assert len(box)==4, f'box = {box}'
     # print(f'type-box = {type(box)}')
@@ -16,14 +16,11 @@ def get_image_from_box(image, box):
     return box_image
 
 import torch, os
-from torchmetrics.functional.multimodal import clip_score
+
+
 from torchmetrics.image.fid import FrechetInceptionDistance as FID
-from functools import partial
-from datasets import load_dataset
+
 import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-from zipfile import ZipFile
 from PIL import Image
 from basicsr.utils import tensor2img, img2tensor
 
@@ -54,12 +51,15 @@ def Cal_FIDScore(real_image_list, fake_image_list):
 
 import torch.nn as nn
 import torch.nn.functional as F
+from skimage.metrics import structural_similarity as ssim
 
 from transformers import (
     CLIPTokenizer,
     CLIPTextModelWithProjection,
     CLIPVisionModelWithProjection,
     CLIPImageProcessor,
+    BertTokenizer,
+    BertModel
 )
 
 class DirectionalSimilarity(nn.Module):
@@ -112,7 +112,6 @@ class DirectionalSimilarity(nn.Module):
         )
         return directional_similarity
 
-
 def Cal_ClipDirectionalSimilarity(image_before_list, image_after_list, caption_before_list, caption_after_list):
     # image list: pil list
     dir_similarity = DirectionalSimilarity()
@@ -128,4 +127,46 @@ def Cal_ClipDirectionalSimilarity(image_before_list, image_after_list, caption_b
 
     return np.mean(np.array(scores))
 
+def PSNR_compute(original_img, edited_img, max_pixel: int = 255) -> float:
+    """
+    计算两幅图像之间的PSNR值。
+    """
+    if not isinstance(original_img, list):
+        mse = np.mean((original_img - edited_img) ** 2)
+        if mse == 0:
+            return float('inf')
+        return 20 * np.log10(max_pixel / np.sqrt(mse))
+    else:
+        assert len(original_img) == len(edited_img), f'len(original_img) = {len(original_img)}, len(edited_img) = {len(edited_img)}'
+        mse = [np.mean((original_img[i] - edited_img[i]) ** 2) for i in range(len(original_img))]
+        tot = np.mean(mse)
+        if tot == 0:
+            return float('inf')
+        else:
+            return 20 * np.log10(max_pixel / np.sqrt(tot))
 
+def calculate_clip_score(images, prompts, base_path = '../autodl-tmp', clip_score_fn=None):
+    if clip_score_fn is None:
+        from torchmetrics.functional.multimodal import clip_score
+        from functools import partial
+        clip_score_fn = partial(clip_score, model_name_or_path=os.path.join(base_path, "openai/clip-vit-base-patch16"))
+    if not isinstance(images, list):
+        images_int = (images * 255).astype("uint8") if np.max(images) <= 1. else images.astype("uint8")
+        clip_score = clip_score_fn(img2tensor(images_int), prompts).detach()
+        return float(clip_score)
+    else:
+        assert isinstance(prompts, list) and len(prompts) == len(images), f'{isinstance(prompts, list)}, len(prompts) = {len(prompts)}, len(images) = {len(images)}'
+        images_int = [(image * 255).astype("uint8") if np.max(image) <= 1. else images.astype("uint8") for image in images]
+        clip_scores = [clip_score_fn(img2tensor(images_int[i]), prompts[i]) for i in range(len(prompts))]
+        return float(np.mean(clip_scores))
+
+def SSIM_compute(original_img, edited_img, multichannel: bool = True) -> float:
+    """
+    计算两幅图像之间的SSIM值。
+    """
+    if not isinstance(original_img, list):
+        return ssim(original_img, edited_img, multichannel=multichannel)
+    else:
+        assert len(original_img) == len(edited_img), f'len(original_img) = {len(original_img)}, len(edited_img) = {len(edited_img)}'
+        SSIM = [ssim(original_img[i], edited_img[i], multichannel=multichannel) for i in range(len(original_img))]
+        return np.mean(SSIM)

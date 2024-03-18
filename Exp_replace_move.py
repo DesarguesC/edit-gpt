@@ -8,8 +8,11 @@ from task_planning import Replace_Method, Move_Method
 from prompt.arguments import get_arguments
 from prompt.util import Cal_ClipDirectionalSimilarity as cal_similarity
 from prompt.util import Cal_FIDScore as cal_fid
+from prompt.util import calculate_clip_score, PSNR_compute, SSIM_compute
 from detectron2.data import MetadataCatalog
 from preload_utils import *
+from torchmetrics.functional.multimodal import clip_score as CLIP
+from functools import partial
 
 def preload_replace_model(opt):
     return {
@@ -45,6 +48,14 @@ def write_instruction(path, caption_before, caption_after, caption_edit):
     #     path = os.path.join(path, 'captions.txt')
     with open(path, 'w') as f:
         f.write(f'{caption_before}\n{caption_after}\n{caption_edit}')
+
+def write_valuation_results(path, clip_score=None, clip_directional_similarity=None, psnr_score=None, ssim_score=None, fid_score=None):
+    string = (f'Clip Score: {clip_score}\nClip Directional Similarity: {clip_directional_similarity}\n'
+              f'PSNR: {psnr_score}\nSSIM: {ssim_score}\nFID: {fid_score}')
+    with open(path, 'w') as f:
+        f.write(string)
+    print(string)
+
 
 def read_original_prompt(path_to_json):
     assert path_to_json.endswith('.json')
@@ -133,18 +144,23 @@ def Val_Replace_Method(opt):
 
     # TODO: Clip Image Score & PSNR && SSIM
 
+    # use list[Image]
     clip_directional_similarity = cal_similarity(real_fake_image_list, fake_image_list, caption_before_list, caption_after_list)
-    print(f"clip directional similarity: {clip_directional_similarity}")
-    with open("models/clip_directional_similarity_Replace.txt", "w") as f:
-        f.write(str(clip_directional_similarity))
-
     fid_score = cal_fid(real_fake_image_list, fake_image_list)
-    print(f"FID Score: {fid_score}")
-    with open("models/fid_score_Replace.txt", "w") as f:
-        f.write(str(fid_score))
+
+    # use list[np.array]
+    for i in range(len(fake_image_list)):
+        fake_image_list[i] = np.array(fake_image_list[i])
+        real_fake_image_list[i] = np.array(real_fake_image_list[i])
+
+    ssim_score = SSIM_compute(real_fake_image_list, fake_image_list)
+    clip_score = calculate_clip_score(fake_image_list, caption_after_list, clip_score_fn=partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch16'))
+    psnr_score = PSNR_compute(real_fake_image_list, fake_image_list)
+
     
     del preloaded_agent, preloaded_replace_model
     # consider if there is need to save all images replaced
+    write_valuation_results(os.path.join(static_out_dir, 'all_results.txt'), clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
 
 def Val_Move_Method(opt):
     
@@ -232,19 +248,26 @@ def Val_Move_Method(opt):
             logging.error(string)
             del selected_list[-1]
 
+
     # TODO: Clip Image Score & PSNR && SSIM
 
+    # use list[Image]
     clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
-    print(f"clip directional similarity: {clip_directional_similarity}")
-    with open("models/clip_directional_similarity_Move.txt", "w") as f:
-        f.write(str(clip_directional_similarity))
-
     fid_score = cal_fid(image_before_list, image_after_list)
-    print(f"FID Score: {fid_score}")
-    with open("models/fid_score_Move.txt", "w") as f:
-        f.write(str(fid_score))
 
-    del preloaded_move_model, preloaded_agent
+    # use list[np.array]
+    for i in range(len(image_after_list)):
+        image_after_list[i] = np.array(image_after_list[i])
+        image_before_list[i] = np.array(image_before_list[i])
+
+    ssim_score = SSIM_compute(image_before_list, image_after_list)
+    clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=partial(CLIP,
+                                                                                                 model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch16'))
+    psnr_score = PSNR_compute(image_before_list, image_after_list)
+
+    del preloaded_agent, preloaded_move_model
+    # consider if there is need to save all images replaced
+    write_valuation_results(os.path.join(static_out_dir, 'all_results.txt'), clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
 
 
 def main():

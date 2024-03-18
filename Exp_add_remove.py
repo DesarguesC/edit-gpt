@@ -8,11 +8,14 @@ from task_planning import Add_Method, Remove_Method, Transfer_Method
 from prompt.arguments import get_arguments
 from prompt.util import Cal_ClipDirectionalSimilarity as cal_similarity
 from prompt.util import Cal_FIDScore as cal_fid
+from prompt.util import calculate_clip_score, PSNR_compute, SSIM_compute
 from detectron2.data import MetadataCatalog
 from preload_utils import *
 
 from operations.vqa_utils import preload_vqa_model, Val_add_amount, IsRemoved
 
+from torchmetrics.functional.multimodal import clip_score as CLIP
+from functools import partial
 
 def preload_add_model(opt):
     return {
@@ -22,6 +25,13 @@ def preload_add_model(opt):
         'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
         'preloaded_lama_remover': preload_lama_remover(opt), # 10446 MiB
         'preloaded_ip2p': preload_ip2p(opt), # 8854 MiB
+    }
+
+def preload_remove_model(opt):
+    return {
+        'preloaded_sam_generator': preload_sam_generator(opt),  # 10446 MiB
+        'preloaded_seem_detector': preload_seem_detector(opt),  # 10446 MiB
+        'preloaded_lama_remover': preload_lama_remover(opt),  # 10446 MiB
     }
 
 def use_exp_agent(opt, system_prompt):
@@ -39,6 +49,13 @@ def write_instruction(path, caption_before, caption_after, caption_edit):
     #     path = os.path.join(path, 'captions.txt')
     with open(path, 'w') as f:
         f.write(f'{caption_before}\n{caption_after}\n{caption_edit}')
+
+def write_valuation_results(path, clip_score=None, clip_directional_similarity=None, psnr_score=None, ssim_score=None, fid_score=None):
+    string = (f'Clip Score: {clip_score}\nClip Directional Similarity: {clip_directional_similarity}\n'
+              f'PSNR: {psnr_score}\nSSIM: {ssim_score}\nFID: {fid_score}')
+    with open(path, 'w') as f:
+        f.write(string)
+    print(string)
 
 
 def Val_Add_Method(opt):
@@ -138,27 +155,26 @@ def Val_Add_Method(opt):
             logging.error(string)
             del selected_list[-1]
 
-
     # TODO: Clip Image Score & PSNR && SSIM
-    
-    clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
-    print(f"clip directional similarity: {clip_directional_similarity}")
-    with open("models/clip_directional_similarity_Add.txt", "w") as f:
-        f.write(str(clip_directional_similarity))
 
+    # use list[Image]
+    clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list,
+                                                 caption_after_list)
     fid_score = cal_fid(image_before_list, image_after_list)
-    print(f"FID Score: {fid_score}")
-    with open("models/fid_score_Add.txt", "w") as f:
-        f.write(str(fid_score))
 
-    del preloaded_add_model, preloaded_agent
-    
-    acc_ratio_add = acc_num_add / len(selected_list)
-    acc_ratio_ip2p = acc_num_ip2p / len(selected_list)
-    string = f"Acc: [Add|Ip2p]~[{acc_ratio_add}|{acc_ratio_ip2p}]"
-    print(string)
-    with open("models/acc_ratio_Add_Ip2p.txt", "w") as f:
-        f.write(string)
+    # use list[np.array]
+    for i in range(len(image_after_list)):
+        image_after_list[i] = np.array(image_after_list[i])
+        image_before_list[i] = np.array(image_before_list[i])
+
+    ssim_score = SSIM_compute(image_before_list, image_after_list)
+    clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=partial(CLIP,
+                                                                                                  model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch16'))
+    psnr_score = PSNR_compute(image_before_list, image_after_list)
+
+    del preloaded_agent, preloaded_add_model
+    # consider if there is need to save all images replaced
+    write_valuation_results(os.path.join(static_out_dir, 'all_results.txt'), clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
 
 
 def Val_Remove_Method(opt):
@@ -173,7 +189,7 @@ def Val_Remove_Method(opt):
     caption_before_list = caption_after_list = []
     image_before_list = image_after_list = []
 
-    preloaded_add_model = preload_add_model(opt) if opt.preload_all_models else None
+    preloaded_remove_model = preload_remove_model(opt) if opt.preload_all_models else None
     preloaded_agent = preload_all_agents(opt) if opt.preload_all_models else None
     model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)
 
@@ -226,7 +242,7 @@ def Val_Remove_Method(opt):
             # caption2 = f'{caption1}, with a {add_label} added on the {amend}'
             opt.edit_txt = f'remove the {ori_label}'
             caption2 = f'{caption1}, with {ori_label} removed'
-            out_pil = Remove_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
+            out_pil = Remove_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
 
             image_before_list.append(ori_img)
             image_after_list.append(out_pil)
@@ -237,7 +253,7 @@ def Val_Remove_Method(opt):
             out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditPGT.jpg')
             write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
-            out_ip2p_pil = Transfer_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
+            out_ip2p_pil = Transfer_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
             out_ip2p_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
 
             get_amount_remove, get_amount_ip2p = IsRemoved(model_dict, ori_label, ori_img, [out_pil, out_ip2p_pil], device=opt.device)
@@ -259,25 +275,25 @@ def Val_Remove_Method(opt):
 
     # TODO: Clip Image Score & PSNR && SSIM
 
+    # use list[Image]
     clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list,
                                                  caption_after_list)
-    print(f"clip directional similarity: {clip_directional_similarity}")
-    with open("models/clip_directional_similarity_Remove.txt", "w") as f:
-        f.write(str(clip_directional_similarity))
-
     fid_score = cal_fid(image_before_list, image_after_list)
-    print(f"FID Score: {fid_score}")
-    with open("models/fid_score_Remove.txt", "w") as f:
-        f.write(str(fid_score))
 
-    del preloaded_add_model, preloaded_agent
+    # use list[np.array]
+    for i in range(len(image_after_list)):
+        image_after_list[i] = np.array(image_after_list[i])
+        image_before_list[i] = np.array(image_before_list[i])
 
-    acc_ratio_remove = acc_num_remove / len(selected_list)
-    acc_ratio_ip2p = acc_num_ip2p / len(selected_list)
-    string = f"Acc: [Remove|Ip2p]~[{acc_ratio_remove}|{acc_ratio_ip2p}]"
-    print(string)
-    with open("models/acc_ratio_Remove_Ip2p.txt", "w") as f:
-        f.write(string)
+    ssim_score = SSIM_compute(image_before_list, image_after_list)
+    clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=partial(CLIP,
+                                                                                                  model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch16'))
+    psnr_score = PSNR_compute(image_before_list, image_after_list)
+
+    del preloaded_agent, preloaded_remove_model
+    # consider if there is need to save all images replaced
+    write_valuation_results(os.path.join(static_out_dir, 'all_results.txt'), clip_score,
+                            clip_directional_similarity, psnr_score, ssim_score, fid_score)
 
 def main():
     
