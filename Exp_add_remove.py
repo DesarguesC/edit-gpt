@@ -338,12 +338,12 @@ def main():
     logging.basicConfig(
         level=logging.INFO,
         format = '%(asctime)s : %(levelname)s : %(message)s', 
-        filename='\"Add&Remove.log\"'
+        filename='Add-Remove.log'
     )
-    if os.path.isfile('\"Add&Remove.log\"'): os.system('\"rm Add&Remove.log\"')
+    if os.path.isfile('Add-Remove.log'): os.system('rm Add-Remove.log')
     
-    opt.out_dir = '../autodl-tmp/Exp_Add/'
-    if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
+    opt.out_dir = '../autodl-tmp/Exp_Add'
+    if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip -r {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))
@@ -351,7 +351,7 @@ def main():
     print('Start to valuate Add Method...')
     Val_Add_Method(opt)
 
-    opt.out_dir = '../autodl-tmp/Exp_Remove/'
+    opt.out_dir = '../autodl-tmp/Exp_Remove'
     if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)

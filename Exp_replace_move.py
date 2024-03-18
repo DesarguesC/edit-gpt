@@ -328,11 +328,11 @@ def main():
     logging.basicConfig(
         level=logging.INFO,
         format = '%(asctime)s : %(levelname)s : %(message)s', 
-        filename='Replace&Move.log'
+        filename='Replace-Move.log'
     )
     if os.path.isfile('Replace-Move.log'): os.system('Replace-Move.log')
     
-    opt.out_dir = '../autodl-tmp/Exp_Replace/'
+    opt.out_dir = '../autodl-tmp/Exp_Replace'
     if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
@@ -341,7 +341,7 @@ def main():
     print('Start to valuate Replace Method...')
     Val_Replace_Method(opt)
     
-    opt.out_dir = '../autodl-tmp/Exp_Move/'
+    opt.out_dir = '../autodl-tmp/Exp_Move'
     if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
