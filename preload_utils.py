@@ -50,6 +50,7 @@ I = 'adjust bbox for me'
 
 
 def preload_ip2p(opt):
+    seed_everything(opt.seed)
     config = OmegaConf.load(opt.ip2p_config)
     ip2p_model = load_model_from_config(config, opt.ip2p_ckpt, opt.vae_ckpt).eval()
     if torch.cuda.is_available(): ip2p_model = ip2p_model.cuda()
@@ -63,7 +64,7 @@ def preload_ip2p(opt):
     }
 
 def preload_XL_generator(opt):
-    
+    seed_everything(opt.seed)
     pipe = DiffusionPipeline.from_pretrained(f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0", \
                                                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
     pipe.to("cuda")
@@ -85,7 +86,7 @@ def preload_XL_generator(opt):
     }
 
 def preload_XL_adapter_generator(opt):
-    
+    seed_everything(opt.seed)
     opt.XL_base_path = opt.XL_base_path.strip('/')
     # load adapter
     adapter = T2IAdapter.from_pretrained(
@@ -111,6 +112,7 @@ def preload_XL_adapter_generator(opt):
 
 def preload_v1_5_generator(opt):
     # for both v1.5 and v1.5_adapter
+    seed_everything(opt.seed)
     sd_model, sd_sampler = get_sd_models(opt)
     if opt.example_type == 'v1.5_adapter':
         print('-'*9 + 'Generating via Style Adapter (depth)' + '-'*9)
@@ -142,6 +144,7 @@ def preload_v1_5_generator(opt):
     }
 
 def preload_example_generator(opt):
+    seed_everything(opt.seed)
     if opt.example_type == 'XL':
         return preload_XL_generator(opt)
     elif opt.example_type == 'XL_adapter':
@@ -167,6 +170,7 @@ def preload_paint_by_example_model(opt):
     }
 
 def preload_sam_generator(opt):
+    seed_everything(opt.seed)
     sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
     sam.to(device=opt.device)
     mask_generator = SamAutomaticMaskGenerator(sam)
@@ -177,6 +181,7 @@ def preload_sam_generator(opt):
     }
 
 def preload_seem_detector(opt):
+    seed_everything(opt.seed)
     cfg = load_opt_from_config_files([opt.seem_cfg])
     cfg['device'] = opt.device
     seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(opt.seem_ckpt).eval().cuda()
@@ -187,7 +192,7 @@ def preload_seem_detector(opt):
     }
     
 def preload_lama_remover(opt):
-
+    seed_everything(opt.seed)
     config_path, ckpt_path = opt.lama_config, opt.lama_ckpt
     predict_config = OmegaConf.load(config_path)
     predict_config.model.path = ckpt_path
@@ -220,6 +225,7 @@ def preload_lama_remover(opt):
 # yaml, load_checkpoint ?
 
 def preload_all_models(opt):
+    seed_everything(opt.seed)
     return {
         'preloaded_ip2p': preload_ip2p(opt), # 8854 MiB
         'preloaded_example_generator': preload_example_generator(opt), 

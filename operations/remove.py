@@ -162,7 +162,7 @@ def Remove_Me_lama(
     rm_output = os.path.join(opt.base_dir, 'removed')
     t = 0
     while os.path.isfile(f'./{rm_output}-{t}.jpg'): t += 1
-
+    img_inpainted = cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR)
     cv2.imwrite(f'./{rm_output}-{t}.jpg', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
     print(f'removed image saved at \'./{rm_output}-{t}.jpg\'')
     

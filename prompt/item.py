@@ -18,22 +18,22 @@ class Label():
     def get_str_all(self, objects_masks_list: list[dict]):
         # get [name, (x,y,w,h)]
         length = len(objects_masks_list)
-        out = "$$\\{"
+        out = "$\\{"
         for idx in range(length):
             bb = objects_masks_list[idx]
             name = bb['name']
             x,y,w,h = bb['bbox']
             item = f"[{name}, ({x}, {y}, {w}, {h})]"
             out = out + item + (', ' if idx < length - 1 else '')
-        out = out + "\\}$$"
+        out = out + "\\}$"
         return out
 
     def get_str_location(self, box_mame_list, edit_txt, size: tuple):
         # box_name_list[-1] used as a hint for GPT
         out = ""
-        assert len(box_mame_list) > 1, f'abnormal length of the box_name_list, box_name_list: {box_mame_list}'
+        assert len(box_mame_list) >= 1, f'abnormal length of the box_name_list, box_name_list: {box_mame_list}'
         size_ = f"Size: ({size[0]},{size[1]})"
-        list_ = "Objects: " + self.get_str_part(box_mame_list[0:-1])
+        list_ = "Objects: " + self.get_str_part(box_mame_list) # box_name_list[0:-1] -> box_name_list
         target_ = "Target: " + box_mame_list[-1]['name']
         edit_ = "Edit-Text: " + edit_txt
         return f'{size_}\n{list_}\n{target_}\n{edit_}'
@@ -42,14 +42,14 @@ class Label():
         # get [name, (w,h)]
         assert isinstance(objects_masks_list, list), f'type(objects_masks_list) = {type(objects_masks_list)}'
         length = len(objects_masks_list)
-        out = "$$\\{"
+        out = "$\\{"
         for idx in range(length):
             item_ = objects_masks_list[idx]
             name = item_['name']
             x, y, w, h = item_['bbox']
             item = f'[{name}, ({x},{y}), ({w},{h})]'
             out = out + item + (', ' if idx < length - 1 else '')
-        out = out + "\\}$$"
+        out = out + "\\}$"
         return out
     
     def get_str_rescale(self, old_noun, new_noun, panoptic_dict: list[dict]):
@@ -72,7 +72,7 @@ class Label():
         return f'Size: {Size}\nPlace: {Place}\nTarget: {name}'
 
     def __str__(self):
-        out = "$$\\{"
+        out = "$\\{"
         cnt = len(self.label_dict)
         
         for (k,v) in self.label_dict.items():

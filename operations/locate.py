@@ -77,7 +77,7 @@ def create_location(
                                     preloaded_model = preloaded_model
                                 ) if opt.use_lama \
                                 else Remove_Me(opt, target, remove_mask=True, replace_box=opt.replace_box)
-    rm_img = Image.fromarray(rm_img)
+    rm_img = Image.fromarray(rm_img, mode='RGB')
 
     res, panoptic_dict = middleware(
                             opt, rm_img, 
@@ -176,6 +176,6 @@ def create_location(
     cv2.imwrite(op_output, x_sample_ddim)
     print(f'locate result image saved at \'{op_output}\'')
     
-    return Image.fromarray(x_sample_ddim)
+    return Image.fromarray(cv2.cvtColor(x_sample_ddim, cv2.COLOR_RGB2BGR))
 
 
