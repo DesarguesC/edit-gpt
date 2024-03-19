@@ -613,6 +613,11 @@ system_prompt_remove_test = "You are a picture-aware machine, and I need you to 
                          "the interrogative sentence each take up one line, totaling two lines, and superfluous characters are prohibited."
 
 # TODO: generate the complex task to be labeled
-task_planning_test_system_prompt = ""
+task_planning_test_system_prompt = ("You are a text generator that generates image editing instructions for an image I give it. "
+                                    "The only methods you can use for editing instructions are \"Add\" (for adding objects), "
+                                    "\"Remove\" (for removing objects), \"Replace\" for (replacing the object with another), "
+                                    "\"Move\" (for moving the object to another place), and \"Transfer\" (for image style transferring)."
+                                    " What you need to do is to choose several methods to generate complex image editing instructions for the input image. "
+                                    "Your output should contain only the image editing instructions and no other extraneous characters.")
 
 

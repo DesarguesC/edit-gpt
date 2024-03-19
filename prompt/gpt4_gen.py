@@ -65,12 +65,13 @@ if __name__ == "__main__":
 
     s = time()
     path_base = '../autodl-tmp/COCO/val2017'
-    output_path = '../autodl-tmp/GPT'
+    output_path = '../autodl-tmp/GPT_gen_raw'
+    # labeled path = '../autodl-tmp/GPT_gen_label'
     path_list = os.listdir(path_base)
     length = len(path_list)
     selected_list = []
     while len(selected_list) < tot_image_num:
-        idx =  randint(0, length)
+        idx = randint(0, length)
         while idx in selected_list: idx = randint(0, length)
 
     for idx in selected_list:
@@ -81,7 +82,7 @@ if __name__ == "__main__":
             data = gpt4v_response(task_planning_test_system_prompt, img_encoded,json_mode=False)
             description = data.choices[0].message.content
             string = string + description + '\n'
-        with open(os.path.join(output_path, f'command-{idx}:0{3}'), 'w') as f:
+        with open(os.path.join(output_path, f'{idx}:0{3}.txt'), 'w') as f:
             f.write(string)
 
     e = time()
