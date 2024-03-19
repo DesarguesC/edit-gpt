@@ -50,3 +50,7 @@ Question：
 
 2024.3.9
 stable-diffusion XL 部分似乎出了一点问题，remains to be fixed
+
+TODO: 2024-03-19
+
+Regularize the seed !
