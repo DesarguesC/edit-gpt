@@ -66,6 +66,7 @@ def csv_writer(csv_path, one_dict):
 import os
 from time import time
 from random import randint
+from PIL import Image
 if __name__ == "__main__":
 
     tot_image_num = 50
@@ -73,6 +74,7 @@ if __name__ == "__main__":
 
     s = time()
     path_base = '../autodl-tmp/COCO/val2017'
+    img_copy_path = '../autodl-tmp/GPT_img'
     output_path = '../autodl-tmp/GPT_gen_raw'
     # labeled path = '../autodl-tmp/GPT_gen_label'
     path_list = os.listdir(path_base)
@@ -82,7 +84,8 @@ if __name__ == "__main__":
         idx = randint(0, length)
         while idx in selected_list: idx = randint(0, length)
     string_dict = {}
-    for idx in selected_list:
+    for i in range(len(selected_list)):
+        idx = selected_list[i]
         img_path = os.path.join(path_base, f'{idx}:0{12}.jpg')
         img_encoded = encode_image(img_path)
         string = []
@@ -91,11 +94,12 @@ if __name__ == "__main__":
             data = gpt4v_response(task_planning_test_system_prompt, img_encoded,json_mode=False)
             description = data.choices[0].message.content.strip()
             string.append(description)
-        string_dict[str(idx)] = string
+        string_dict[str(i)] = string
 
         dict_list = pd.DataFrame(string_dict).to_dict(orient='records')
         assert(len(dict_list))
-        csv_writer(os.path.join(output_path, f'{idx}:0{12}.csv'), dict_list)
+        csv_writer(os.path.join(output_path, f'{i}:0{3}.csv'), dict_list)
+        (Image.open(img_path).convert('RGB')).save(os.path.join(img_copy_path, f'{i}:0{3}.jpg'))
 
 
     e = time()
