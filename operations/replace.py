@@ -99,8 +99,9 @@ def replace_target(
                             opt, rm_img, 
                             preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         ) # key: name, mask
-    print(f'total names: ', panoptic_dict[0]['name'])
-    if old_noun not in panoptic_dict[0]['name']:
+    if panoptic_dict != []:
+        print(f'total names: ', panoptic_dict[0]['name'])
+    if panoptic_ditc == [] or (old_noun not in panoptic_dict[0]['name']):
         print(f'find no \'{old_noun}\' in panoptic_dict of input, Start Add process...')
         return Add_Object(
                     opt, 
