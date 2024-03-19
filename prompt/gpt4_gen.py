@@ -1,49 +1,21 @@
-from guide import get_bot, get_response
+from .guide import (
+        get_bot, get_response, 
+        planning_system_prompt, 
+        planning_system_first_ask, 
+        system_prompt_add_test, 
+        system_prompt_remove_test
+    )
+
 import matplotlib.image as mpimg
 from openai import OpenAI
 import base64, requests
 import pandas as pd
-
+from .guide import 
 def encode_image(image_path):
     with open(image_path, 'rb') as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
 TYPE = {'add', 'replace', 'remove', 'move'}
-
-"""
-    你是一个图片感知机，我需要你针对输入的图片做两件事情：1. 生成一条图片编辑指令； 2. 根据你设置的图片编辑指令设置一条询问这个编辑是否完成的一般疑问句。
-    生成编辑指令时，编辑对象必须是图片中存在的物体，且指令必须在移动物体对象且带有方位信息，例如：“将苹果移动到桌子下面”，但前提是图片里有桌子。
-    在生成疑问句时候，例如前面你生成的编辑指令是“将苹果移动到桌子下面”，那么生成的疑问句应当是：“苹果是不是在桌子下面？”，注意不要带有动词，尽量使用介词。
-    请不要使用过度复杂的方位词信息，我们认为“将苹果移动到桌子下面”已经是一个足够复杂的句子了（请生成复杂程度相当的指令）。
-    另外在生成时，编辑指令和疑问句各占一行，一共两行，禁止出现多余的字符。
-
-"""
-
-system_prompt_add_test = "You are a picture-aware machine, and I need you to do two things with an input picture: "\
-                         "1. generate a picture editing instruction, and 2. set a general question asking if this edit is complete, "\
-                         "based on the picture editing instruction you set. \nWhen generating an edit command, "\
-                         "the object to be edited must be an object that exists in the picture, "\
-                         "and the command must move the object with orientation information, for example: \"Move the apple under the table\""\
-                         ", but only if there is a table in the picture. \nWhen generating a question, "\
-                         "for example, if you generated an editorial instruction \"Move apples under the table\", "\
-                         "then the question should be \"Are apples under the table?\". Be careful not to use verbs, "\
-                         "and try to use prepositions. Please do not use overly complex orientation information. "\
-                         "For instance, we think \"move the apple under the table\" is a complex enough sentence "\
-                         "(please generate instructions of comparable complexity).\nNote that, when generating, the editorial instruction and "\
-                         "the interrogative sentence each take up one line, totaling two lines, and superfluous characters are prohibited."
-
-system_prompt_remove_test = "You are a picture-aware machine, and I need you to do two things with an input picture: "\
-                         "1. generate a picture editing instruction, and 2. set a general question asking if this edit is complete, "\
-                         "based on the picture editing instruction you set. \nWhen generating an edit command, "\
-                         "the object to be edited must be an object that exists in the picture, "\
-                         "and the command must move the object with orientation information, for example: \"Move the apple under the table\""\
-                         ", but only if there is a table in the picture. \nWhen generating a question, "\
-                         "for example, if you generated an editorial instruction \"Move apples under the table\", "\
-                         "then the question should be \"Are apples under the table?\". Be careful not to use verbs, "\
-                         "and try to use prepositions. Please do not use overly complex orientation information. "\
-                         "For instance, we think \"move the apple under the table\" is a complex enough sentence "\
-                         "(please generate instructions of comparable complexity).\nNote that, when generating, the editorial instruction and "\
-                         "the interrogative sentence each take up one line, totaling two lines, and superfluous characters are prohibited."
 
 api_key = list(pd.read_csv('../key.csv')['key'])[0]
 headers = {
