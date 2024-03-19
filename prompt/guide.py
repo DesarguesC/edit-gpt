@@ -612,3 +612,7 @@ system_prompt_remove_test = "You are a picture-aware machine, and I need you to 
                          "(please generate instructions of comparable complexity).\nNote that, when generating, the editorial instruction and "\
                          "the interrogative sentence each take up one line, totaling two lines, and superfluous characters are prohibited."
 
+# TODO: generate the complex task to be labeled
+task_planning_test_system_prompt = ""
+
+

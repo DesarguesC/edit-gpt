@@ -3,14 +3,15 @@ from .guide import (
         planning_system_prompt, 
         planning_system_first_ask, 
         system_prompt_add_test, 
-        system_prompt_remove_test
+        system_prompt_remove_test,
+        task_planning_test_system_prompt
     )
+# .guide or prompt.guide ?
 
-import matplotlib.image as mpimg
 from openai import OpenAI
 import base64, requests
 import pandas as pd
-from .guide import 
+
 def encode_image(image_path):
     with open(image_path, 'rb') as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
@@ -27,7 +28,7 @@ proxy_dict = {
     'https': 'http://127.0.0.1:7890'
 }
 
-def set_system(system_prompt, image_encoded):
+def gpt4v_response(system_prompt, image_encoded, json_mode=True):
     
     payload = {
         "model": 'gpt-4-vision-preview',
@@ -50,17 +51,40 @@ def set_system(system_prompt, image_encoded):
         "max_tokens": 300
     }
     response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=payload, proxies=proxy_dict)
-    print(response.json())
+    return response.json() if json_mode else response
 
+
+
+import os
+from time import time
+from random import randint
 if __name__ == "__main__":
-    from time import time
+
+    tot_image_num = 50
+    prompts_per_image = 10
+
     s = time()
-    # path = os.listdir('../autodl-tmp/COCO/tset2017')
-    # path = [os.path.join('../autodl-tmp/COCO/', '')]
-    path = ['../assets/dog.jpg', '../assets/field.jpg']
-    for p in path:
-        p = encode_image(p)
-        set_system(system_prompt_add_test, p)
+    path_base = '../autodl-tmp/COCO/val2017'
+    output_path = '../autodl-tmp/GPT'
+    path_list = os.listdir(path_base)
+    length = len(path_list)
+    selected_list = []
+    while len(selected_list) < tot_image_num:
+        idx =  randint(0, length)
+        while idx in selected_list: idx = randint(0, length)
+
+    for idx in selected_list:
+        img_path = os.path.join(path_base, f'{idx}:0{12}.jpg')
+        img_encoded = encode_image(img_path)
+        string = ''
+        for i in range(prompts_per_image):
+            data = gpt4v_response(task_planning_test_system_prompt, img_encoded,json_mode=False)
+            description = data.choices[0].message.content
+            string = string + description + '\n'
+        with open(os.path.join(output_path, f'command-{idx}:0{3}'), 'w') as f:
+            f.write(string)
+
     e = time()
     print(f'\n\ntime cost: {e - s}')
+    print('Done.')
 
