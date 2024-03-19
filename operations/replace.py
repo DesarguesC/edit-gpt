@@ -204,7 +204,5 @@ def replace_target(
     t = 0
     while os.path.isfile(f'./{output_path}-{t}.jpg'): t += 1
     cv2.imwrite(f'./{output_path}-{t}.jpg', results)
-    print(f'replace result image saved at \'./{output_path}-{t}.jpg\'')
-    
-    return Image.fromarray(results)
+    return Image.fromarray(cv2.cvtColor(results, cv2.COLOR_RGB2BGR), mode='RGB')
     

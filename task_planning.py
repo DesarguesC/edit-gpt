@@ -249,13 +249,13 @@ def main():
                         opt, 
                         current_step = plan_step, 
                         tot_step = tot_step, 
-                        input_pil = img_pil.convert('RGB'),
+                        input_pil = img_pil if img_pil is None else img_pil.convert('RGB'),
                         preloaded_model = preloaded_models, 
                         preloaded_agent = preloaded_agents
                     )
 
         method_history.append(method_his)
-        img_pil.convert('RGB').save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
+        img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
         plan_step += 1
     
     # print isolation
