@@ -212,7 +212,7 @@ def get_plans(opt, planning_agent):
     response = re.split(r"[;]", response)
     response = [x.strip() for x in response if x != " " and x != ""]
     for i in range(len(response)):
-        task_str = re.split(r"[()\"\']", response[i])
+        task_str = re.split(r"[(),]", response[i])
         task_str = [x.strip().strip(',') for x in task_str if x != " " and x != ""]
         assert len(task_str) == 2, f'len(task_str) != 2, task_str: {task_str}'
         response[i] = {"type": task_str[0].lower(), "command": task_str[1]}
@@ -249,7 +249,7 @@ def main():
                         opt, 
                         current_step = plan_step, 
                         tot_step = tot_step, 
-                        input_pil = img_pil if img_pil is None else img_pil.convert('RGB'),
+                        input_pil = img_pil,
                         preloaded_model = preloaded_models, 
                         preloaded_agent = preloaded_agents
                     )
