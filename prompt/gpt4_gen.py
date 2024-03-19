@@ -1,7 +1,5 @@
 from .guide import (
-        get_bot, get_response, 
-        planning_system_prompt, 
-        planning_system_first_ask, 
+        get_bot, get_response,
         system_prompt_add_test, 
         system_prompt_remove_test,
         task_planning_test_system_prompt
@@ -78,6 +76,7 @@ if __name__ == "__main__":
         img_path = os.path.join(path_base, f'{idx}:0{12}.jpg')
         img_encoded = encode_image(img_path)
         string = ''
+        # TODO: write into csv
         for i in range(prompts_per_image):
             data = gpt4v_response(task_planning_test_system_prompt, img_encoded,json_mode=False)
             description = data.choices[0].message.content
@@ -88,4 +87,25 @@ if __name__ == "__main__":
     e = time()
     print(f'\n\ntime cost: {e - s}')
     print('Done.')
+
+    """
+    Generated Raw Data
+        GPT_gen_raw
+            |
+            |---000.csv (10 prompts)
+            |---001.csv (10 prompts)
+            |--- ... 
+        
+    Labeled Data
+        GPT_gen_labeled
+            |
+            |---000.csv (10 columns)
+            |---001.csv (10 columns)
+            |--- ...
+            
+            0, 1, 2, ..., 9
+            add, remove, replace, ...
+            ..., ..., ..., ...
+            [a column is a set of plans of a complex prompt]
+    """
 
