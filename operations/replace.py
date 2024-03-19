@@ -99,20 +99,20 @@ def replace_target(
                             opt, rm_img, 
                             preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         ) # key: name, mask
-    if panoptic_dict != []:
-        print(f'total names: ', panoptic_dict[0]['name'])
-    if panoptic_ditc == [] or (old_noun not in panoptic_dict[0]['name']):
-        print(f'find no \'{old_noun}\' in panoptic_dict of input, Start Add process...')
-        return Add_Object(
-                    opt, 
-                    name = new_noun, 
-                    num = 1,
-                    place = '<NULL>',
-                    input_pil = img_pil,
-                    edit_agent = Use_Agent(opt, TODO='adjust bbox for me'),
-                    expand_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me'), 
-                    preloaded_model = preloaded_model
-                )
+    # if panoptic_dict != []:
+    #     print(f'total names: ', panoptic_dict[0]['name'])
+    # if panoptic_dict == [] or (old_noun not in panoptic_dict[0]['name']):
+    #     print(f'find no \'{old_noun}\' in panoptic_dict of input, Start Add process...')
+    #     return Add_Object(
+    #                 opt, 
+    #                 name = new_noun, 
+    #                 num = 1,
+    #                 place = '<NULL>',
+    #                 input_pil = img_pil,
+    #                 edit_agent = Use_Agent(opt, TODO='adjust bbox for me'),
+    #                 expand_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me'), 
+    #                 preloaded_model = preloaded_model
+    #             )
 
     diffusion_pil = generate_example(
                             opt, new_noun, expand_agent = expand_agent, 
