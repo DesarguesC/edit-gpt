@@ -68,7 +68,7 @@ class Label():
 
     def get_str_add_place(self, place, name, size: tuple, place_box: Optional[tuple]):
         Size = f'({size[0]},{size[1]})'
-        Place = f'[{place}, ({place_box[0]},{place_box[1]}), ({place_box[2]},{place_box[3]}]'
+        Place = f'[{place}, ({place_box[0]},{place_box[1]}), ({place_box[2]},{place_box[3]})]'
         return f'Size: {Size}\nPlace: {Place}\nTarget: {name}'
 
     def __str__(self):
