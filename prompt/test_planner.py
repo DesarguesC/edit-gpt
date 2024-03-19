@@ -26,7 +26,7 @@ def evaluate(agent, prompt_csv_path, label_csv_path):
     """
     input_df = list(pd.read_csv(prompt_csv_path))
     ans_df = pd.read_csv(label_csv_path)
-    acc_list_tot = []
+    acc_dict_tot = {}
 
     for i in range(10):
         raw_plan = get_response(agent, list(input_df[str(i)])[0])
@@ -40,9 +40,9 @@ def evaluate(agent, prompt_csv_path, label_csv_path):
         for i in range(min(len(ans_list, len(raw_plan))), max(len(ans_list, len(raw_plan)))):
             acc_list.append(0.)
 
-        acc_list_tot.append(acc_list)
-    # 每张图片的，每条prompt的准确率，以及准确率随操作总数的关系
-    return acc_list_tot
+        acc_dict_tot[str(i)] = acc_list
+    # 每张图片的，10条prompts对应10acc计算，每次计算返回一个准确率list，反映当前测试的acc随planner智能体plan到第idx+1步时的正确率
+    return acc_dict_tot
 
 if __name__ == "__main__":
     agent = get_planner()
@@ -50,11 +50,12 @@ if __name__ == "__main__":
     label_path = '../autodl-tmp/GPT_gen_label'
     raw_file_list, label_file_list = os.listdir(raw_path), os.listdir(label_path)
     assert len(raw_file_list) == len(label_file_list), f'len(raw_file_list) = {len(raw_file_list)}, len(label_file_list) = {len(label_file_list)}'
-    img_acc_list = []
+    img_acc_dict = {}
     for i in range(len(raw_file_list)):
         raw_csv_path = os.path.join(raw_path, raw_file_list[i])
         label_csv_path = os.path.join(label_path, label_file_list[i])
-        img_acc_list.append(evaluate(agent, raw_csv_path, label_csv_path))
+        img_acc_dict[str(i)] = evaluate(agent, raw_csv_path, label_csv_path)
+        # the i-th image
 
     # TODO: save the result, draw the fiture
 

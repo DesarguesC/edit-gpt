@@ -7,7 +7,7 @@ from .guide import (
 # .guide or prompt.guide ?
 
 from openai import OpenAI
-import base64, requests
+import base64, requests, csv
 import pandas as pd
 
 def encode_image(image_path):
@@ -51,7 +51,17 @@ def gpt4v_response(system_prompt, image_encoded, json_mode=True):
     response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=payload, proxies=proxy_dict)
     return response.json() if json_mode else response
 
-
+def csv_writer(csv_path, one_dict):
+    with open(csv_path, 'w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=data.keys())
+        # Write header
+        writer.writeheader()
+        # Write data
+        if not isinstance(one_dict, list):
+            writer.writerow(one_dict)
+        else:
+            for dict_ in one_dict:
+                writer.writerow(one_dict)
 
 import os
 from time import time
@@ -59,7 +69,7 @@ from random import randint
 if __name__ == "__main__":
 
     tot_image_num = 50
-    prompts_per_image = 10
+    prompts_num_per_image = 10
 
     s = time()
     path_base = '../autodl-tmp/COCO/val2017'
@@ -71,18 +81,22 @@ if __name__ == "__main__":
     while len(selected_list) < tot_image_num:
         idx = randint(0, length)
         while idx in selected_list: idx = randint(0, length)
-
+    string_dict = {}
     for idx in selected_list:
         img_path = os.path.join(path_base, f'{idx}:0{12}.jpg')
         img_encoded = encode_image(img_path)
-        string = ''
+        string = []
         # TODO: write into csv
-        for i in range(prompts_per_image):
+        for i in range(prompts_num_per_image):
             data = gpt4v_response(task_planning_test_system_prompt, img_encoded,json_mode=False)
-            description = data.choices[0].message.content
-            string = string + description + '\n'
-        with open(os.path.join(output_path, f'{idx}:0{3}.txt'), 'w') as f:
-            f.write(string)
+            description = data.choices[0].message.content.strip()
+            string.append(description)
+        string_dict[str(idx)] = string
+
+        dict_list = pd.DataFrame(string_dict).to_dict(orient='records')
+        assert(len(dict_list))
+        csv_writer(os.path.join(output_path, f'{idx}:0{12}.csv'), dict_list)
+
 
     e = time()
     print(f'\n\ntime cost: {e - s}')
