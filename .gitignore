@@ -5,6 +5,9 @@ __pycache__/
 *.tmp
 *.mp4
 .Ds_Store
+*.zip
+
+
 test_out/
 checkpoints/
 # static-crfill/  # object removed images
