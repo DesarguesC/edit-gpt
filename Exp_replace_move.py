@@ -209,7 +209,7 @@ def Val_Replace_Method(opt):
     logging.info(string)
 
 def Val_Move_Method(opt):
-    
+    seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017/'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
@@ -333,7 +333,8 @@ def main():
 
     if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 1)
+    setattr(opt, 'test_group_num', 10)
+    seed_everything(opt.seed)
 
     logging.basicConfig(
         level=logging.INFO,
