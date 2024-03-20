@@ -15,6 +15,7 @@ from detectron2.data import MetadataCatalog as mt
 
 from prompt.item import Label
 from prompt.guide import get_response, Use_Agent
+from prompt.gpt4_gen import gpt_4v_bbox_return
 from jieba import re
 from seem.masks import middleware, query_middleware
 from ldm.inference_base import diffusion_inference, get_sd_models
@@ -113,7 +114,13 @@ def create_location(
                 break
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
-        box_ans = [x.strip() for x in re.split(r'[\[\],()]', get_response(edit_agent, question if try_time < 3 else (question + notes))) if x != '' and x != ' ']
+        # box_ans = [x.strip() for x in re.split(r'[\[\],()]', get_response(edit_agent, question if try_time < 3 else (question + notes))) if x != '' and x != ' ']
+        print('Use GPT-4V API...')
+        print(f'image_path = {opt.in_dir}')
+        print(f'edit_txt = {opt.edit_txt}')
+        box_ans = [x.strip() for x in re.split(r'[\[\],()$]', gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip()) if x != '' and x != ' ']
+        # gpt_4v_bbox_return
+
         # deal with the answer, procedure is the same as in replace.py
         print(f'box_ans = {box_ans}')
         if len(box_ans) < 4:
@@ -130,6 +137,7 @@ def create_location(
         try_time += 1
 
     print(f'BEFORE: box_0={box_0}')
+    print(f'{target_box} -> {box_0}')
     
     destination_mask = refactor_mask(target_box, target_mask, box_0)
     target_mask, destination_mask = re_mask(target_mask), re_mask(destination_mask)

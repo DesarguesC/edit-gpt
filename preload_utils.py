@@ -47,6 +47,7 @@ F = 'find target to be moved'
 G = 'find target to be added'
 H = 'generate a new bbox for me'
 I = 'adjust bbox for me'
+V = 'use gpt-4v'
 
 
 def preload_ip2p(opt):
@@ -248,7 +249,8 @@ def preload_all_agents(opt):
         F: Use_Agent(opt, TODO = F),
         G: Use_Agent(opt, TODO = G),
         H: Use_Agent(opt, TODO = H),
-        I: Use_Agent(opt, TODO = I)
+        I: Use_Agent(opt, TODO = I),
+        V: Use_Agent(opt, TODO = V),
     }
 
 

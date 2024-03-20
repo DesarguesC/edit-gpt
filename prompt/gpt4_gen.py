@@ -1,4 +1,4 @@
-from guide import (
+from prompt.guide import (
         get_bot, get_response,
         system_prompt_add_test, 
         system_prompt_remove_test,
@@ -26,7 +26,7 @@ proxy_dict = {
     'https': 'http://127.0.0.1:7890'
 }
 
-def gpt4v_response(system_prompt, image_encoded, json_mode=True):
+def gpt4v_response(system_prompt, edit_prompt, image_encoded, json_mode=True):
     
     payload = {
         "model": 'gpt-4-vision-preview',
@@ -43,7 +43,12 @@ def gpt4v_response(system_prompt, image_encoded, json_mode=True):
                             "url": f"data:image/jpeg;base64,{image_encoded}",
                             "detail": "high"
                         }
-                    }]
+                    },
+                    {
+                        "type": "text",
+                        "text": edit_prompt
+                    }
+                    ]
             }
     ],
         "max_tokens": 300
@@ -62,6 +67,19 @@ def csv_writer(csv_path, one_dict):
         else:
             for dict_ in one_dict:
                 writer.writerow(one_dict)
+
+
+gpt4_v_get_box = "You are a bounding box generator. I'm giving you a image and a editing prompt. The prompt is to move a target object to another place, "\
+                 "such as \"Move the apple under the desk\", \"move the desk to the left\". "\
+                 "What you should do is to return a proper bounding box for it. The output should be in the form of $[Name, (X,Y,W,H)]$"\
+                 "For instance, you can output $[\"apple\", (200, 300, 20, 30)]$. Your output cannot"
+
+def gpt_4v_bbox_return(image_path, edit_prompt):
+    image_encoded = encode_image(image_path)
+    response = gpt4v_response(gpt4_v_get_box, edit_prompt, image_encoded, json_mode=True)
+    print('response: \n', response)
+    return response['choices'][0]['message']['content']
+
 
 import os
 from time import time
