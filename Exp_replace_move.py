@@ -350,7 +350,7 @@ def main1():
 
     if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 2)
+    setattr(opt, 'test_group_num', 100)
     seed_everything(opt.seed)
 
     logging.basicConfig(

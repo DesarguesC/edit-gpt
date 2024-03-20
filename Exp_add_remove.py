@@ -372,7 +372,7 @@ def main2():
 
     if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 2)
+    setattr(opt, 'test_group_num', 100)
     seed_everything(opt.seed)
 
     logging.basicConfig(
