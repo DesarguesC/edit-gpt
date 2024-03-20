@@ -5,17 +5,17 @@ import time, os
     
 """
 
-system_prompt_sort =    'You are an expert in text classiffication,  and there are 5 classes in total.'\
-                        '1. \"Remove\": determines whether the text removes the object, and if so, it is \"Romove\". '\
-                        '2. \"Replace\": determine whether the text replaces the object, and if so, its category is \"Replace\". '\
-                        '3. \"Move\": determine whether the text moves the object. If it does, the category is \"Move\". '\
-                        '4. \"Add\": determine whether the text add several object. If it does, the category is \"Add\". '\
-                        '5. \"Transfer\": determine whether the text is to do style transfering. If it does, the category is \"Transfer\". '\
-                        'Note that the text is an editing instruction for the picture. We ensure all the text input is included in these 5 classes. \n'\
-                        'For instance: \n'\
-                        'Input: make the Ferris Wheel a giant hamster wheel\nOutput: \"Replace\"\n'\
-                        'Input: make it an oil painting\nOutput: \"Transfer\"\n'\
-                        'Input: have the ranch be a zoo\nOutput: \"Replace\"'
+system_prompt_sort = 'You are an expert in text classification,  and there are 5 classes in total.'\
+                    '1. \"Remove\": determines whether the text removes the object, and if so, it is \"Romove\". '\
+                    '2. \"Replace\": determine whether the text replaces the object, and if so, its category is \"Replace\". '\
+                    '3. \"Move\": determine whether the text moves the object. If it does, the category is \"Move\". '\
+                    '4. \"Add\": determine whether the text add several object. If it does, the category is \"Add\". '\
+                    '5. \"Transfer\": determine whether the text is to do style transfering. If it does, the category is \"Transfer\". '\
+                    'Note that the text is an editing instruction for the picture. We ensure all the text input is included in these 5 classes. \n'\
+                    'For instance: \n'\
+                    'Input: make the Ferris Wheel a giant hamster wheel\nOutput: \"Replace\"\n'\
+                    'Input: make it an oil painting\nOutput: \"Transfer\"\n'\
+                    'Input: have the ranch be a zoo\nOutput: \"Replace\"'
                         
 first_ask_sort =    'For the text I entered, you only need to answer one of the three categories and print its name, '\
                     'one of \"remove\", \"replace\", \"locate\" and \"add\", or \'<null>\', with no extra characters. If you have already understood your task, '\
@@ -361,19 +361,21 @@ first_ask_noun = 'For example, when you type \"Move the kettle on the table to t
                  'However, the answer you output mustn\'t contain any other character, only hte noun you found.'\
                  'If you have understood your task, answer \"yes\" without extra characters.'
 
-system_prompt_expand =  'You are a prompt expander, expert in text expansion. Now you\'ll receive a prompt relative to '\
-                        'text-driven image generation via Diffusion Models. That means your mission is to expand the '\
-                        'prompt to much more elaborate one. The input will be a prompt starting with '\
-                        '"a/an photo of ...", your task is to specify and expand the prompt to let diffusion make sense '\
-                        'of the prompt so that diffusion can be driven to generate images with high quality and high resolution. '
+system_prompt_expand =  'You are a prompt expander, expert in text expansion. The input a prompt relative to '\
+                        'text-driven image generation via Diffusion Models, starting with "a/an photo of ...". '\
+                        'To enable the efficient generation, you are to expand the prompts. '\
+                        'What you should do is to specify and expand the prompt to let diffusion model '\
+                        'be driven to generate image with a clear outline. Your output (expanded prompts) '\
+                        'must not be more than 1 sentence or contain any other character. '
 
 one, two, three = 'one', 'two', 'three'
-first_ask_expand = lambda x: 'For each of your input, it is ONLY ONE kind of object. '\
-                        'For each input you received, you are only to output the expanded prompt without any other '\
-                        'character. You mustn\'t output any extra characters except the expanded prompt. The expanded prompt is '\
-                        f'ought to be no more than {one if x==1 else two if x==2 else three} sentences. If you\'ve '\
-                        'made sense your task, please answer me \'yes\' and mustn\'t output any extra character, either, '\
-                        'after which I\'ll give you input prompts. '
+first_ask_expand = 'If you have fully understand your task, please answer \'yes\' without any other character. '
+# first_ask_expand = lambda x: 'For each of your input, it is ONLY ONE kind of object. '\
+#                         'For each input you received, you are only to output the expanded prompt without any other '\
+#                         'character. You mustn\'t output any extra characters except the expanded prompt. The expanded prompt is '\
+#                         f'ought to be no more than {one if x==1 else two if x==2 else three} sentences. If you\'ve '\
+#                         'made sense your task, please answer me \'yes\' and mustn\'t output any extra character, either, '\
+#                         'after which I\'ll give you input prompts. '
 """
     How many sentences generated by expander bot can affect the generation result of SDXL
     Experiment Result: No more than two sentences! (for the insufficient token)
@@ -435,7 +437,7 @@ def Use_Agent(opt, TODO=None, print_first_answer=False):
         if print_first_answer: print(first_ans)
     elif TODO == 'expand diffusion prompts for me':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
-        first_ans = get_response(agent, first_ask_expand(1))
+        first_ans = get_response(agent, first_ask_expand)
         if print_first_answer: print(first_ans)
     elif TODO == 'arrange a new bbox for me':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)

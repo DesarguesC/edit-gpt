@@ -151,7 +151,7 @@ def Val_Add_Method(opt):
 
             amount_list = Val_add_amount(model_dict, add_label, ori_img, [out_pil, out_ip2p], device=opt.device)
 
-            if len(amount_list) == 2:
+            if len(amount_list) != 2:
                 string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
                 print(string__)
                 logging.warning(string__)
@@ -163,7 +163,7 @@ def Val_Add_Method(opt):
             acc_num_ip2p = acc_num_ip2p + ac_or_not_ip2p
 
             end_time = time.time()
-            string = (f'Images have been moved: {len(selected_list)} | Acc: [Add/Ip2p]~[{True if ac_or_not_add==1 else False}|'
+            string = (f'Images have been moved: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if ac_or_not_add==1 else False}|'
                       f'{True if ac_or_not_ip2p==1 else False}] | Time cost: {end_time - start_time}')
             print(string)
             logging.info(string)
@@ -189,7 +189,7 @@ def Val_Add_Method(opt):
         image_before_list[i] = np.array(image_before_list[i])
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch32')
 
     ssim_score = SSIM_compute(image_before_list, image_after_list)
     clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
@@ -293,7 +293,7 @@ def Val_Remove_Method(opt):
 
             amount_list = IsRemoved(model_dict, ori_label, ori_img, [out_pil, out_ip2p], device=opt.device)
 
-            if len(amount_list) == 2:
+            if len(amount_list) != 2:
                 string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
                 print(string__)
                 logging.warning(string__)
@@ -305,7 +305,7 @@ def Val_Remove_Method(opt):
             acc_num_ip2p = acc_num_ip2p + ac_or_not_ip2p
 
             end_time = time.time()
-            string = f'Images have been moved: {len(selected_list)} | Acc: [Add/Ip2p]~[{True if ac_or_not_remove == 1 else False}|{True if ac_or_not_ip2p == 1 else False}] | Time cost: {end_time - start_time}'
+            string = f'Images have been moved: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if ac_or_not_remove == 1 else False}|{True if ac_or_not_ip2p == 1 else False}] | Time cost: {end_time - start_time}'
             print(string)
             logging.info(string)
 
@@ -331,7 +331,7 @@ def Val_Remove_Method(opt):
         image_before_list[i] = np.array(image_before_list[i])
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch32')
     ssim_score = SSIM_compute(image_before_list, image_after_list)
     clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
