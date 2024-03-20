@@ -619,6 +619,12 @@ task_planning_test_system_prompt = ("You are a text generator that generates ima
                                     "\"Remove\" (for removing objects), \"Replace\" for (replacing the object with another), "
                                     "\"Move\" (for moving the object to another place), and \"Transfer\" (for image style transferring)."
                                     " What you need to do is to choose several methods to generate complex image editing instructions for the input image. "
+                                    "Not that you should output 10 prompts for an image input. "
+                                    "Each prompt is wrapped in parentheses, with a comma between each prompt"
                                     "Your output should contain only the image editing instructions and no other extraneous characters.")
 
+
+gpt4_v_get_box = "You are a bounding box generator. I'm giving you a image and a editing prompt to move a target object to another place. "\
+                 "What you should do is to return a proper bounding box for it. The output should be in the form of $[Name, (X,Y,W,H)]$"\
+                 
 
