@@ -156,17 +156,17 @@ def calculate_clip_score(images, prompts, base_path = '../autodl-tmp', clip_scor
         return float(clip_score)
     else:
         assert isinstance(prompts, list) and len(prompts) == len(images), f'{isinstance(prompts, list)}, len(prompts) = {len(prompts)}, len(images) = {len(images)}'
-        images_int = [(image * 255).astype("uint8") if np.max(image) <= 1. else images.astype("uint8") for image in images]
+        images_int = [(image * 255).astype("uint8") if np.max(image) <= 1. else image.astype("uint8") for image in images]
         clip_scores = [clip_score_fn(img2tensor(images_int[i]), prompts[i]) for i in range(len(prompts))]
         return float(np.mean(clip_scores))
 
-def SSIM_compute(original_img, edited_img, multichannel: bool = True) -> float:
+def SSIM_compute(original_img, edited_img, multichannel: bool = True, channel_axis=2) -> float:
     """
     计算两幅图像之间的SSIM值。
     """
     if not isinstance(original_img, list):
-        return ssim(original_img, edited_img, multichannel=multichannel)
+        return ssim(original_img, edited_img, multichannel=multichannel, channel_axis=channel_axis)
     else:
         assert len(original_img) == len(edited_img), f'len(original_img) = {len(original_img)}, len(edited_img) = {len(edited_img)}'
-        SSIM = [ssim(original_img[i], edited_img[i], multichannel=multichannel) for i in range(len(original_img))]
+        SSIM = [ssim(original_img[i], edited_img[i], multichannel=multichannel, channel_axis=channel_axis) for i in range(len(original_img))]
         return np.mean(SSIM)

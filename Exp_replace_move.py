@@ -97,8 +97,8 @@ def Val_Replace_Method(opt):
         else:
             captions_dict[image_id] = x['caption']
 
-    image_before_list = image_after_list = image_ip2p_list = []
-    caption_before_list = caption_after_list = []
+    image_before_list,  image_after_list,  image_ip2p_list = [], [], []
+    caption_before_list, caption_after_list = [], []
     acc_num_replace = acc_num_ip2p = 0
     static_out_dir = opt.out_dir
 
@@ -182,13 +182,13 @@ def Val_Replace_Method(opt):
         image_before_list[i] = np.array(image_before_list[i])
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
-    ssim_score = SSIM_compute(image_before_list, image_after_list)
+    ssim_score = SSIM_compute(image_before_list, image_after_list, multichannel=False)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
 
-    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
+    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list, multichannel=False)
     psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
 
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch16')
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
     clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
     clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
     del preloaded_agent, preloaded_replace_model
@@ -208,8 +208,8 @@ def Val_Move_Method(opt):
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
     
-    caption_before_list = caption_after_list = []
-    image_before_list = image_after_list = image_ip2p_list = []
+    caption_before_list, caption_after_list = [], []
+    image_before_list, image_after_list, image_ip2p_list = [], [], []
 
     # for validation after
     with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
@@ -307,13 +307,13 @@ def Val_Move_Method(opt):
         image_before_list[i] = np.array(image_before_list[i])
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch16')
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
 
-    ssim_score = SSIM_compute(image_before_list, image_after_list)
+    ssim_score = SSIM_compute(image_before_list, image_after_list, multichannel=False)
     clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
 
-    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
+    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list, multichannel=False)
     clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
 
@@ -327,7 +327,7 @@ def main():
 
     if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 100)
+    setattr(opt, 'test_group_num', 1)
 
     logging.basicConfig(
         level=logging.INFO,

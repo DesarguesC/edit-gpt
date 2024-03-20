@@ -68,8 +68,8 @@ def Val_Add_Method(opt):
     selected_list = []
     length = len(data_val['annotations'])
 
-    caption_before_list = caption_after_list = []
-    image_before_list = image_after_list = image_ip2p_list = []
+    caption_before_list, caption_after_list = [], []
+    image_before_list, image_after_list, image_ip2p_list = [], [], []
 
     # locations = ['left', 'right', 'behind', 'head']
     preloaded_add_model = preload_add_model(opt) if opt.preload_all_models else None
@@ -138,7 +138,11 @@ def Val_Add_Method(opt):
         image_ip2p_list.append(out_ip2p)
         caption_before_list.append(caption1)
         caption_after_list.append(caption2)
-        print(len(image_before_list), len(image_after_list), len(image_ip2p_list), len(caption_before_list), len(caption_after_list))
+
+        string_ = f"{len(image_before_list), len(image_after_list), len(image_ip2p_list), len(caption_before_list), len(caption_after_list)}"
+        print(string_)
+        logging.info(string_)
+
         ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
         out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
         out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-Ip2p.jpg')
@@ -178,13 +182,13 @@ def Val_Add_Method(opt):
         image_before_list[i] = np.array(image_before_list[i])
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch16')
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
 
-    ssim_score = SSIM_compute(image_before_list, image_after_list)
+    ssim_score = SSIM_compute(image_before_list, image_after_list, multichannel=False)
     clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
 
-    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
+    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list, multichannel=False)
     clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
 
@@ -195,7 +199,6 @@ def Val_Add_Method(opt):
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Add.txt'), clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Ip2p.txt'), clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=string)
 
-
 def Val_Remove_Method(opt):
     val_folder = '../autodl-tmp/COCO/val2017'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
@@ -205,8 +208,8 @@ def Val_Remove_Method(opt):
     selected_list = []
     length = len(data_val['annotations'])
 
-    caption_before_list = caption_after_list = []
-    image_before_list = image_after_list = image_ip2p_list = []
+    caption_before_list, caption_after_list = [], []
+    image_before_list, image_after_list, image_ip2p_list = [], [], []
 
     preloaded_remove_model = preload_remove_model(opt) if opt.preload_all_models else None
     preloaded_agent = preload_all_agents(opt) if opt.preload_all_models else None
@@ -313,10 +316,10 @@ def Val_Remove_Method(opt):
         image_before_list[i] = np.array(image_before_list[i])
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch16')
-    ssim_score = SSIM_compute(image_before_list, image_after_list)
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
+    ssim_score = SSIM_compute(image_before_list, image_after_list, multichannel=False)
     clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
-    psnr_score = PSNR_compute(image_before_list, image_after_list)
+    psnr_score = PSNR_compute(image_before_list, image_after_list, multichannel=False)
 
     ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
     clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
@@ -341,7 +344,6 @@ def main():
         format = '%(asctime)s : %(levelname)s : %(message)s', 
         filename='Add_Remove.log'
     )
-
     
     opt.out_dir = '../autodl-tmp/Exp_Add'
     if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip -r {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')

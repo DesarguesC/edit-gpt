@@ -104,18 +104,6 @@ def target_removing(
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed
 
-@torch.no_grad()
-def match_sam_box(mask: np.array, sam_list: list[tuple]):
-    pointer = sam_list
-    if isinstance(mask, torch.Tensor):
-        mask = mask.cpu().detach().numpy()
-    box_idx = np.argmax([
-        np.sum(mask.squeeze() * sam_[1].squeeze()) / np.sum(mask) for sam_ in pointer
-    ])
-    bbox = sam_list[box_idx][0]
-    del pointer[box_idx]
-    return bbox
-
 def max_min_box(mask0):
     mask0[mask0>0.5] = 1
     mask0[mask0<=0.5] = 0
@@ -131,6 +119,22 @@ def max_min_box(mask0):
                 max_y, min_y = max(i, max_y), min(i, min_y)
     return (min_x, min_y, max_x-min_x, max_y-min_y)
 
+@torch.no_grad()
+def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_min=False):
+    assert mask is not None, f'mask is None'
+    if use_max_min or sam_list is None:
+        return max_min_box(mask)    # use max & min coordinates for bounding box generating
+
+    pointer = sam_list
+    if isinstance(mask, torch.Tensor):
+        mask = mask.cpu().detach().numpy()
+    box_idx = np.argmax([
+        np.sum(mask.squeeze() * sam_[1].squeeze()) / np.sum(mask) for sam_ in pointer
+    ])
+    bbox = sam_list[box_idx][0]
+    del pointer[box_idx]
+    return bbox
+
 
 def refactor_mask(box_1, mask_1, box_2, type='remove', use_max_min=False):
     """
@@ -138,10 +142,7 @@ def refactor_mask(box_1, mask_1, box_2, type='remove', use_max_min=False):
         reshape mask_1 into box_2, as mask_2, return
         TODO: refactor mask_1 into box_2 (tend to get smaller ?)
     """
-
     # for ablation study, calculate box_1 (corresponding to mask_1)  via max-min coordinates
-    if use_max_min:
-        box_1 = max_min_box(mask_1)
 
     mask_1 = torch.tensor(mask_1.squeeze(), dtype=torch.float32) # h * w
     mask_2 = torch.zeros_like(mask_1.unsqueeze(0)) # 1 * h * w
