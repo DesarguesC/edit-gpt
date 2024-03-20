@@ -23,6 +23,7 @@ from einops import repeat, rearrange
 import torch, cv2, os
 from paint.example import generate_example
 from operations.utils import get_reshaped_img
+from prompt.gpt4_gen import gpt_4v_bbox_return
 
 def Add_Object(
         opt, 
@@ -104,7 +105,10 @@ def Add_Object(
                     break
                 print(f'Trying to fix... - Iter: {try_time}')
                 print(f'QUESTION: \n{question}')
-            box_ans = [x.strip() for x in re.split(r'[\[\],()]', get_response(edit_agent, question if try_time < 3 else (question + notes))) if x != '' and x != ' ']
+            box_ans = [x.strip() for x in re.split(r'[\[\],()]', 
+                        gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
+                        else get_response(edit_agent, question if try_time < 3 else (question + notes))
+                    ) if x not in ['', ' ']]
             # deal with the answer, procedure is the same as in replace.py
             print(f'box_ans = {box_ans}')
             if len(box_ans) < 4:
@@ -141,7 +145,7 @@ def Add_Object(
                                            key=(lambda x: x['area']), reverse=True)
                     ]) if not opt.use_max_min else match_sam_box(mask=mask_example) # only mask input -> extract max-min coordinates as bounding box
 
-        target_mask = refactor_mask(box_example, mask_example, fixed_box)
+        target_mask = refactor_mask(box_example, mask_example, fixed_box, use_max_min=opt.use_max_min)
 
         # TODO: save target_mask
         print(f'In \'add\': target_mask.shape = {target_mask.shape}, mask_example.shape = {mask_example.shape}')

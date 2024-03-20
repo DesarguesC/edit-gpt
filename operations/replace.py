@@ -99,20 +99,6 @@ def replace_target(
                             opt, rm_img, 
                             preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         ) # key: name, mask
-    # if panoptic_dict != []:
-    #     print(f'total names: ', panoptic_dict[0]['name'])
-    # if panoptic_dict == [] or (old_noun not in panoptic_dict[0]['name']):
-    #     print(f'find no \'{old_noun}\' in panoptic_dict of input, Start Add process...')
-    #     return Add_Object(
-    #                 opt, 
-    #                 name = new_noun, 
-    #                 num = 1,
-    #                 place = '<NULL>',
-    #                 input_pil = img_pil,
-    #                 edit_agent = Use_Agent(opt, TODO='adjust bbox for me'),
-    #                 expand_agent = Use_Agent(opt, TODO='Expand diffusion prompts for me'), 
-    #                 preloaded_model = preloaded_model
-    #             )
 
     diffusion_pil = generate_example(
                             opt, new_noun, expand_agent = expand_agent, 
@@ -168,10 +154,12 @@ def replace_target(
                 break
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
+        # re.compile('[^\w\s]+')
+        box_0 = [x.strip() for x in re.split(r"[\[\](),]", 
+                    gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
+                    else get_response(edit_agent, (question if try_time < 3 else f'{question}\n{notes}')).strip()
+                ) if x not in ['', ' ']]
 
-
-        box_0 = re.split(re.compile('[^\w\s]+'), get_response(edit_agent, (question if try_time < 3 else f'{question}\n{notes}')).split('[')[-1].split(']')[0])
-        box_0 = [x.strip() for x in box_0 if x not in ['', ' ']]
         new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
         box_0 = (x,y,w,h)
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
@@ -179,9 +167,7 @@ def replace_target(
     box_0 = fix_box(box_0, (opt.H,opt.W,3))
     print(f'fixed box: (x,y,w,h) = {box_0}')
 
-
-
-    target_mask = refactor_mask(box_2, mask_2, box_0, type='replace')
+    target_mask = refactor_mask(box_2, mask_2, box_0, type='replace', use_max_min=opt.use_max_min)
     # 1 * h * w 
     target_mask[target_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
     target_mask[target_mask < 0.5] = 0.05 if opt.mask_ablation else 0.
