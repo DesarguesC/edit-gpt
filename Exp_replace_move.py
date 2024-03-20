@@ -14,6 +14,7 @@ from prompt.util import calculate_clip_score, PSNR_compute, SSIM_compute
 from preload_utils import *
 from torchmetrics.functional.multimodal import clip_score as CLIP
 from functools import partial
+from pytorch_lightning import seed_everything
 
 def preload_replace_model(opt):
     return {
@@ -51,8 +52,8 @@ def write_instruction(path, caption_before, caption_after, caption_edit):
     with open(path, 'w') as f:
         f.write(f'{caption_before}\n{caption_after}\n{caption_edit}')
 
-def write_valuation_results(path, clip_score=None, clip_directional_similarity=None, psnr_score=None, ssim_score=None, fid_score=None, extra_string=None):
-    string = (f'Clip Score: {clip_score}\nClip Directional Similarity: {clip_directional_similarity}\n'
+def write_valuation_results(path, typer='', clip_score=None, clip_directional_similarity=None, psnr_score=None, ssim_score=None, fid_score=None, extra_string=None):
+    string = (f'Exp For: {typer}\nClip Score: {clip_score}\nClip Directional Similarity: {clip_directional_similarity}\n'
               f'PSNR: {psnr_score}\nSSIM: {ssim_score}\nFID: {fid_score}') + f"\n{extra_string}" if extra_string is not None else ""
     with open(path, 'w') as f:
         f.write(string)
@@ -69,8 +70,8 @@ def read_original_prompt(path_to_json):
     return (prompt1, prompt2, edit)
 
 def Val_Replace_Method(opt):
-    
-    agent = use_exp_agent(opt, system_prompt_edit_sort)
+    seed_everything(opt.seed)
+    # agent = use_exp_agent(opt, system_prompt_edit_sort)
     val_folder = '../autodl-tmp/COCO/val2017'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
@@ -149,7 +150,12 @@ def Val_Replace_Method(opt):
         caption_before_list.append(caption1)
         caption_after_list.append(caption2)
 
-        a, b = A_IsReplacedWith_B(model_dict, label_ori, label_new, ori_img, [out_pil, out_ip2p], opt.device)
+        amount_list = A_IsReplacedWith_B(model_dict, label_ori, label_new, ori_img, [out_pil, out_ip2p], opt.device)
+        if len(amount_list) == 2:
+            string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
+            print(string__)
+            logging.warning(string__)
+        a, b = amount_list[0], amount_list[1]
         acc_num_replace += a
         acc_num_ip2p += b
 
@@ -173,8 +179,8 @@ def Val_Replace_Method(opt):
     clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
     clip_directional_similarity_ip2p = cal_similarity(image_before_list, image_ip2p_list, caption_before_list, caption_after_list)
 
-    fid_score = cal_fid(image_before_list, image_after_list)
-    fid_score_ip2p = cal_fid(image_before_list, image_ip2p_list)
+    fid_score = 0 # cal_fid(image_before_list, image_after_list)
+    fid_score_ip2p = 0 # cal_fid(image_before_list, image_ip2p_list)
 
     # use list[np.array]
     for i in range(len(image_after_list)):
@@ -182,10 +188,10 @@ def Val_Replace_Method(opt):
         image_before_list[i] = np.array(image_before_list[i])
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
-    ssim_score = SSIM_compute(image_before_list, image_after_list, multichannel=False)
+    ssim_score = SSIM_compute(image_before_list, image_after_list)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
 
-    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list, multichannel=False)
+    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
     psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
 
     clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
@@ -196,8 +202,8 @@ def Val_Replace_Method(opt):
     acc_ratio_replace, acc_ratio_ip2p = acc_num_replace / len(selected_list), acc_num_ip2p / len(selected_list)
     # consider if there is need to save all images replaced
     string = f'Replace Acc: \n\tEditGPT = {acc_ratio_replace}\n\tIP2P = {acc_ratio_ip2p}\n'
-    write_valuation_results(os.path.join(static_out_dir, 'all_results_Remove.txt'), clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
-    write_valuation_results(os.path.join(static_out_dir, 'all_results_IP2P.txt'), clip_score_ip2p,
+    write_valuation_results(os.path.join(static_out_dir, 'all_results_Remove.txt'), 'Remove-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
+    write_valuation_results(os.path.join(static_out_dir, 'all_results_IP2P.txt'), 'Remove-Ip2p', clip_score_ip2p,
                             clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=string)
     print(string)
     logging.info(string)
@@ -298,8 +304,8 @@ def Val_Move_Method(opt):
     clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
     clip_directional_similarity_ip2p = cal_similarity(image_before_list, image_ip2p_list, caption_before_list, caption_after_list)
 
-    fid_score = cal_fid(image_before_list, image_after_list)
-    fid_score_ip2p = cal_fid(image_before_list, image_ip2p_list)
+    fid_score = 0 # cal_fid(image_before_list, image_after_list)
+    fid_score_ip2p = 0 # cal_fid(image_before_list, image_ip2p_list)
 
     # use list[np.array]
     for i in range(len(image_after_list)):
@@ -309,18 +315,18 @@ def Val_Move_Method(opt):
 
     clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
 
-    ssim_score = SSIM_compute(image_before_list, image_after_list, multichannel=False)
+    ssim_score = SSIM_compute(image_before_list, image_after_list)
     clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
 
-    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list, multichannel=False)
+    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
     clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
 
     del preloaded_agent, preloaded_move_model
     # consider if there is need to save all images replaced
-    write_valuation_results(os.path.join(static_out_dir, 'all_results_Move.txt'), clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
-    write_valuation_results(os.path.join(static_out_dir, 'all_results_Ip2p.txt'), clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p)
+    write_valuation_results(os.path.join(static_out_dir, 'all_results_Move.txt'), 'Move-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
+    write_valuation_results(os.path.join(static_out_dir, 'all_results_Ip2p.txt'), 'Move-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p)
 
 
 def main():

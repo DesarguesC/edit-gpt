@@ -78,7 +78,7 @@ def IsRemoved(model_dict, label, image_ori, image_edited, device='cuda'):
         back2 = IsThereExists(model_dict, image_edited, label)
         return (back1 == "yes" and back2 == "no")
     else:
-        return [(back1 == "yes" and IsThereExists(model_dict, img_, label) == "no" for img_ in image_edited)]
+        return [int(back1 == "yes" and IsThereExists(model_dict, img_, label) == "no") for img_ in image_edited]
 
 def A_IsReplacedWith_B(model_dict, label_A, label_B, image_ori, image_edited, device='cuda'):
     print(f'VAQ | labelA = {label_A}, labelB = {label_B}')

@@ -145,11 +145,13 @@ def PSNR_compute(original_img, edited_img, max_pixel: int = 255) -> float:
         else:
             return 20 * np.log10(max_pixel / np.sqrt(tot))
 
+@torch.no_grad()
 def calculate_clip_score(images, prompts, base_path = '../autodl-tmp', clip_score_fn=None):
     if clip_score_fn is None:
         from torchmetrics.functional.multimodal import clip_score
         from functools import partial
         clip_score_fn = partial(clip_score, model_name_or_path=os.path.join(base_path, "openai/clip-vit-base-patch16"))
+
     if not isinstance(images, list):
         images_int = (images * 255).astype("uint8") if np.max(images) <= 1. else images.astype("uint8")
         clip_score = clip_score_fn(img2tensor(images_int), prompts).detach()
@@ -157,7 +159,7 @@ def calculate_clip_score(images, prompts, base_path = '../autodl-tmp', clip_scor
     else:
         assert isinstance(prompts, list) and len(prompts) == len(images), f'{isinstance(prompts, list)}, len(prompts) = {len(prompts)}, len(images) = {len(images)}'
         images_int = [(image * 255).astype("uint8") if np.max(image) <= 1. else image.astype("uint8") for image in images]
-        clip_scores = [clip_score_fn(img2tensor(images_int[i]), prompts[i]) for i in range(len(prompts))]
+        clip_scores = [float(clip_score_fn(img2tensor(images_int[i]), prompts[i]).detach()) for i in range(len(prompts))]
         return float(np.mean(clip_scores))
 
 def SSIM_compute(original_img, edited_img, multichannel: bool = True, channel_axis=2) -> float:
@@ -168,5 +170,5 @@ def SSIM_compute(original_img, edited_img, multichannel: bool = True, channel_ax
         return ssim(original_img, edited_img, multichannel=multichannel, channel_axis=channel_axis)
     else:
         assert len(original_img) == len(edited_img), f'len(original_img) = {len(original_img)}, len(edited_img) = {len(edited_img)}'
-        SSIM = [ssim(original_img[i], edited_img[i], multichannel=multichannel, channel_axis=channel_axis) for i in range(len(original_img))]
+        SSIM = [float(ssim(original_img[i], edited_img[i], multichannel=multichannel, channel_axis=channel_axis)) for i in range(len(original_img))]
         return np.mean(SSIM)

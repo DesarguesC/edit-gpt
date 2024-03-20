@@ -141,7 +141,7 @@ def create_location(
     print(f'BEFORE: box_0={box_0}')
     print(f'{target_box} -> {box_0}')
     
-    destination_mask = refactor_mask(target_box, target_mask, box_0, use_max_min=opt.max_min)
+    destination_mask = refactor_mask(target_box, target_mask, box_0, use_max_min=opt.use_max_min)
     target_mask, destination_mask = re_mask(target_mask), re_mask(destination_mask)
     if torch.max(target_mask) <= 1.:
         target_mask[target_mask > 0.5] = 0.9 if opt.mask_ablation else 1.

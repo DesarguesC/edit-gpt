@@ -51,8 +51,8 @@ def write_instruction(path, caption_before, caption_after, caption_edit):
     with open(path, 'w') as f:
         f.write(f'{caption_before}\n{caption_after}\n{caption_edit}')
 
-def write_valuation_results(path, clip_score=None, clip_directional_similarity=None, psnr_score=None, ssim_score=None, fid_score=None, extra_string=None):
-    string = (f'Clip Score: {clip_score}\nClip Directional Similarity: {clip_directional_similarity}\n'
+def write_valuation_results(path, typer='', clip_score=None, clip_directional_similarity=None, psnr_score=None, ssim_score=None, fid_score=None, extra_string=None):
+    string = (f'Exp For: {typer}\nClip Score: {clip_score}\nClip Directional Similarity: {clip_directional_similarity}\n'
               f'PSNR: {psnr_score}\nSSIM: {ssim_score}\nFID: {fid_score}') + f"\n{extra_string}" if extra_string is not None else ""
     with open(path, 'w') as f:
         f.write(string)
@@ -149,7 +149,14 @@ def Val_Add_Method(opt):
         write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
 
-        get_amount_add, get_amount_ip2p = Val_add_amount(model_dict, add_label, ori_img, [out_pil, out_ip2p], device=opt.device)
+        amount_list = Val_add_amount(model_dict, add_label, ori_img, [out_pil, out_ip2p], device=opt.device)
+
+        if len(amount_list) == 2:
+            string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
+            print(string__)
+            logging.warning(string__)
+
+        get_amount_add, get_amount_ip2p = amount_list[0], amount_list[1]
         ac_or_not_add = 1 if int(float(get_amount_add)) == 1 else 0
         ac_or_not_ip2p = 1 if int(float(get_amount_ip2p)) == 1 else 0
         acc_num_add = acc_num_add + ac_or_not_add
@@ -184,11 +191,11 @@ def Val_Add_Method(opt):
 
     clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
 
-    ssim_score = SSIM_compute(image_before_list, image_after_list, multichannel=False)
+    ssim_score = SSIM_compute(image_before_list, image_after_list)
     clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
 
-    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list, multichannel=False)
+    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
     clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
 
@@ -196,8 +203,8 @@ def Val_Add_Method(opt):
     # consider if there is need to save all images replaced
     acc_ratio_add, acc_ratio_ip2p = acc_num_add / len(selected_list), acc_num_ip2p / len(selected_list)
     string = f'Remove Acc: \n\tEditGPT = {acc_ratio_add}\n\tIP2P = {acc_ratio_ip2p}\n'
-    write_valuation_results(os.path.join(static_out_dir, 'all_results_Add.txt'), clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
-    write_valuation_results(os.path.join(static_out_dir, 'all_results_Ip2p.txt'), clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=string)
+    write_valuation_results(os.path.join(static_out_dir, 'all_results_Add.txt'), 'Add-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
+    write_valuation_results(os.path.join(static_out_dir, 'all_results_Ip2p.txt'), 'Add-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=string)
 
 def Val_Remove_Method(opt):
     val_folder = '../autodl-tmp/COCO/val2017'
@@ -283,7 +290,14 @@ def Val_Remove_Method(opt):
         out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-Ip2p.jpg')
         write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
-        get_amount_remove, get_amount_ip2p = IsRemoved(model_dict, ori_label, ori_img, [out_pil, out_ip2p], device=opt.device)
+        amount_list = IsRemoved(model_dict, ori_label, ori_img, [out_pil, out_ip2p], device=opt.device)
+
+        if len(amount_list) == 2:
+            string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
+            print(string__)
+            logging.warning(string__)
+
+        get_amount_remove, get_amount_ip2p = amount_list[0], amount_list[1]
         ac_or_not_remove = 1 if int(float(get_amount_remove)) == 1 else 0
         ac_or_not_ip2p = 1 if int(float(get_amount_ip2p)) == 1 else 0
         acc_num_remove = acc_num_remove + ac_or_not_remove
@@ -317,9 +331,9 @@ def Val_Remove_Method(opt):
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
     clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
-    ssim_score = SSIM_compute(image_before_list, image_after_list, multichannel=False)
+    ssim_score = SSIM_compute(image_before_list, image_after_list)
     clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
-    psnr_score = PSNR_compute(image_before_list, image_after_list, multichannel=False)
+    psnr_score = PSNR_compute(image_before_list, image_after_list)
 
     ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
     clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
