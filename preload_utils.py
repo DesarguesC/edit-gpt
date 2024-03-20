@@ -250,7 +250,6 @@ def preload_all_agents(opt):
         G: Use_Agent(opt, TODO = G),
         H: Use_Agent(opt, TODO = H),
         I: Use_Agent(opt, TODO = I),
-        V: Use_Agent(opt, TODO = V),
     }
 
 

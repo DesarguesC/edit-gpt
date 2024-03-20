@@ -116,12 +116,33 @@ def match_sam_box(mask: np.array, sam_list: list[tuple]):
     del pointer[box_idx]
     return bbox
 
-def refactor_mask(box_1, mask_1, box_2, type='remove'):
+def max_min_box(mask0):
+    mask0[mask0>0.5] = 1
+    mask0[mask0<=0.5] = 0
+    print(f'TEST: mask.shape = {mask0.shape}')
+    H, W = mask0.shape[-2:]
+    max_x = max_y = -1
+    min_x = min_y = max(H,W) * 2
+
+    for i in range(H):
+        for j in range(W):
+            if mask0[0][i][j] == 1:
+                max_x, min_x = max(j, max_x), min(j, min_x)
+                max_y, min_y = max(i, max_y), min(i, min_y)
+    return (min_x, min_y, max_x-min_x, max_y-min_y)
+
+
+def refactor_mask(box_1, mask_1, box_2, type='remove', use_max_min=False):
     """
         mask_1 is in box_1
         reshape mask_1 into box_2, as mask_2, return
         TODO: refactor mask_1 into box_2 (tend to get smaller ?)
     """
+
+    # for ablation study, calculate box_1 (corresponding to mask_1)  via max-min coordinates
+    if use_max_min:
+        box_1 = max_min_box(mask_1)
+
     mask_1 = torch.tensor(mask_1.squeeze(), dtype=torch.float32) # h * w
     mask_2 = torch.zeros_like(mask_1.unsqueeze(0)) # 1 * h * w
     print(f'box_1 = {box_1}, mask_1.shape = {mask_1.shape}, box_2 = {box_2}, mask_2.shape = {mask_2.shape}')

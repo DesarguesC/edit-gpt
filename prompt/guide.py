@@ -457,8 +457,8 @@ def Use_Agent(opt, TODO=None, print_first_answer=False):
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy)
         first_ans = get_response(agent, addArrange_first_ask)
         if print_first_answer: print(first_ans)
-    elif TODO == 'use gpt-4v':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=gpt4_v_get_box, proxy=net_proxy)
+    # elif TODO == 'use gpt-4v':
+    #     agent = get_bot(engine=engine, api_key=api_key, system_prompt=gpt4_v_get_box, proxy=net_proxy)
     else:
         agent = None
         print('no such agent')

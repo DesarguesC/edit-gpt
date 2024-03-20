@@ -242,6 +242,20 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        '--use_max_min',
+        type=str2bool,
+        default=False,
+        help='For SAM ablation, whether to use max-min method to create mask or <SAM,SEEM>',
+    )
+
+    parser.add_argument(
+        '--gpt4_v',
+        type=str2bool,
+        default=False,
+        help='ablation for <SEEM+GPT3.5> or <IMG+GPT4V>',
+    )
+
+    parser.add_argument(
         '--compile',
         type=str2bool,
         default=False,

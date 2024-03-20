@@ -114,12 +114,14 @@ def create_location(
                 break
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
-        # box_ans = [x.strip() for x in re.split(r'[\[\],()]', get_response(edit_agent, question if try_time < 3 else (question + notes))) if x != '' and x != ' ']
-        print('Use GPT-4V API...')
-        print(f'image_path = {opt.in_dir}')
-        print(f'edit_txt = {opt.edit_txt}')
-        box_ans = [x.strip() for x in re.split(r'[\[\],()$]', gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip()) if x != '' and x != ' ']
-        # gpt_4v_bbox_return
+
+
+        if opt.gpt4_v:
+            print('Use GPT-4V API...')
+            box_ans = [x.strip() for x in re.split(r'[\[\],()$]', gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip()) if x != '' and x != ' ']
+            # gpt_4v_bbox_return
+        else:
+            box_ans = [x.strip() for x in re.split(r'[\[\],()]', get_response(edit_agent, question if try_time < 3 else (question + notes))) if x not in ['', ' ']]
 
         # deal with the answer, procedure is the same as in replace.py
         print(f'box_ans = {box_ans}')
@@ -139,11 +141,11 @@ def create_location(
     print(f'BEFORE: box_0={box_0}')
     print(f'{target_box} -> {box_0}')
     
-    destination_mask = refactor_mask(target_box, target_mask, box_0)
+    destination_mask = refactor_mask(target_box, target_mask, box_0, use_max_min=opt.max_min)
     target_mask, destination_mask = re_mask(target_mask), re_mask(destination_mask)
     if torch.max(target_mask) <= 1.:
-        target_mask[target_mask > 0.5] = 0.95 if opt.mask_ablation else 1.
-        target_mask[target_mask <= 0.5] = 0.05 if opt.mask_ablation else 0.
+        target_mask[target_mask > 0.5] = 0.9 if opt.mask_ablation else 1.
+        target_mask[target_mask <= 0.5] = 0.1 if opt.mask_ablation else 0.
     
     if not os.path.exists(opt.mask_dir): os.mkdir(opt.mask_dir)
     print(f'target_mask.shape = {target_mask.shape}, destination_mask.shape = {destination_mask.shape}')
@@ -152,13 +154,14 @@ def create_location(
     name_ = f'./{opt.mask_dir}/destination'
     t = 0
     while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
-    cv2.imwrite(f'{name_}-{t}.jpg', cv2.cvtColor(np.uint8((255. if torch.max(destination_mask) <= 1. else 1.) \
+    cv2.imwrite(f'{name_}-{t}(after-edited).jpg', cv2.cvtColor(np.uint8((255. if torch.max(destination_mask) <= 1. else 1.) \
                             * rearrange(destination_mask.squeeze(0), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
     print(f'destination-mask saved: \'{name_}-{t}.jpg\'') # 目的位置的mask (编辑后)
 
     name = f'./{opt.mask_dir}/target'
     t = 0
-    cv2.imwrite(f'{name_}-{t}.jpg', cv2.cvtColor(np.uint8((255. if torch.max(target_mask) <= 1. else 1.) \
+    while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
+    cv2.imwrite(f'{name_}-{t}(before-edited).jpg', cv2.cvtColor(np.uint8((255. if torch.max(target_mask) <= 1. else 1.) \
                             * rearrange(repeat(target_mask, '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
     print(f'destination-mask saved: \'{name_}-{t}.jpg\'') # 原始图片的mask (编辑前)
 

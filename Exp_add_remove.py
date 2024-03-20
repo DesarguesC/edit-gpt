@@ -108,59 +108,59 @@ def Val_Add_Method(opt):
             os.mkdir(opt.out_dir)
             os.mkdir(f'{opt.out_dir}/Inputs-Outputs/')
 
-        try:
-            instance = data_val['annotations'][idx]
-            category_id = int(instance['category_id'])
-            img_id = instance['image_id']
-            caption1 = captions_dict[str(img_id)]
-            add_label_id = category_id
-            while add_label_id == category_id:
-                add_label_id = randint(1,81)
+        # try:
+        instance = data_val['annotations'][idx]
+        category_id = int(instance['category_id'])
+        img_id = instance['image_id']
+        caption1 = captions_dict[str(img_id)]
+        add_label_id = category_id
+        while add_label_id == category_id:
+            add_label_id = randint(1,81)
 
-            add_label = metadata.stuff_classes[add_label_id]
-            img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
-            ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (256,256), method=Image.Resampling.LANCZOS)
+        add_label = metadata.stuff_classes[add_label_id]
+        img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
+        ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (256,256), method=Image.Resampling.LANCZOS)
 
-            # amend = f'{choice(locations)} of the {ori_label}'
-            # opt.edit_txt = f'add a {add_label} on tht {amend}'
-            # caption2 = f'{caption1}, with a {add_label} added on the {amend}'
-            opt.edit_txt = f'add a {add_label}'
-            caption2 = f'{caption1}, with {add_label} added'
-            out_pil = Add_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
-            if out_pil.size != (256,256):
-                out_pil = ImageOps.fit(out_pil.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
-            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
-            if out_ip2p.size != (256,256):
-                out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+        # amend = f'{choice(locations)} of the {ori_label}'
+        # opt.edit_txt = f'add a {add_label} on tht {amend}'
+        # caption2 = f'{caption1}, with a {add_label} added on the {amend}'
+        opt.edit_txt = f'add a {add_label}'
+        caption2 = f'{caption1}, with {add_label} added'
+        out_pil = Add_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
+        if out_pil.size != (256,256):
+            out_pil = ImageOps.fit(out_pil.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+        out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
+        if out_ip2p.size != (256,256):
+            out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
 
-            image_before_list.append(ori_img)
-            image_after_list.append(out_pil)
-            image_ip2p_list.append(out_ip2p)
-            caption_before_list.append(caption1)
-            caption_after_list.append(caption2)
-            ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
-            out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
-            out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-Ip2p.jpg')
-            write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
+        image_before_list.append(ori_img)
+        image_after_list.append(out_pil)
+        image_ip2p_list.append(out_ip2p)
+        caption_before_list.append(caption1)
+        caption_after_list.append(caption2)
+        ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
+        out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
+        out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-Ip2p.jpg')
+        write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
 
-            get_amount_add, get_amount_ip2p = Val_add_amount(model_dict, add_label, ori_img, [out_pil, out_ip2p], device=opt.device)
-            ac_or_not_add = 1 if int(float(get_amount_add)) == 1 else 0
-            ac_or_not_ip2p = 1 if int(float(get_amount_ip2p)) == 1 else 0
-            acc_num_add = acc_num_add + ac_or_not_add
-            acc_num_ip2p = acc_num_ip2p + ac_or_not_ip2p
+        get_amount_add, get_amount_ip2p = Val_add_amount(model_dict, add_label, ori_img, [out_pil, out_ip2p], device=opt.device)
+        ac_or_not_add = 1 if int(float(get_amount_add)) == 1 else 0
+        ac_or_not_ip2p = 1 if int(float(get_amount_ip2p)) == 1 else 0
+        acc_num_add = acc_num_add + ac_or_not_add
+        acc_num_ip2p = acc_num_ip2p + ac_or_not_ip2p
 
-            end_time = time.time()
-            string = (f'Images have been moved: {len(selected_list)} | Acc: [Add/Ip2p]~[{True if ac_or_not_add==1 else False}|'
-                      f'{True if ac_or_not_ip2p==1 else False}] | Time cost: {end_time - start_time}')
-            print(string)
-            logging.info(string)
+        end_time = time.time()
+        string = (f'Images have been moved: {len(selected_list)} | Acc: [Add/Ip2p]~[{True if ac_or_not_add==1 else False}|'
+                  f'{True if ac_or_not_ip2p==1 else False}] | Time cost: {end_time - start_time}')
+        print(string)
+        logging.info(string)
         
-        except Exception as e:
-            string = f'Exception Occurred: {e}'
-            print(string)
-            logging.error(string)
-            del selected_list[-1]
+        # except Exception as e:
+        #     string = f'Exception Occurred: {e}'
+        #     print(string)
+        #     logging.error(string)
+        #     del selected_list[-1]
 
     # TODO: Clip Image Score & PSNR && SSIM
 
@@ -242,59 +242,59 @@ def Val_Remove_Method(opt):
             os.mkdir(opt.out_dir)
             os.mkdir(f'{opt.out_dir}/Inputs-Outputs/')
 
-        try:
-            instance = data_val['annotations'][idx]
-            category_id = int(instance['category_id'])
-            img_id = instance['image_id']
-            caption1 = captions_dict[str(img_id)]
-            add_label_id = category_id
-            while add_label_id == category_id:
-                add_label_id = randint(1, 81)
+        # try:
+        instance = data_val['annotations'][idx]
+        category_id = int(instance['category_id'])
+        img_id = instance['image_id']
+        caption1 = captions_dict[str(img_id)]
+        add_label_id = category_id
+        while add_label_id == category_id:
+            add_label_id = randint(1, 81)
 
-            ori_label = metadata.stuff_classes[category_id]
-            img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
-            ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+        ori_label = metadata.stuff_classes[category_id]
+        img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
+        ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
 
-            # amend = f'{choice(locations)} of the {ori_label}'
-            # opt.edit_txt = f'add a {add_label} on tht {amend}'
-            # caption2 = f'{caption1}, with a {add_label} added on the {amend}'
-            opt.edit_txt = f'remove the {ori_label}'
-            caption2 = f'{caption1}, with {ori_label} removed'
-            out_pil = Remove_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
-            if out_pil.size != (256,256):
-                out_pil = ImageOps.fit(out_pil.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
-            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
-            if out_ip2p.size != (256, 256):
-                out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+        # amend = f'{choice(locations)} of the {ori_label}'
+        # opt.edit_txt = f'add a {add_label} on tht {amend}'
+        # caption2 = f'{caption1}, with a {add_label} added on the {amend}'
+        opt.edit_txt = f'remove the {ori_label}'
+        caption2 = f'{caption1}, with {ori_label} removed'
+        out_pil = Remove_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
+        if out_pil.size != (256,256):
+            out_pil = ImageOps.fit(out_pil.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+        out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
+        if out_ip2p.size != (256, 256):
+            out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
 
 
-            image_before_list.append(ori_img)
-            image_after_list.append(out_pil)
-            image_ip2p_list.append(out_ip2p)
-            caption_before_list.append(caption1)
-            caption_after_list.append(caption2)
+        image_before_list.append(ori_img)
+        image_after_list.append(out_pil)
+        image_ip2p_list.append(out_ip2p)
+        caption_before_list.append(caption1)
+        caption_after_list.append(caption2)
 
-            ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
-            out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditPGT.jpg')
-            out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-Ip2p.jpg')
-            write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
+        ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
+        out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditPGT.jpg')
+        out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-Ip2p.jpg')
+        write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
-            get_amount_remove, get_amount_ip2p = IsRemoved(model_dict, ori_label, ori_img, [out_pil, out_ip2p], device=opt.device)
-            ac_or_not_remove = 1 if int(float(get_amount_remove)) == 1 else 0
-            ac_or_not_ip2p = 1 if int(float(get_amount_ip2p)) == 1 else 0
-            acc_num_remove = acc_num_remove + ac_or_not_remove
-            acc_num_ip2p = acc_num_ip2p + ac_or_not_ip2p
+        get_amount_remove, get_amount_ip2p = IsRemoved(model_dict, ori_label, ori_img, [out_pil, out_ip2p], device=opt.device)
+        ac_or_not_remove = 1 if int(float(get_amount_remove)) == 1 else 0
+        ac_or_not_ip2p = 1 if int(float(get_amount_ip2p)) == 1 else 0
+        acc_num_remove = acc_num_remove + ac_or_not_remove
+        acc_num_ip2p = acc_num_ip2p + ac_or_not_ip2p
 
-            end_time = time.time()
-            string = f'Images have been moved: {len(selected_list)} | Acc: [Add/Ip2p]~[{True if ac_or_not_remove == 1 else False}|{True if ac_or_not_ip2p == 1 else False}] | Time cost: {end_time - start_time}'
-            print(string)
-            logging.info(string)
+        end_time = time.time()
+        string = f'Images have been moved: {len(selected_list)} | Acc: [Add/Ip2p]~[{True if ac_or_not_remove == 1 else False}|{True if ac_or_not_ip2p == 1 else False}] | Time cost: {end_time - start_time}'
+        print(string)
+        logging.info(string)
 
-        except Exception as e:
-            string = f'Exception Occurred: {e}'
-            print(string)
-            logging.error(string)
-            del selected_list[-1]
+        # except Exception as e:
+        #     string = f'Exception Occurred: {e}'
+        #     print(string)
+        #     logging.error(string)
+        #     del selected_list[-1]
 
     # TODO: Clip Image Score & PSNR && SSIM
 
@@ -333,14 +333,14 @@ def Val_Remove_Method(opt):
 def main():
     
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 20)
+    setattr(opt, 'test_group_num', 2)
 
     logging.basicConfig(
         level=logging.INFO,
         format = '%(asctime)s : %(levelname)s : %(message)s', 
-        filename='Add-Remove.log'
+        filename='Add_Remove.log'
     )
-    if os.path.isfile('Add-Remove.log'): os.system('rm Add-Remove.log')
+    if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
     
     opt.out_dir = '../autodl-tmp/Exp_Add'
     if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip -r {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
