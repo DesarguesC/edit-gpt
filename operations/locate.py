@@ -68,7 +68,7 @@ def create_location(
     # prepare SAM, matched via SEEM
     mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), \
                            key=(lambda x: x['area']), reverse=True)
-    sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
+    sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list] if not opt.use_max_min else None
 
     # remove the target, get the mask (for bbox searching via SAM)
     rm_img, target_mask, _ = Remove_Me_lama(

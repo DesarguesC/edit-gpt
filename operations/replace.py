@@ -135,9 +135,10 @@ def replace_target(
     mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), \
                                                                 key=(lambda x: x['area']), reverse=True)
     # print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
-    sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
-    box_1 = match_sam_box(mask_1, sam_seg_list) # old noun
+    sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list] if not opt.use_max_min else None
+    box_1 = match_sam_box(mask_1, sam_seg_list)
     bbox_list = [match_sam_box(x['mask'], sam_seg_list) for x in panoptic_dict]
+    # only mask input -> extract max-min coordinates as bounding box)
     print(f'box_1 = {box_1}')
     print(f'bbox_list = {bbox_list}')
        
@@ -152,8 +153,7 @@ def replace_target(
     
     diffusion_mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), \
                                                                          key=(lambda x: x['area']), reverse=True)
-    box_2 = match_sam_box(mask_2, [(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list])
-    
+    box_2 = match_sam_box(mask_2, ([(u['bbox'], u['segmentation'], u['area'])  for u in diffusion_mask_box_list] if not opt.use_max_min else None))
     question = Label().get_str_rescale(old_noun, new_noun, box_name_list)
     print(f'Question: \n{question}')
 

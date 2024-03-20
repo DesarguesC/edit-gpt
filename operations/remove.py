@@ -113,8 +113,7 @@ def Remove_Me(opt, target_noun, remove_mask=False, replace_box=False, resize=Tru
         mask_box_list = sorted(mask_box_list, key=(lambda x: x['area']), reverse=True)
         # print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
         # print(target_mask)
-        box_ = match_sam_box(target_mask, [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list])
-        # print(f'box_ = {box_}')
+        box_ = match_sam_box(target_mask, ([(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list] if not opt.use_max_min else None))
     
     removed_np = box_replace(np.array(img_pil), removed_np, box_)
     removed_np = cv2.cvtColor(np.uint8(removed_np), cv2.COLOR_RGB2BGR)
