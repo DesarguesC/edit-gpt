@@ -115,63 +115,63 @@ def Val_Replace_Method(opt):
             os.mkdir(opt.out_dir)
             os.mkdir(f'{opt.out_dir}/Inputs-Outputs/')
 
-        # try:
-        instance = data_val[idx]
-        label_id = int(float(instance['category_id']))
-        label_new_id = randint(1, 81)
-        while label_new_id == label_id:
+        try:
+            instance = data_val[idx]
+            label_id = int(float(instance['category_id']))
             label_new_id = randint(1, 81)
-        label_ori = metadata.stuff_classes[label_id]
-        label_new = metadata.stuff_classes[label_new_id]
+            while label_new_id == label_id:
+                label_new_id = randint(1, 81)
+            label_ori = metadata.stuff_classes[label_id]
+            label_new = metadata.stuff_classes[label_new_id]
 
-        img_id = instance['image_id']
-        img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
+            img_id = instance['image_id']
+            img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
 
-        ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
-        opt.edit_txt = f'replace {label_ori} with {label_new}'
-        caption1 = captions_dict[str(img_id)]
-        caption2 = f'{caption1}, with {label_ori} replaced with {label_new}'
+            ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+            opt.edit_txt = f'replace {label_ori} with {label_new}'
+            caption1 = captions_dict[str(img_id)]
+            caption2 = f'{caption1}, with {label_ori} replaced with {label_new}'
 
-        out_pil = Replace_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
-        if out_pil.size != (256,256):
-            out_pil = ImageOps.fit(out_pil.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
-        out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
-        if out_ip2p.size != (256,256):
-            out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+            out_pil = Replace_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
+            if out_pil.size != (256,256):
+                out_pil = ImageOps.fit(out_pil.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
+            if out_ip2p.size != (256,256):
+                out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
 
-        ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
-        out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
-        out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
-        write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
+            ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
+            out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
+            out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
+            write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
-        image_before_list.append(ori_img)
-        image_after_list.append(out_pil)
-        image_ip2p_list.append(out_ip2p)
-        caption_before_list.append(caption1)
-        caption_after_list.append(caption2)
+            image_before_list.append(ori_img)
+            image_after_list.append(out_pil)
+            image_ip2p_list.append(out_ip2p)
+            caption_before_list.append(caption1)
+            caption_after_list.append(caption2)
 
-        amount_list = A_IsReplacedWith_B(model_dict, label_ori, label_new, ori_img, [out_pil, out_ip2p], opt.device)
-        if len(amount_list) != 2:
-            string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
-            print(string__)
-            logging.warning(string__)
-        a, b = amount_list[0], amount_list[1]
-        acc_num_replace += a
-        acc_num_ip2p += b
+            amount_list = A_IsReplacedWith_B(model_dict, label_ori, label_new, ori_img, [out_pil, out_ip2p], opt.device)
+            if len(amount_list) != 2:
+                string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
+                print(string__)
+                logging.warning(string__)
+            a, b = amount_list[0], amount_list[1]
+            acc_num_replace += a
+            acc_num_ip2p += b
 
-        end_time = time.time()
+            end_time = time.time()
 
-        string = (
-            f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if a == 1 else False}|'
-            f'{True if b == 1 else False}] | Time cost: {end_time - start_time}')
-        print(string)
-        logging.info(string)
+            string = (
+                f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if a == 1 else False}|'
+                f'{True if b == 1 else False}] | Time cost: {end_time - start_time}')
+            print(string)
+            logging.info(string)
 
-        # except Exception as e:
-        #     string = f'Exception Occurred: {e}'
-        #     print(string)
-        #     logging.error(string)
-        #     del selected_list[-1]
+        except Exception as e:
+            string = f'Exception Occurred: {e}'
+            print(string)
+            logging.error(string)
+            del selected_list[-1]
 
     # TODO: Clip Image Score & PSNR && SSIM
 
@@ -260,53 +260,53 @@ def Val_Move_Method(opt):
             os.mkdir(opt.out_dir)
             os.mkdir(f'{opt.out_dir}/Inputs-Outputs/')
 
-        # try:
-        selected_list.append(idx)
-        annotation = data['annotations'][idx]
-        start_time = time.time()
+        try:
+            selected_list.append(idx)
+            annotation = data['annotations'][idx]
+            start_time = time.time()
 
-        x, y, w, h = annotation['bbox']
-        x, y, w, h = int(x), int(y), int(w), int(h)
-        img_id, label_id = annotation['image_id'], annotation['category_id']
-        caption = captions_dict[str(img_id)]
-        label = metadata.stuff_classes[int(float(label_id))]
-        place = [x for x in get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
-        assert len(place) == 2, f'place = {place}'
-        ori_place, gen_place = place[0], place[1]
+            x, y, w, h = annotation['bbox']
+            x, y, w, h = int(x), int(y), int(w), int(h)
+            img_id, label_id = annotation['image_id'], annotation['category_id']
+            caption = captions_dict[str(img_id)]
+            label = metadata.stuff_classes[int(float(label_id))]
+            place = [x for x in get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
+            assert len(place) == 2, f'place = {place}'
+            ori_place, gen_place = place[0], place[1]
 
-        img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
-        img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (256,256), method=Image.Resampling.LANCZOS)
+            img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
+            img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (256,256), method=Image.Resampling.LANCZOS)
 
-        opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
-        out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
-        if out_pil.size != (256,256):
-            out_pil = ImageOps.fit(out_pil, (256,256), method=Image.Resampling.LANCZOS)
-        out_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
-        if out_ip2p.size != (256,256):
-            out_ip2p = ImageOps.fit(out_ip2p, (256,256), method=Image.Resampling.LANCZOS)
+            opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
+            out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
+            if out_pil.size != (256,256):
+                out_pil = ImageOps.fit(out_pil, (256,256), method=Image.Resampling.LANCZOS)
+            out_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
+            if out_ip2p.size != (256,256):
+                out_ip2p = ImageOps.fit(out_ip2p, (256,256), method=Image.Resampling.LANCZOS)
 
-        end_time = time.time()
-        string = f'Images have been moved: {len(selected_list)} | Time cost: {end_time - start_time}'
-        print(string)
-        logging.info(string)
+            end_time = time.time()
+            string = f'Images have been moved: {len(selected_list)} | Time cost: {end_time - start_time}'
+            print(string)
+            logging.info(string)
 
-        image_before_list.append(img_pil)
-        image_after_list.append(out_pil)
-        image_ip2p_list.append(out_ip2p)
-        c1, c2 = f'{label} at \'{ori_place}\'', f'{label} at \'{gen_place}\''
-        caption_before_list.append(c1)
-        caption_after_list.append(c2)
+            image_before_list.append(img_pil)
+            image_after_list.append(out_pil)
+            image_ip2p_list.append(out_ip2p)
+            c1, c2 = f'{label} at \'{ori_place}\'', f'{label} at \'{gen_place}\''
+            caption_before_list.append(c1)
+            caption_after_list.append(c2)
 
-        img_pil.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
-        out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
-        out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
-        write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', c1, c2, opt.edit_txt)
+            img_pil.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
+            out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
+            out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
+            write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', c1, c2, opt.edit_txt)
 
-        # except Exception as e:
-        #     string = f'Exception Occurred: {e}'
-        #     print(string)
-        #     logging.error(string)
-        #     del selected_list[-1]
+        except Exception as e:
+            string = f'Exception Occurred: {e}'
+            print(string)
+            logging.error(string)
+            del selected_list[-1]
     # TODO: Clip Image Score & PSNR && SSIM
 
     # use list[Image]
