@@ -163,7 +163,7 @@ def Val_Add_Method(opt):
             acc_num_ip2p = acc_num_ip2p + ac_or_not_ip2p
 
             end_time = time.time()
-            string = (f'Images have been moved: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if ac_or_not_add==1 else False}|'
+            string = (f'Images have been added: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if ac_or_not_add==1 else False}|'
                       f'{True if ac_or_not_ip2p==1 else False}] | Time cost: {end_time - start_time}')
             print(string)
             logging.info(string)
@@ -189,19 +189,28 @@ def Val_Add_Method(opt):
         image_before_list[i] = np.array(image_before_list[i])
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch32')
-
     ssim_score = SSIM_compute(image_before_list, image_after_list)
-    clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
 
     ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
-    clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
 
     del preloaded_agent, preloaded_add_model
     # consider if there is need to save all images replaced
     acc_ratio_add, acc_ratio_ip2p = acc_num_add / len(selected_list), acc_num_ip2p / len(selected_list)
+    
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
+    try:
+        clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
+        clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
+    except Exception as e:
+        string = f'Exception Occurred when calculating Clip Score: {e}'
+        print(string)
+        logging.info(string)
+        clip_score = 'err'
+        clip_score_ip2p = 'err'
+    
+    
     string = f'Remove Acc: \n\tEditGPT = {acc_ratio_add}\n\tIP2P = {acc_ratio_ip2p}\n'
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Add.txt'), 'Add-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Ip2p.txt'), 'Add-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=string)
@@ -305,7 +314,7 @@ def Val_Remove_Method(opt):
             acc_num_ip2p = acc_num_ip2p + ac_or_not_ip2p
 
             end_time = time.time()
-            string = f'Images have been moved: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if ac_or_not_remove == 1 else False}|{True if ac_or_not_ip2p == 1 else False}] | Time cost: {end_time - start_time}'
+            string = f'Images have been removed: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if ac_or_not_remove == 1 else False}|{True if ac_or_not_ip2p == 1 else False}] | Time cost: {end_time - start_time}'
             print(string)
             logging.info(string)
 
@@ -331,29 +340,39 @@ def Val_Remove_Method(opt):
         image_before_list[i] = np.array(image_before_list[i])
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch32')
     ssim_score = SSIM_compute(image_before_list, image_after_list)
-    clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
 
     ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
-    clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
 
     del preloaded_agent, preloaded_remove_model
     # consider if there is need to save all images replaced
     acc_ratio_remove, acc_ratio_ip2p = acc_num_remove / len(selected_list), acc_num_ip2p / len(selected_list)
     string = f'Remove Acc: \n\tEditGPT = {acc_ratio_remove}\n\tIP2P = {acc_ratio_ip2p}\n'
+    
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
+    try:
+        clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
+        clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
+    except Exception as e:
+        string = f'Exception Occurred when calculating Clip Score: {e}'
+        print(string)
+        logging.info(string)
+        clip_score = 'err'
+        clip_score_ip2p = 'err'
+    
+    
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Remove.txt'), 'Remove-EditGPT', clip_score,
                             clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Remove.txt'), 'Remove-Ip2p', clip_score_ip2p,
                             clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=string)
 
-def main():
+def main2():
 
     if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 10)
+    setattr(opt, 'test_group_num', 2)
     seed_everything(opt.seed)
 
     logging.basicConfig(
@@ -384,6 +403,10 @@ def main():
 
 if __name__ == '__main__':
     start_time = time.time()
-    main()
+    from Exp_replace_move import main1
+    print('\n\nFirst: Replace & Move \n\n')
+    main1()
+    print('\n\nSecond: Add & Remove \n\n')
+    main2()
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

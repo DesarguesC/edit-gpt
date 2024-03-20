@@ -162,7 +162,7 @@ def Val_Replace_Method(opt):
         end_time = time.time()
 
         string = (
-            f'Images have been moved: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if a == 1 else False}|'
+            f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if a == 1 else False}|'
             f'{True if b == 1 else False}] | Time cost: {end_time - start_time}')
         print(string)
         logging.info(string)
@@ -194,13 +194,22 @@ def Val_Replace_Method(opt):
     ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
     psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
 
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch32')
-    clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
-    clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
     del preloaded_agent, preloaded_replace_model
-
     acc_ratio_replace, acc_ratio_ip2p = acc_num_replace / len(selected_list), acc_num_ip2p / len(selected_list)
     # consider if there is need to save all images replaced
+    
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
+    try:
+        clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
+        clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
+    except Exception as e:
+        string = f'Exception Occurred when calculating Clip Score: {e}'
+        print(string)
+        logging.info(string)
+        clip_score = 'err'
+        clip_score_ip2p = 'err'
+    
+    
     string = f'Replace Acc: \n\tEditGPT = {acc_ratio_replace}\n\tIP2P = {acc_ratio_ip2p}\n'
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Remove.txt'), 'Remove-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
     write_valuation_results(os.path.join(static_out_dir, 'all_results_IP2P.txt'), 'Remove-Ip2p', clip_score_ip2p,
@@ -313,27 +322,35 @@ def Val_Move_Method(opt):
         image_before_list[i] = np.array(image_before_list[i])
         image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-base-patch32')
-
     ssim_score = SSIM_compute(image_before_list, image_after_list)
-    clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
 
     ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
-    clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
     psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
 
     del preloaded_agent, preloaded_move_model
     # consider if there is need to save all images replaced
+    
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
+    try:
+        clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
+        clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
+    except Exception as e:
+        string = f'Exception Occurred when calculating Clip Score: {e}'
+        print(string)
+        logging.info(string)
+        clip_score = 'err'
+        clip_score_ip2p = 'err'
+    
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Move.txt'), 'Move-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Ip2p.txt'), 'Move-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p)
 
 
-def main():
+def main1():
 
     if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 10)
+    setattr(opt, 'test_group_num', 2)
     seed_everything(opt.seed)
 
     logging.basicConfig(
@@ -364,6 +381,6 @@ def main():
 
 if __name__ == '__main__':
     start_time = time.time()
-    main()
+    main1()
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')
