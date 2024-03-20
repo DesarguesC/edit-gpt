@@ -367,11 +367,11 @@ system_prompt_expand =  'You are a prompt expander, expert in text expansion. No
                         '"a/an photo of ...", your task is to specify and expand the prompt to let diffusion make sense '\
                         'of the prompt so that diffusion can be driven to generate images with high quality and high resolution. '
 
-two, three = 'two', 'three'
+one, two, three = 'one', 'two', 'three'
 first_ask_expand = lambda x: 'For each of your input, it is ONLY ONE kind of object. '\
                         'For each input you received, you are only to output the expanded prompt without any other '\
                         'character. You mustn\'t output any extra characters except the expanded prompt. The expanded prompt is '\
-                        f'ought to be no more than {two if x==2 else three} sentences. If you\'ve '\
+                        f'ought to be no more than {one if x==1 else two if x==2 else three} sentences. If you\'ve '\
                         'made sense your task, please answer me \'yes\' and mustn\'t output any extra character, either, '\
                         'after which I\'ll give you input prompts. '
 """
@@ -435,7 +435,7 @@ def Use_Agent(opt, TODO=None, print_first_answer=False):
         if print_first_answer: print(first_ans)
     elif TODO == 'expand diffusion prompts for me':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
-        first_ans = get_response(agent, first_ask_expand(2))
+        first_ans = get_response(agent, first_ask_expand(1))
         if print_first_answer: print(first_ans)
     elif TODO == 'arrange a new bbox for me':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
