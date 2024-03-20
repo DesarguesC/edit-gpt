@@ -81,7 +81,8 @@ def IsRemoved(model_dict, label, image_ori, image_edited, device='cuda'):
         return [(back1 == "yes" and IsThereExists(model_dict, img_, label) == "no" for img_ in image_edited)]
 
 def A_IsReplacedWith_B(model_dict, label_A, label_B, image_ori, image_edited, device='cuda'):
-    if not isinstance(image_ori, list):
+    print(f'VAQ | labelA = {label_A}, labelB = {label_B}')
+    if not isinstance(image_edited, list):
         A_ori = How_Many_label(model_dict, image_ori, label_A, device=device)
         B_ori = How_Many_label(model_dict, image_ori, label_B, device=device)
         A_edited = How_Many_label(model_dict, image_edited, label_A, device=device)
@@ -92,7 +93,7 @@ def A_IsReplacedWith_B(model_dict, label_A, label_B, image_ori, image_edited, de
         B_ori = How_Many_label(model_dict, image_ori, label_B, device=device)
         A_edited = [How_Many_label(model_dict, image_edited_, label_A, device=device) for image_edited_ in image_edited]
         B_edited = [How_Many_label(model_dict, image_edited_, label_B, device=device) for image_edited_ in image_edited]
-        return [int((A_edited[i]==0 or A_edited < A_ori) and B_edited[i] > B_ori) for i in range(len(A_edited))]
+        return [int((A_edited[i]==0 or A_edited[i] < A_ori) and B_edited[i] > B_ori) for i in range(len(A_edited))]
 
 
 if __name__ == "__main__":

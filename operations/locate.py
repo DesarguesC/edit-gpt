@@ -101,7 +101,7 @@ def create_location(
 
     question = Label().get_str_location(box_name_list, opt.edit_txt, (opt.W,opt.H)) # => [name, (x,y), (w,h)]
     # question = f'Size: ({opt.W},{opt.H})\n' + question
-    print(f'question: \n{question}')
+    print(f'Question: \n{question}')
 
     box_0 = (0,0,0,0)
     try_time = 0

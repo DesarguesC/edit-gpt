@@ -101,11 +101,13 @@ def Transfer_Me_ip2p(
         z = torch.randn_like(cond["c_concat"][0]) * sigmas[0]
         z = K.sampling.sample_euler_ancestral(model_wrap_cfg, z, sigmas, extra_args=extra_args)
         x = ip2p_model.decode_first_stage(z)
-        x = torch.clamp((x + 1.0) / 2.0, min=0.0, max=1.0)
+        x = torch.clamp((x + 1.) / 2., min=0., max=1.)
         x = 255.0 * rearrange(x, "1 c h w -> h w c")
         edited_image = Image.fromarray(x.type(torch.uint8).cpu().numpy())
-    
-    name_ = f'./{opt.base_folder}/{opt.out_name}' if record_history else f'./{opt.out_dir}/Transfer/trans'
+
+    # os.path.join(opt.base_dir, opt.out_name.strip('.jpg'))
+    out_name = opt.out_name.strip('.jpg')
+    name_ = f'./{opt.base_dir}/{out_name}' # if record_history else f'./{opt.out_dir}/Transfer/trans'
     while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
     edited_image.save(f'{name_}-{t}.jpg')
     return edited_image # pil

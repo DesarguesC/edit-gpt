@@ -155,22 +155,33 @@ def replace_target(
     box_2 = match_sam_box(mask_2, [(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list])
     
     question = Label().get_str_rescale(old_noun, new_noun, box_name_list)
-    print(f'question: {question}')
-    ans = get_response(edit_agent, question)
-    print(f'ans: {ans}')
-    
-    box_0 = ans.split('[')[-1].split(']')[0]
-    punctuation = re.compile('[^\w\s]+')
-    box_0 = re.split(punctuation, box_0)
-    box_0 = [x.strip() for x in box_0 if x!= ' ' and x!='']
-    
-    new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
+    print(f'Question: \n{question}')
+
+    box_0 = (0, 0, 0, 0)
+    try_time = 0
+    notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
+
+    while box_0 == (0, 0, 0, 0) or box_0[2] == 0 or box_0[3] == 0:
+        if try_time > 0:
+            if try_time > 6:
+                box_0 = (50, 50, 50, 50)
+                break
+            print(f'Trying to fix... - Iter: {try_time}')
+            print(f'QUESTION: \n{question}')
+
+
+        box_0 = re.split(re.compile('[^\w\s]+'), get_response(edit_agent, (question if try_time < 3 else f'{question}\n{notes}')).split('[')[-1].split(']')[0])
+        box_0 = [x.strip() for x in box_0 if x not in ['', ' ']]
+        new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
+        box_0 = (x,y,w,h)
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
     box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
-
     box_0 = fix_box(box_0, (opt.H,opt.W,3))
     print(f'fixed box: (x,y,w,h) = {box_0}')
-    target_mask = refactor_mask(box_2, mask_2, box_0, type=='replace')
+
+
+
+    target_mask = refactor_mask(box_2, mask_2, box_0, type='replace')
     # 1 * h * w 
     target_mask[target_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
     target_mask[target_mask < 0.5] = 0.05 if opt.mask_ablation else 0.

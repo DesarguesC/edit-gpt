@@ -138,6 +138,7 @@ def Val_Add_Method(opt):
         image_ip2p_list.append(out_ip2p)
         caption_before_list.append(caption1)
         caption_after_list.append(caption2)
+        print(len(image_before_list), len(image_after_list), len(image_ip2p_list), len(caption_before_list), len(caption_after_list))
         ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
         out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
         out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-Ip2p.jpg')
@@ -331,7 +332,7 @@ def Val_Remove_Method(opt):
                             clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=string)
 
 def main():
-    
+    if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
     opt = get_arguments()
     setattr(opt, 'test_group_num', 2)
 
@@ -340,7 +341,7 @@ def main():
         format = '%(asctime)s : %(levelname)s : %(message)s', 
         filename='Add_Remove.log'
     )
-    if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
+
     
     opt.out_dir = '../autodl-tmp/Exp_Add'
     if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip -r {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')

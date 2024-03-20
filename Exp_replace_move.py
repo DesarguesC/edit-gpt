@@ -111,7 +111,7 @@ def Val_Replace_Method(opt):
         selected_list.append(idx)
         opt.out_dir = os.path.join(static_out_dir, f'{len(selected_list):0{6}}')
         if not os.path.exists(opt.out_dir):
-            os.path.exists(opt.out_dir)
+            os.mkdir(opt.out_dir)
             os.mkdir(f'{opt.out_dir}/Inputs-Outputs/')
 
         # try:
@@ -124,11 +124,11 @@ def Val_Replace_Method(opt):
         label_new = metadata.stuff_classes[label_new_id]
 
         img_id = instance['image_id']
-        img_path = os.path.join(val_folder, f'{img_id}:0{12}.jpg')
+        img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
 
         ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
         opt.edit_txt = f'replace {label_ori} with {label_new}'
-        caption1 = captions_dict[img_id]
+        caption1 = captions_dict[str(img_id)]
         caption2 = f'{caption1}, with {label_ori} replaced with {label_new}'
 
         out_pil = Replace_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
@@ -324,16 +324,17 @@ def Val_Move_Method(opt):
 
 
 def main():
-    
+
+    if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
     opt = get_arguments()
     setattr(opt, 'test_group_num', 100)
 
     logging.basicConfig(
         level=logging.INFO,
         format = '%(asctime)s : %(levelname)s : %(message)s', 
-        filename='Replace-Move.log'
+        filename='Replace_Move.log'
     )
-    if os.path.isfile('Replace-Move.log'): os.system('Replace-Move.log')
+
     
     opt.out_dir = '../autodl-tmp/Exp_Replace'
     if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
