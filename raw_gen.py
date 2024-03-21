@@ -8,7 +8,7 @@ from prompt.guide import (
 from prompt.gpt4_gen import gpt4v_response
 import csv, os, json
 import pandas as pd
-from time import time
+from time import time, sleep
 from random import randint
 from jieba import re
 from PIL import Image
@@ -89,8 +89,11 @@ if __name__ == "__main__":
             csv_writer(csv_path, string_dict)
             Image.open(os.path.join(path_base, f'{int(key_list[idx]):0{12}}.jpg')).save(os.path.join(img_copy_path, f'{i:0{5}}.jpg'))
         except Exception as err:
+            
             string = f'Error Occurred: {err}'
             print(string)
+            if 'too many' in string.lower():
+                sleep(50)
 
     e = time()
     print(f'\n\ntime cost: {e - s}')

@@ -408,12 +408,12 @@ def get_response(chatbot, asks):
         try:
             answer = chatbot.ask(asks)
         except Exception as err:
-            print('Error Msg: ', err)
+            string = f'Error Msg: {err}'
+            print(string)
             print('Request Timed Out')
             if iteration > 2:
-                time.sleep(10)
                 os.system("bash ../clash/restart-clash.sh")
-            time.sleep(10)
+            time.sleep(50 if 'too many' in string.lower() else 10)
             if iteration % 5 == 4: print('')
             continue
         print('Finish')
