@@ -618,14 +618,21 @@ system_prompt_remove_test = "You are a picture-aware machine, and I need you to 
                          "the interrogative sentence each take up one line, totaling two lines, and superfluous characters are prohibited."
 
 # TODO: generate the complex task to be labeled
-task_planning_test_system_prompt = ("You are a text generator that generates image editing instructions for an image I give it. "
-                                    "The only methods you can use for editing instructions are \"Add\" (for adding objects), "
+task_planning_test_system_prompt = ("You are a text generator. Your task is to generate image editing instructions" 
+                                    "according to a input caption that describes the contents of a image. "
+                                    "For edit instructions generation, the methods you can use are \"Add\" (for adding objects), "
                                     "\"Remove\" (for removing objects), \"Replace\" for (replacing the object with another), "
                                     "\"Move\" (for moving the object to another place), and \"Transfer\" (for image style transferring)."
                                     " What you need to do is to choose several methods to generate complex image editing instructions for the input image. "
-                                    "Not that you should output 10 prompts for an image input. "
-                                    "Each prompt is wrapped in parentheses, with a comma between each prompt"
-                                    "Your output should contain only the image editing instructions and no other extraneous characters.")
+                                    "You should output no more than 10 prompts (at least 3 prompts) for an image input. "
+                                    "Note that your output should be an implicit edit command, for example, \"put the hat on the table\" "
+                                    "is an implicit \"add\" command, \"the cat runs away\" is an implicit \"remove\" command, "
+                                    "\"the cat runs under the desk\" is a \"move\" command. Each prompt is wrapped in parentheses, seperated by \"|\" "
+                                    "Here's an example: \n"
+                                    "INPUT: A tray filled with croissants with hotdogs in the middle.; A pastry displayed on a wood table in a store setting.; Troisgros are piled up for sale at a busy market. \n"
+                                    "OUTPUT: (Hotdogs have already been eaten)|(pastry on the table creates)|(The desk is put to the corner)"
+                                    "In this example, the edit method is \"Remove\", \"Add\", and \"Move\" respectively. Please use the object you are to edit as the subject. "
+                                    "Note that your output should contain only the image editing instructions without any other characters.")
 
 
 
