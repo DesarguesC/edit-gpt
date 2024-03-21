@@ -33,8 +33,8 @@ if __name__ == "__main__":
     tot_num = 500
     api_key = list(pd.read_csv('./key.csv')['key'])[0]
     net_proxy = 'http://127.0.0.1:7890'
-    engine = "gpt-4"
-    # engine = 'gpt-3.5-turbo'
+    # engine = "gpt-4"
+    engine = 'gpt-4'
     agent = get_bot(engine=engine, api_key=api_key, system_prompt=task_planning_test_system_prompt, proxy=net_proxy)
 
     s = time()
@@ -93,6 +93,7 @@ if __name__ == "__main__":
             string = f'Error Occurred: {err}'
             print(string)
             if 'too many' in string.lower():
+                print('sleep')
                 sleep(50)
 
     e = time()
