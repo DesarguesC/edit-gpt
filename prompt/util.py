@@ -159,7 +159,15 @@ def calculate_clip_score(images, prompts, base_path = '../autodl-tmp', clip_scor
     else:
         assert isinstance(prompts, list) and len(prompts) == len(images), f'{isinstance(prompts, list)}, len(prompts) = {len(prompts)}, len(images) = {len(images)}'
         images_int = [(image * 255).astype("uint8") if np.max(image) <= 1. else image.astype("uint8") for image in images]
-        clip_scores = [float(clip_score_fn(img2tensor(images_int[i]), prompts[i]).detach()) for i in range(len(prompts))]
+        clip_score_list = []
+        for i in range(len(prompts)):
+            if not ';' in prompts[i]:
+                clip_score_list.append(float(clip_score_fn(img2tensor(images_int[i]), prompts[i]).detach()))
+            else:
+                prompt_i_list = [x for x in re.split(r'[;]', prompts[i]) if x not in ['', ' ']]
+                clip_score_list.append(np.mean([float(
+                        clip_score_fn(img2tensor(images_int[i]), f'{prompts_i_list[i]}, {prompts_i_list[-1]}').detach()
+                ) for i in range(len(prompt_i_list)-1)]))
         return float(np.mean(clip_scores))
 
 def SSIM_compute(original_img, edited_img, multichannel: bool = True, channel_axis=2) -> float:

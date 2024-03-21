@@ -94,7 +94,7 @@ def Val_Replace_Method(opt):
     for x in captions['annotations']:
         image_id = str(x['image_id'])
         if image_id in captions_dict:
-            captions_dict[image_id] = captions_dict[image_id] + ', ' + x['caption']
+            captions_dict[image_id] = captions_dict[image_id] + '; ' + x['caption']
         else:
             captions_dict[image_id] = x['caption']
 
@@ -130,7 +130,7 @@ def Val_Replace_Method(opt):
             ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
             opt.edit_txt = f'replace {label_ori} with {label_new}'
             caption1 = captions_dict[str(img_id)]
-            caption2 = f'{caption1}, with {label_ori} replaced with {label_new}'
+            caption2 = f'{caption1}; with {label_ori} replaced with {label_new}'
 
             out_pil = Replace_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
             if out_pil.size != (256,256):
@@ -211,8 +211,8 @@ def Val_Replace_Method(opt):
     
     
     string = f'Replace Acc: \n\tEditGPT = {acc_ratio_replace}\n\tIP2P = {acc_ratio_ip2p}\n'
-    write_valuation_results(os.path.join(static_out_dir, 'all_results_Remove.txt'), 'Remove-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
-    write_valuation_results(os.path.join(static_out_dir, 'all_results_IP2P.txt'), 'Remove-Ip2p', clip_score_ip2p,
+    write_valuation_results(os.path.join(static_out_dir, 'all_results_EditGPT.txt'), 'Replace-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
+    write_valuation_results(os.path.join(static_out_dir, 'all_results_IP2P.txt'), 'Replace-Ip2p', clip_score_ip2p,
                             clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=string)
     print(string)
     logging.info(string)
@@ -238,7 +238,7 @@ def Val_Move_Method(opt):
     for x in caption['annotations']:
         image_id = str(x['image_id'])
         if image_id in captions_dict:
-            captions_dict[image_id] = captions_dict[image_id] + ', ' + x['caption']
+            captions_dict[image_id] = captions_dict[image_id] + '; ' + x['caption']
         else:
             captions_dict[image_id] = x['caption']
 
@@ -270,14 +270,15 @@ def Val_Move_Method(opt):
             img_id, label_id = annotation['image_id'], annotation['category_id']
             caption = captions_dict[str(img_id)]
             label = metadata.stuff_classes[int(float(label_id))]
-            place = [x for x in get_response(agent, f'{caption}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
+            opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
+            place = [x for x in get_response(agent, f'{opt.edit_txt}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
             assert len(place) == 2, f'place = {place}'
             ori_place, gen_place = place[0], place[1]
 
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
             img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (256,256), method=Image.Resampling.LANCZOS)
 
-            opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
+            
             out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
             if out_pil.size != (256,256):
                 out_pil = ImageOps.fit(out_pil, (256,256), method=Image.Resampling.LANCZOS)
@@ -293,7 +294,7 @@ def Val_Move_Method(opt):
             image_before_list.append(img_pil)
             image_after_list.append(out_pil)
             image_ip2p_list.append(out_ip2p)
-            c1, c2 = f'{label} at \'{ori_place}\'', f'{label} at \'{gen_place}\''
+            c1, c2 = f'{caption}; {label} at \'{ori_place}\'', f'{caption}; {label} at \'{gen_place}\''
             caption_before_list.append(c1)
             caption_after_list.append(c2)
 

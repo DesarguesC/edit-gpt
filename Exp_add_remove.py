@@ -85,7 +85,7 @@ def Val_Add_Method(opt):
     for x in captions['annotations']:
         image_id = str(x['image_id'])
         if image_id in captions_dict:
-            captions_dict[image_id] = captions_dict[image_id] + ', ' + x['caption']
+            captions_dict[image_id] = captions_dict[image_id] + '; ' + x['caption']
         else:
             captions_dict[image_id] = x['caption']
 
@@ -125,7 +125,7 @@ def Val_Add_Method(opt):
             # opt.edit_txt = f'add a {add_label} on tht {amend}'
             # caption2 = f'{caption1}, with a {add_label} added on the {amend}'
             opt.edit_txt = f'add a {add_label}'
-            caption2 = f'{caption1}, with {add_label} added'
+            caption2 = f'{caption1}; with {add_label} added'
             out_pil = Add_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
             if out_pil.size != (256,256):
                 out_pil = ImageOps.fit(out_pil.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
@@ -211,7 +211,7 @@ def Val_Add_Method(opt):
         clip_score_ip2p = 'err'
     
     
-    string = f'Remove Acc: \n\tEditGPT = {acc_ratio_add}\n\tIP2P = {acc_ratio_ip2p}\n'
+    string = f'Add Acc: \n\tEditGPT = {acc_ratio_add}\n\tIP2P = {acc_ratio_ip2p}\n'
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Add.txt'), 'Add-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Ip2p.txt'), 'Add-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=string)
 
@@ -242,7 +242,7 @@ def Val_Remove_Method(opt):
     for x in captions['annotations']:
         image_id = str(x['image_id'])
         if image_id in captions_dict:
-            captions_dict[image_id] = captions_dict[image_id] + ', ' + x['caption']
+            captions_dict[image_id] = captions_dict[image_id] + '; ' + x['caption']
         else:
             captions_dict[image_id] = x['caption']
 
@@ -280,7 +280,7 @@ def Val_Remove_Method(opt):
             # opt.edit_txt = f'add a {add_label} on tht {amend}'
             # caption2 = f'{caption1}, with a {add_label} added on the {amend}'
             opt.edit_txt = f'remove the {ori_label}'
-            caption2 = f'{caption1}, with {ori_label} removed'
+            caption2 = f'{caption1}; with {ori_label} removed'
             out_pil = Remove_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
             if out_pil.size != (256,256):
                 out_pil = ImageOps.fit(out_pil.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
@@ -349,7 +349,6 @@ def Val_Remove_Method(opt):
     del preloaded_agent, preloaded_remove_model
     # consider if there is need to save all images replaced
     acc_ratio_remove, acc_ratio_ip2p = acc_num_remove / len(selected_list), acc_num_ip2p / len(selected_list)
-    string = f'Remove Acc: \n\tEditGPT = {acc_ratio_remove}\n\tIP2P = {acc_ratio_ip2p}\n'
     
     clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
     try:
@@ -362,7 +361,7 @@ def Val_Remove_Method(opt):
         clip_score = 'err'
         clip_score_ip2p = 'err'
     
-    
+    string = f'Remove Acc: \n\tEditGPT = {acc_ratio_remove}\n\tIP2P = {acc_ratio_ip2p}\n'
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Remove.txt'), 'Remove-EditGPT', clip_score,
                             clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=string)
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Remove.txt'), 'Remove-Ip2p', clip_score_ip2p,
