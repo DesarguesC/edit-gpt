@@ -207,8 +207,8 @@ def Val_Add_Method(opt):
         string = f'Exception Occurred when calculating Clip Score: {e}'
         print(string)
         logging.info(string)
-        clip_score = 'err'
-        clip_score_ip2p = 'err'
+        clip_score = string
+        clip_score_ip2p = string
     
     
     string = f'Add Acc: \n\tEditGPT = {acc_ratio_add}\n\tIP2P = {acc_ratio_ip2p}\n'
@@ -358,8 +358,8 @@ def Val_Remove_Method(opt):
         string = f'Exception Occurred when calculating Clip Score: {e}'
         print(string)
         logging.info(string)
-        clip_score = 'err'
-        clip_score_ip2p = 'err'
+        clip_score = string
+        clip_score_ip2p = string
     
     string = f'Remove Acc: \n\tEditGPT = {acc_ratio_remove}\n\tIP2P = {acc_ratio_ip2p}\n'
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Remove.txt'), 'Remove-EditGPT', clip_score,
@@ -371,7 +371,7 @@ def main2():
 
     if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 100)
+    setattr(opt, 'test_group_num', 200)
     seed_everything(opt.seed)
 
     logging.basicConfig(

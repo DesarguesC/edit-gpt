@@ -206,8 +206,8 @@ def Val_Replace_Method(opt):
         string = f'Exception Occurred when calculating Clip Score: {e}'
         print(string)
         logging.info(string)
-        clip_score = 'err'
-        clip_score_ip2p = 'err'
+        clip_score = string
+        clip_score_ip2p = string
     
     
     string = f'Replace Acc: \n\tEditGPT = {acc_ratio_replace}\n\tIP2P = {acc_ratio_ip2p}\n'
@@ -270,14 +270,14 @@ def Val_Move_Method(opt):
             img_id, label_id = annotation['image_id'], annotation['category_id']
             caption = captions_dict[str(img_id)]
             label = metadata.stuff_classes[int(float(label_id))]
-            opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\''
+            
             place = [x for x in get_response(agent, f'{opt.edit_txt}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
             assert len(place) == 2, f'place = {place}'
             ori_place, gen_place = place[0], place[1]
 
+            opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\'' # regularized edit_txt
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
             img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (256,256), method=Image.Resampling.LANCZOS)
-
             
             out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
             if out_pil.size != (256,256):
@@ -340,8 +340,8 @@ def Val_Move_Method(opt):
         string = f'Exception Occurred when calculating Clip Score: {e}'
         print(string)
         logging.info(string)
-        clip_score = 'err'
-        clip_score_ip2p = 'err'
+        clip_score = string
+        clip_score_ip2p = string
     
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Move.txt'), 'Move-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Ip2p.txt'), 'Move-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p)
@@ -351,7 +351,7 @@ def main1():
 
     if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 100)
+    setattr(opt, 'test_group_num', 200)
     seed_everything(opt.seed)
 
     logging.basicConfig(
