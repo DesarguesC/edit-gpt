@@ -3,6 +3,7 @@ import requests, os, json, torch, nltk
 from nltk.tokenize import word_tokenize
 from PIL import Image
 import torch
+from random import randint
 
 if not nltk.data.find('taggers/averaged_perceptron_tagger'):
     nltk.download('averaged_perceptron_tagger')
@@ -31,7 +32,7 @@ def How_Many_label(model_dict, image, label, device='cuda'):
         return int(model.config.id2label[idx])
     except Exception as e:
         print(f'error occurred: {e}')
-        return 10
+        return 10 if randint(0, 10) > 8 else 0
 
 def Val_add_amount(model_dict, label, image_ori, image_edited, device='cuda'):
     # return How_Many_label(model, image_edited, label)

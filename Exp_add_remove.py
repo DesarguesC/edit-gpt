@@ -403,8 +403,8 @@ def main2():
 if __name__ == '__main__':
     start_time = time.time()
     from Exp_replace_move import main1
-    # print('\nnFirst: Replace & Move \n\n')
-    # main1()
+    print('\nnFirst: Replace & Move \n\n')
+    main1()
     print('\n\nSecond: Add & Remove \n\n')
     main2()
     end_time = time.time()
