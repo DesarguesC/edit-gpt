@@ -119,7 +119,7 @@ def Val_Add_Method(opt):
 
             add_label = metadata.stuff_classes[add_label_id]
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
-            ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (256,256), method=Image.Resampling.LANCZOS)
+            ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
 
             # amend = f'{choice(locations)} of the {ori_label}'
             # opt.edit_txt = f'add a {add_label} on tht {amend}'
@@ -127,11 +127,11 @@ def Val_Add_Method(opt):
             opt.edit_txt = f'add a {add_label}'
             caption2 = f'{caption1}; with {add_label} added'
             out_pil = Add_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
-            if out_pil.size != (256,256):
-                out_pil = ImageOps.fit(out_pil.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+            if out_pil.size != (512,512):
+                out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
             out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
-            if out_ip2p.size != (256,256):
-                out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+            if out_ip2p.size != (512,512):
+                out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
             image_before_list.append(ori_img)
             image_after_list.append(out_pil)
@@ -274,7 +274,7 @@ def Val_Remove_Method(opt):
 
             ori_label = metadata.stuff_classes[category_id]
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
-            ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+            ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
             # amend = f'{choice(locations)} of the {ori_label}'
             # opt.edit_txt = f'add a {add_label} on tht {amend}'
@@ -282,11 +282,11 @@ def Val_Remove_Method(opt):
             opt.edit_txt = f'remove the {ori_label}'
             caption2 = f'{caption1}; with {ori_label} removed'
             out_pil = Remove_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
-            if out_pil.size != (256,256):
-                out_pil = ImageOps.fit(out_pil.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+            if out_pil.size != (512,512):
+                out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
             out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
-            if out_ip2p.size != (256, 256):
-                out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (256, 256), method=Image.Resampling.LANCZOS)
+            if out_ip2p.size != (512, 512):
+                out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
 
             image_before_list.append(ori_img)
@@ -371,7 +371,7 @@ def main2():
 
     if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 200)
+    setattr(opt, 'test_group_num', 50)
     seed_everything(opt.seed)
 
     logging.basicConfig(
@@ -403,8 +403,8 @@ def main2():
 if __name__ == '__main__':
     start_time = time.time()
     from Exp_replace_move import main1
-    print('\n\nFirst: Replace & Move \n\n')
-    main1()
+    # print('\nnFirst: Replace & Move \n\n')
+    # main1()
     print('\n\nSecond: Add & Remove \n\n')
     main2()
     end_time = time.time()
