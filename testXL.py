@@ -40,12 +40,12 @@ from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
 # images.save('./testXL.jpg')
 # exit(0)
 
-
+seed_everything(42)
 pipe = DiffusionPipeline.from_pretrained(f"../autodl-tmp/stabilityai/stable-diffusion-xl-base-1.0", \
                                                     torch_dtype=torch.float16, use_safetensors=True, variant="fp16"  )
 pipe.to("cuda")
 # pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
-refiner = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+refiner = DiffusionPipeline.from_pretrained(
                     f"../autodl-tmp/stabilityai/stable-diffusion-xl-refiner-1.0",
                     text_encoder_2 = pipe.text_encoder_2,
                     vae = pipe.vae,
@@ -55,28 +55,34 @@ refiner = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 )
 refiner.to('cuda')
 
-prompts = 'a beautiful bird'
+prompts = 'a photo of ONLY a/an airplane, 8K, highly detailed, expressively clear, high resolution. Simultaneously, a photo of a large commercial airplane flying in a clear blue sky'
 
-steps = 40
-
+steps = 50
+DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, ' \
+                          'fewer digits, cropped, worst quality, low quality'\
+                          'anime, cartoon, graphic, text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured'
 
 gen_images = pipe(
     prompt = prompts,
+    negative_prompt = DEFAULT_NEGATIVE_PROMPT,
+    height=512, width=1024,
     num_inference_steps = steps,
     guidance_scale = 7.5,
-    # output_type = 'latent',
+    output_type = 'latent',
 ).images[0]
-gen_images.save('test-xl-1.jpg')
+
+# cv2.imwrite('test-xl-1.jpg', cv2.cvtColor(tensor2img(gen_images), cv2.COLOR_RGB2BGR))
+# gen_images.save('test-xl-1-.jpg')
 
 
 gen_images = refiner(
     prompt = prompts,
     num_inference_steps = steps,
-    denoising_end = 1,
+    # denoising_end = 1,
     image = gen_images,
 ).images[0]
 
-gen_images.save(f'test-xl-2.jpg')
+gen_images.save(f'test-xl-2-.jpg')
 
 # # load adapter
 # adapter = T2IAdapter.from_pretrained(

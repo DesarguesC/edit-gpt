@@ -144,6 +144,7 @@ def generate_example(
     elif opt.example_type == 'XL':
         print('-' * 9 + 'Generating via SDXL-Base' + '-' * 9)
         if preloaded_example_generator is None:
+            seed_everything(opt.seed)
             from diffusers import DiffusionPipeline
             pipe = DiffusionPipeline.from_pretrained(f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-base-1.0", \
                                                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
@@ -163,7 +164,6 @@ def generate_example(
         else:
             pipe = preloaded_example_generator['pipe'].to("cuda")
             refiner = preloaded_example_generator['refiner'].to("cuda")
-
 
         gen_images = pipe(
             prompt = prompts,
@@ -222,7 +222,8 @@ def generate_example(
 
         # diffusion_image: PIL.Image
         gen_images = Image.fromarray(np.uint8(diffusion_image)).convert('RGB') # pil
-    
+    # gen_images.save('./ref.jpg')
+    # print('test saved')
     if gen_images.size != ori_img.size:
         print(f'gen_images.size = {gen_images.size}, ori_img.size = {ori_img.size}')
         gen_images = gen_images.resize(ori_img.size)

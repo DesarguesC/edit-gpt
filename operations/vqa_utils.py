@@ -22,12 +22,16 @@ def preload_vqa_model(model_path, device='cuda'):
 def How_Many_label(model_dict, image, label, device='cuda'):
     processor = model_dict['processor']
     model = model_dict['model']
-    text = "How many" + label + "are in the image?"
+    text = "How many" + label + "are in the image? (If more than 3, you anwer 10. If nothing, you answer 0.)"
     encoding = processor(image, text, return_tensors="pt").to(device)
     outputs = model(**encoding)
     logits = outputs.logits
     idx = logits.argmax(-1).item()
-    return int(model.config.id2label[idx])
+    try:
+        return int(model.config.id2label[idx])
+    except Exception as e:
+        print(f'error occurred: {e}')
+        return 10
 
 def Val_add_amount(model_dict, label, image_ori, image_edited, device='cuda'):
     # return How_Many_label(model, image_edited, label)

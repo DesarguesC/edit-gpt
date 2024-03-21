@@ -70,15 +70,14 @@ def preload_XL_generator(opt):
                                                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
     pipe.to("cuda")
     # pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
-    
-    refiner = DiffusionPipeline.from_pretrained(
-                                f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0",
-                                text_encoder_2 = pipe.text_encoder_2,
-                                vae = pipe.vae,
-                                torch_dtype=torch.float16, 
-                                use_safetensors=True, 
-                                variant="fp16", 
-                            )
+    refiner = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+                    f"../autodl-tmp/stabilityai/stable-diffusion-xl-refiner-1.0",
+                    text_encoder_2 = pipe.text_encoder_2,
+                    vae = pipe.vae,
+                    torch_dtype = torch.float16, 
+                    use_safetensors = True, 
+                    variant = "fp16", 
+                )
     refiner.to('cuda')                        
 
     return {
