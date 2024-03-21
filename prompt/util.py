@@ -1,6 +1,9 @@
-import torch, cv2
+import torch, cv2, os
 from PIL import Image
 from jieba import re
+from torchmetrics.image.fid import FrechetInceptionDistance as FID
+import numpy as np
+from basicsr.utils import tensor2img, img2tensor
 
 def get_image_from_box(image, box):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -15,15 +18,6 @@ def get_image_from_box(image, box):
     # box: x,y,w,h   |   image: h,w,c
     # print(f'box_image.shape = {box_image.shape}')
     return box_image
-
-import torch, os
-
-
-from torchmetrics.image.fid import FrechetInceptionDistance as FID
-
-import numpy as np
-from PIL import Image
-from basicsr.utils import tensor2img, img2tensor
 
 
 """
@@ -151,7 +145,7 @@ def calculate_clip_score(images, prompts, base_path = '../autodl-tmp', clip_scor
     if clip_score_fn is None:
         from torchmetrics.functional.multimodal import clip_score
         from functools import partial
-        clip_score_fn = partial(clip_score, model_name_or_path=os.path.join(base_path, "openai/clip-vit-base-patch16"))
+        clip_score_fn = partial(clip_score, model_name_or_path=os.path.join(base_path, "openai/clip-vit-large-patch14"))
 
     if not isinstance(images, list):
         images_int = (images * 255).astype("uint8") if np.max(images) <= 1. else images.astype("uint8")
@@ -174,7 +168,7 @@ def calculate_clip_score(images, prompts, base_path = '../autodl-tmp', clip_scor
 
 def SSIM_compute(original_img, edited_img, multichannel: bool = True, channel_axis=2) -> float:
     """
-    计算两幅图像之间的SSIM值。
+    calculate SSIM score between original and edited images
     """
     if not isinstance(original_img, list):
         return ssim(original_img, edited_img, multichannel=multichannel, channel_axis=channel_axis)
