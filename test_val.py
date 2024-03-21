@@ -51,15 +51,23 @@ def main3():
 from torchmetrics.functional.multimodal import clip_score as CLIP
 from functools import partial
 def main4():
-    A = ImageOps.fit(Image.open('./assets/room.jpg').convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
-    B = ImageOps.fit(Image.open('./assets/dog.jpg').convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
+    A = ImageOps.fit(Image.open('./input.jpg').convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
+    B = ImageOps.fit(Image.open('./output.jpg').convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
     A, B = np.array(A), np.array(B)
-    prompts = 'hello I\'m a room.'
-    
+    prompts = "A city street filled with lots of traffic and people.; "\
+              "A busy street with cars, a motorcycle and a passenger bus; "\
+              "A street with a motorcycle, bus and cars travelling on it. ; "\
+              "Vehicles are traveling at both ends of the intersection with no "\
+              "traffic control.; A bus, cars and a motorcycle driving in busy traffic on the street.; "\
+              "with train replaced with suitcase. "
+    prompts = prompts * 2
     clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
-    clip_score = calculate_clip_score(A, prompts, clip_score_fn=clip_score_fn)
+    clip_score = calculate_clip_score([B] * 2, [prompts] * 2, clip_score_fn=clip_score_fn)
     print(clip_score)
 
+    
+    
+    
 
 
 if __name__ == '__main__':
