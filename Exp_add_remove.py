@@ -303,7 +303,7 @@ def Val_Remove_Method(opt):
     # consider if there is need to save all images replaced
     acc_ratio_remove = acc_num_remove / len(selected_list)
     if opt.with_ip2p_val:
-        acc_ratio_ip2p,  = acc_num_ip2p / len(selected_list)
+        acc_ratio_ip2p = acc_num_ip2p / len(selected_list)
 
     string = f'Remove Acc: \n\tEditGPT = {acc_ratio_remove}\n' + (f'\tIP2P = {acc_ratio_ip2p}\n' if opt.with_ip2p_val else '')
     print(string)
@@ -357,8 +357,8 @@ if __name__ == '__main__':
     start_time = time.time()
     from Exp_replace_move import main1
     print('\nnFirst: Replace & Move \n\n')
-    main1(test_group_num=1)
+    main1(test_group_num=50)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(test_group_num=1)
+    main2(test_group_num=50)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')
