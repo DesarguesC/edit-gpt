@@ -1,4 +1,5 @@
 from transformers import ViltProcessor, ViltForQuestionAnswering
+from transformers import BlipProcessor, BlipForQuestionAnswering
 import requests, os, json, torch, nltk
 from nltk.tokenize import word_tokenize
 from PIL import Image
@@ -9,29 +10,41 @@ if not nltk.data.find('taggers/averaged_perceptron_tagger'):
     nltk.download('averaged_perceptron_tagger')
 
 # preload: load the model and processor
-def preload_vqa_model(model_path, device='cuda'):
+def preload_vqa_model(model_path, device='cuda', model_name='blip'):
     # use opt.vqa_model_path & opt.device
-    if not model_path.endswith('dandelin/vilt-b32-finetuned-vqa'):
-        model_path = os.path.join(model_path,'dandelin/vilt-b32-finetuned-vqa')
-    processor = ViltProcessor.from_pretrained(model_path)
-    model = ViltForQuestionAnswering.from_pretrained(model_path).to(device)
+    if model_name == 'vit':
+        if not model_path.endswith('dandelin/vilt-b32-finetuned-vqa'):
+            model_path = os.path.join(model_path,'dandelin/vilt-b32-finetuned-vqa')
+        processor = ViltProcessor.from_pretrained(model_path)
+        model = ViltForQuestionAnswering.from_pretrained(model_path).to(device)
+    else:
+        if not model_path.endswith('Salesforce/blip-vqa-capfilt-large'):
+            model_path = os.path.join(model_path,'Salesforce/blip-vqa-capfilt-large')
+        processor = BlipProcessor.from_pretrained(model_path)
+        model = BlipForQuestionAnswering.from_pretrained(model_path).to("cuda")
+    
     return {
         'processor': processor, 
-        'model': model.to(device)
+        'model': model.to(device),
+        'model_name': 'model_name'
     }
 
 def How_Many_label(model_dict, image, label, device='cuda'):
     processor = model_dict['processor']
     model = model_dict['model']
-    text = "How many" + label + "are in the image? (If more than 3, you anwer 10. If nothing, you answer 0.)"
-    encoding = processor(image, text, return_tensors="pt").to(device)
-    outputs = model(**encoding)
-    logits = outputs.logits
-    idx = logits.argmax(-1).item()
+    model_name = model_dcit['model_name']
+    text = "How many " + label + "s are in the image? (If more than 3, you answer 10. If nothing, you answer 0.)"    encoding = processor(image, text, return_tensors="pt").to(device)
+    if model_name == 'vit':
+        outputs = model(**encoding)
+        logits = outputs.logits
+        idx = logits.argmax(-1).item()
+    else: # blip
+        encoding = processor(image, text, return_tensors="pt").to(device)
+        outputs = model.generate(**encoding)
     try:
-        return int(model.config.id2label[idx])
+        return int(model.config.id2label[idx]) if model_name=='vit' else int(processor.decode(outputs[0], skip_special_tokens=True))
     except Exception as e:
-        print(f'error occurred: {e}')
+        print(f'error occurred in VQA: {e}')
         return 10 if randint(0, 10) > 8 else 0
 
 def Val_add_amount(model_dict, label, image_ori, image_edited, device='cuda'):
@@ -52,12 +65,17 @@ def choose_noun(text):
 def IsThereExists(model_dict, image, label, device='cuda'):
     model = model_dict['model']
     processor = model_dict['processor']
+    model_name = model_dict['model_name']
     text = "Is there a " + label + " in the image?"
     encoding = processor(image, text, return_tensors="pt").to(device)
-    outputs = model(**encoding)
-    logits = outputs.logits
-    idx = logits.argmax(-1).item()
-    return model.config.id2label[idx]
+    if model_name == 'vit':
+        outputs = model(**encoding)
+        logits = outputs.logits
+        idx = logits.argmax(-1).item()
+        return model.config.id2label[idx]
+    else: # blip
+        outputs = model.generate(**encoding)
+        return processor.decode(outputs[0], skip_special_tokens=True)
 
 def remove_test_coco():
     if os.path.exists('autodl-pub/COCO2017'):
@@ -110,3 +128,8 @@ if __name__ == "__main__":
     result = Val_add_amount(model, "cat", image_ori = Image.open("cat.png"), image_edited = Image.open("nocat.jpg"))
 
     print(result)
+
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    # # device = "cpu"
+    # model_path = "./blip-vqa-capfilt-large"
+    # model_dict = preload_vqa_model(model_path, device)
