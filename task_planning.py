@@ -205,18 +205,28 @@ def get_planning_system_agent(opt):
     _ = get_response(planning_system_agent, planning_system_first_ask)
     return planning_system_agent
 
-def get_plans(opt, planning_agent):
-    planning_system_agent = get_planning_system_agent(opt)
+def get_plans(opt, planning_system_agent):
+    # planning_system_agent = get_planning_system_agent(opt)
     response = get_response(planning_system_agent, opt.edit_txt)
     print(response)
     response = re.split(r"[;]", response)
-    response = [x.strip() for x in response if x != " " and x != ""]
+
     for i in range(len(response)):
         task_str = re.split(r"[(),]", response[i])
         task_str = [x.strip().strip(',') for x in task_str if x != " " and x != ""]
         assert len(task_str) == 2, f'len(task_str) != 2, task_str: {task_str}'
         response[i] = {"type": task_str[0].lower(), "command": task_str[1]}
     return response
+
+def get_planns_directly(agent, prompt):
+    response = [x.strip() for x in re.split(r"[;]]", get_response(agent, prompt)) if x != " " and x != ""]
+    for i in range(len(response)):
+        task_str = re.split(r"[(),]", response[i])
+        task_str = [x.strip().strip(',') for x in task_str if x != " " and x != ""]
+        assert len(task_str) == 2, f'len(task_str) != 2, task_str: {task_str}'
+        response[i] = {"type": task_str[0].lower(), "command": task_str[1]}
+    return response
+
 
 def main():
     opt = get_arguments()

@@ -4,7 +4,7 @@ from prompt.util import cal_metrics_write
 from PIL import Image
 from basicsr import tensor2img, img2tensor
 import numpy as np
-from Exp_replace_move import write_valuation_results
+import pandas as pd
 
 def main_1():
     c1 = 'a field'
@@ -98,6 +98,78 @@ def Validation_All():
             # print(f'{(len(in_img_list), len(EditGPT_img_list), len(Ip2p_img_list), len(cap_1_list), len(cap_2_list))}')
     
         cal_metrics_write(in_img_list, EditGPT_img_list, Ip2p_img_list, cap_1_list, cap_2_list, static_out_dir=base_folder, type_name=Name, extra_string=None)
-        
+
+
+def Validate_planner():
+    # validate the accuracy of GPT task planner on human labeled dataset
+    base_path = '../autodl-tmp/GPT/'
+    all_data_folder = []
+    big_folders = [os.path.join(base_path, x) for x in os.listdir(base_path) if 'engine' in x]
+    for folder in big_folders:
+        for gpt_i_folder in os.path.join(folder):
+            if 'zip' not in gpt_i_folder:
+                all_data_folder.append(os.path.join(folder, gpt_i_folder))
+    raw_csv_list, ground_csv_list = [], []
+    for folder in all_data_folder:
+        raw_path = os.path.join(folder, 'GPT_gen_raw')
+        for csv_ in os.listdir(raw_path):
+            raw_csv_list.append(os.path.join(raw_path, csv_))
+        ground_path = os.path.join(folder, 'GPT_gen_label')
+        for csv_ in os.listdir(ground_path):
+            ground_csv_list.append(os.path.join(ground_path, csv_))
+    assert len(raw_csv_list) == len(ground_csv_list)
+
+    def receive_from_csv(input_csv, type='raw'):
+        if isinstance(input_csv, str):
+            input_csv = pd.read_csv(input_csv)
+        csv_dict = dict(input_csv)
+        if type == 'raw':
+            length = len(csv_dict)
+            prompts = ''
+            for (key, value) in csv_dict.items():
+                prompts = prompts + ('' if prompts is '' else '; ') + csv_dict[key]
+            return length, prompts
+        elif type == 'label':
+            return [value.lower() for (_, value) in csv_dict.items()]
+
+    from prompt.guide import get_response, get_bot, planning_system_prompt, planning_system_first_ask
+    from task_planning import get_planns_directly
+
+    engine = 'gpt-3.5-turbo'
+    proxy = 'http://127.0.0.1'
+    api_key = list(pd.read_csv('./key.csv')['key'])[0]
+
+    planning_agent = get_bot(engine=engine, system_prompt=planning_system_prompt, api_key=api_key, proxy=proxy)
+    _ = get_response(planning_agent, planning_system_first_ask)
+
+    acc_num_dict = {}
+    for i in range(len(raw_csv_list)):
+        length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
+        label_list = receive_from_csv(ground_csv_list[i], type='label')
+        plans = get_planns_directly(planning_agent, prompts) # key: "type" in use | [{"type":..., "command":...}]
+        plan_list = [x['type'].lower() for x in plans]
+
+        # output与ground truth的长度不一定相同，这种变量是否有衡量指标
+
+        for cnt in range(0, min(len(label_list), len(plan_list))):
+            if str(cnt) in acc_num_dict.keys():
+                acc_num_dict[str(cnt)] += int(label_list[cnt] == plan_list[cnt])
+            else:
+                acc_num_dict[str(cnt)] = int(label_list[cnt] == plan_list[cnt])
+        for cnt in range(min(len(label_list), len(plan_list)), max(len(label_list), len(plan_list))):
+            acc_num_dict[str(cnt)] = 0
+
+        # acc_num_dict记录在序列索引为i的位置对应正确了几次
+        # TODO: 是一个分布列？
+
+
+
+    pass
+
+def Figure_Multi_Plans():
+    # draw figure: y[clip score, clip directional similarity, PSNR, SSIM] ~ x[number of plans]
+
+    pass
+
 if __name__ == '__main__':
     Validation_All()
