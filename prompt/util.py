@@ -176,3 +176,63 @@ def SSIM_compute(original_img, edited_img, multichannel: bool = True, channel_ax
         assert len(original_img) == len(edited_img), f'len(original_img) = {len(original_img)}, len(edited_img) = {len(edited_img)}'
         SSIM = [float(ssim(original_img[i], edited_img[i], multichannel=multichannel, channel_axis=channel_axis)) for i in range(len(original_img))]
         return np.mean(SSIM)
+
+
+
+
+def write_instruction(path, caption_before, caption_after, caption_edit):
+    """
+        line 1: caption_before
+        line 2: caption_after
+        line 3: caption_edit
+    """
+    # if not os.path.exists(path): os.mkdir(path)
+    # if not path.endswith('txt'):
+    #     path = os.path.join(path, 'captions.txt')
+    with open(path, 'w') as f:
+        f.write(f'{caption_before}\n{caption_after}\n{caption_edit}')
+
+def write_valuation_results(path, typer='', clip_score=None, clip_directional_similarity=None, psnr_score=None, ssim_score=None, fid_score=None, extra_string=None):
+    string = (f'Exp For: {typer}\nClip Score: {clip_score}\nClip Directional Similarity: {clip_directional_similarity}\n'
+              f'PSNR: {psnr_score}\nSSIM: {ssim_score}\nFID: {fid_score}') + f"\n{extra_string}" if extra_string is not None else ""
+    with open(path, 'w') as f:
+        f.write(string)
+    print(string)
+
+def cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, caption_before_list, caption_after_list, static_out_dir, extra_string=None):
+    # use list[Image]
+    clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
+    clip_directional_similarity_ip2p = cal_similarity(image_before_list, image_ip2p_list, caption_before_list, caption_after_list)
+
+    fid_score = 0 # cal_fid(image_before_list, image_after_list)
+    fid_score_ip2p = 0 # cal_fid(image_before_list, image_ip2p_list)
+
+    # use list[np.array]
+    for i in range(len(image_after_list)):
+        image_after_list[i] = np.array(image_after_list[i])
+        image_before_list[i] = np.array(image_before_list[i])
+        image_ip2p_list[i] = np.array(image_ip2p_list[i])
+
+    ssim_score = SSIM_compute(image_before_list, image_after_list)
+    psnr_score = PSNR_compute(image_before_list, image_after_list)
+
+    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
+    psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
+    
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
+    try:
+        clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
+        clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
+    except Exception as e:
+        string = f'Exception Occurred when calculating Clip Score: {e}'
+        print(string)
+        logging.info(string)
+        clip_score = string
+        clip_score_ip2p = string
+    
+    write_valuation_results(os.path.join(static_out_dir, 'all_results_Move_EditGPT.txt'), 'Move-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
+    write_valuation_results(os.path.join(static_out_dir, 'all_results_Move_Ip2p.txt'), 'Move-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p)
+
+
+
+

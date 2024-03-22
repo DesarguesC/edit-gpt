@@ -33,16 +33,17 @@ def How_Many_label(model_dict, image, label, device='cuda'):
     processor = model_dict['processor']
     model = model_dict['model']
     model_name = model_dcit['model_name']
-    text = "How many " + label + "s are in the image? (If more than 3, you answer 10. If nothing, you answer 0.)"    encoding = processor(image, text, return_tensors="pt").to(device)
-    if model_name == 'vit':
-        outputs = model(**encoding)
-        logits = outputs.logits
-        idx = logits.argmax(-1).item()
-    else: # blip
-        encoding = processor(image, text, return_tensors="pt").to(device)
-        outputs = model.generate(**encoding)
+    text = "How many " + label + "s are in the image? (If more than 3, you answer 10. If nothing, you answer 0.)"    
+    encoding = processor(image, text, return_tensors="pt").to(device)
     try:
-        return int(model.config.id2label[idx]) if model_name=='vit' else int(processor.decode(outputs[0], skip_special_tokens=True))
+        if model_name == 'vit':
+            outputs = model(**encoding)
+            logits = outputs.logits
+            idx = logits.argmax(-1).item()
+            return int(model.config.id2label[idx])
+        else: # blip
+            outputs = model.generate(**encoding)
+            return int(processor.decode(outputs[0], skip_special_tokens=True))
     except Exception as e:
         print(f'error occurred in VQA: {e}')
         return 10 if randint(0, 10) > 8 else 0
