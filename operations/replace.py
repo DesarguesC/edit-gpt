@@ -22,6 +22,7 @@ from einops import repeat, rearrange
 import torch, cv2, os
 from paint.example import generate_example
 from operations.utils import get_reshaped_img
+from prompt.gpt4_gen import gpt_4v_bbox_return
 from operations.add import Add_Object
 
 
@@ -168,7 +169,7 @@ def replace_target(
     print(f'fixed box: (x,y,w,h) = {box_0}')
 
     target_mask = refactor_mask(box_2, mask_2, box_0, type='replace', use_max_min=opt.use_max_min)
-    # 1 * h * w 
+    # mask2: Shape[1 * h * w], target_mask: Shape[1 * h * w]
     target_mask[target_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
     target_mask[target_mask < 0.5] = 0.05 if opt.mask_ablation else 0.
     if len(target_mask.shape) > 3:
@@ -191,6 +192,9 @@ def replace_target(
     print(f'target_mask for replacement saved at \'{name_}-{t}.jpg\'')
     # SAVE_MASK_TEST
     print(f'target_mask.shape = {target_mask.shape}, ref_img.size = {np.array(diffusion_pil).shape}, base_img.shape = {np.array(rm_img).shape}')
+    x, y, w, h = box_2
+    np_img_ = np.array(diffusion_pil) * repeat(rearrange(mask_2, '1 h w -> h w 1'), 'h w 1 -> h w c', c=3)
+    diffusion_pil = Image.fromarray(np.uint8(np_img_[y:y+h, x:x+w, :]) * (255 if np.max(np_img_) <= 1. else 1))
     output_path, results = paint_by_example(
                                     opt, mask = target_mask, ref_img = diffusion_pil, base_img = rm_img,
                                     preloaded_example_painter = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None

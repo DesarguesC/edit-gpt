@@ -155,7 +155,7 @@ def create_location(
                             * rearrange(destination_mask.squeeze(0), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
     print(f'destination-mask saved: \'{name_}-{t}.jpg\'') # 目的位置的mask (编辑后)
 
-    name = f'./{opt.mask_dir}/target'
+    name_ = f'./{opt.mask_dir}/target'
     t = 0
     while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
     cv2.imwrite(f'{name_}-{t}(before-edited).jpg', cv2.cvtColor(np.uint8((255. if torch.max(target_mask) <= 1. else 1.) \

@@ -158,6 +158,11 @@ def Add_Object(
         print(f'target mask for adding is saved at \'{name_}-{t}.jpg\'')
         
         # paint-by-example
+        x, y, w, h = box_example
+        # print(f'mask_example.shape = {mask_example.shape}')
+        np_img_ = np.array(diffusion_pil) * rearrange(repeat(mask_example, '1 h w -> c h w', c=3), 'c h w -> h w c')
+        # print(f'np_img_.shape = {np_img_.shape}')
+        diffusion_pil = Image.fromarray(np.uint8(np_img_[y:y+h, x:x+w, :]) * (255 if np.max(np_img_) <= 1. else 1)).convert('RGB')
         _, painted = paint_by_example(
                             opt, mask=target_mask, ref_img=diffusion_pil, base_img=img_pil, 
                             preloaded_example_painter = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None
