@@ -367,11 +367,11 @@ def Val_Remove_Method(opt):
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Remove.txt'), 'Remove-Ip2p', clip_score_ip2p,
                             clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=string)
 
-def main2():
+def main2(test_group_num=50):
 
     if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 50)
+    setattr(opt, 'test_group_num', test_group_num)
     seed_everything(opt.seed)
 
     logging.basicConfig(
@@ -404,8 +404,8 @@ if __name__ == '__main__':
     start_time = time.time()
     from Exp_replace_move import main1
     print('\nnFirst: Replace & Move \n\n')
-    main1()
+    main1(2)
     print('\n\nSecond: Add & Remove \n\n')
-    main2()
+    main2(2)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

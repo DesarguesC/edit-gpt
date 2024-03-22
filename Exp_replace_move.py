@@ -347,7 +347,7 @@ def Val_Move_Method(opt):
     write_valuation_results(os.path.join(static_out_dir, 'all_results_Ip2p.txt'), 'Move-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p)
 
 
-def main1():
+def main1(test_group_num=50):
 
     if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
     opt = get_arguments()
@@ -382,6 +382,6 @@ def main1():
 
 if __name__ == '__main__':
     start_time = time.time()
-    main1()
+    main1(50)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')
