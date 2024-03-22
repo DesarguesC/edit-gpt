@@ -68,58 +68,36 @@ def main4():
     print(clip_score)
 
 
-def main5():
-    base_folder = "../Exp_Remove" # test move
-    folders = os.listdir(base_folder)
-    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
-    in_img_list, EditGPT_img_list, Ip2p_img_list = [], [], []
-    cap_1_list, cap_2_list = [], []
+def Validation_All():
     
-    for folder in folders:
-        if not '0' in folder: continue
-        test_folder = os.path.join(base_folder, folder, 'Inputs-Outputs')
-        caption_path = os.path.join(test_folder, 'caption.txt')
-        in_img_path = os.path.join(test_folder, 'input.jpg')
-        EditGPT_img_path = os.path.join(test_folder, 'output-EditPGT.jpg')
-        Ip2p_img_path = os.path.join(test_folder, 'output-Ip2p.jpg')
-        with open(caption_path, 'r') as f:
-            string = f.read().strip().split('\n')
-        assert len(string) == 3
+    for Name in ['Add', 'Remove', 'Replace', 'Move']:
+    
+        base_folder = f"../autodl-tmp/Exp_{Name}" # test move
+        folders = os.listdir(base_folder)
+        clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
+        in_img_list, EditGPT_img_list, Ip2p_img_list = [], [], []
+        cap_1_list, cap_2_list = [], []
+        cnt = 0
+
+        for folder in folders:
+            if not '0' in folder: continue
+            test_folder = os.path.join(base_folder, folder, 'Inputs-Outputs')
+            caption_path = os.path.join(test_folder, 'caption.txt')
+            in_img_path = os.path.join(test_folder, 'input.jpg')
+            EditGPT_img_path = os.path.join(test_folder, 'output-EditGPT.jpg')
+            Ip2p_img_path = os.path.join(test_folder, 'output-Ip2p.jpg')
+            with open(caption_path, 'r') as f:
+                string = f.read().strip().split('\n')
+            assert len(string) == 3
+
+            cap_1_list.append(string[0])
+            cap_2_list.append(string[1])
+            in_img_list.append(Image.open(in_img_path))
+            EditGPT_img_list.append(Image.open(EditGPT_img_path))
+            Ip2p_img_list.append(Image.open(Ip2p_img_path))
+            # print(f'{(len(in_img_list), len(EditGPT_img_list), len(Ip2p_img_list), len(cap_1_list), len(cap_2_list))}')
+    
+        cal_metrics_write(in_img_list, EditGPT_img_list, Ip2p_img_list, cap_1_list, cap_2_list, static_out_dir=base_folder, type_name=Name, extra_string=None)
         
-        cap_1_list.append(string[0])
-        cap_2_list.append(string[1])
-        in_img_list.append(Image.open(in_img_path))
-        EditGPT_img_list.append(Image.open(EditGPT_img_path))
-        Ip2p_img_list.append(Image.open(Ip2p_img_path))
-        # print(f'{(len(in_img_list), len(EditGPT_img_list), len(Ip2p_img_list), len(cap_1_list), len(cap_2_list))}')
-    
-    
-    cal_metrics_write(in_img_list, EditGPT_img_list, Ip2p_img_list, cap_1_list, cap_2_list, static_out_dir=base_folder, extra_string=None)
-        
-#     d_clip_EditGPT = cal_similarity(in_img_list, EditGPT_img_list, cap_1_list, cap_2_list)
-#     d_clip_Ip2p = cal_similarity(in_img_list, Ip2p_img_list, cap_1_list, cap_2_list)
-
-#     for i in range(len(in_img_list)):
-#         in_img_list[i] = np.array(in_img_list[i])
-#         EditGPT_img_list[i] = np.array(EditGPT_img_list[i])
-#         Ip2p_img_list[i] = np.array(Ip2p_img_list[i])
-    
-    
-#     clip_EditGPT = calculate_clip_score(EditGPT_img_list, cap_2)
-#     clip_Ip2p = calculate_clip_score(Ip2p_img_list, cap_2)
-    
-#     ssim_EditGPT = SSIM_compute(in_img_list, EditGPT_img_list)
-#     psnr_EditGPT = PSNR_compute(in_img_list, EditGPT_img_list)
-    
-#     ssim_Ip2p = SSIM_compute(in_img_list, Ip2p_img_list)
-#     psnr_Ip2p = PSNR_compute(in_img_list, Ip2p_img_list)
-    
-#     write_valuation_results(os.path.join(base_folder, 'all_results_Remove_EditGPT.txt'), 'Remove-EditGPT', clip_EditGPT,
-#                             d_clip_EditGPT, psnr_EditGPT, ssim_EditGPT, 0)
-#     write_valuation_results(os.path.join(base_folder, 'all_results_Remove.txt'), 'Remove-EditIp2p', clip_Ip2p,
-#                             d_clip_Ip2p, psnr_Ip2p, ssim_Ip2p, 0)
-    
-
-
 if __name__ == '__main__':
-    main5()
+    Validation_All()

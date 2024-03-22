@@ -166,7 +166,12 @@ def Val_Replace_Method(opt):
     string = f'Replace Acc: \n\tEditGPT = {acc_ratio_replace}\n\tIP2P = {acc_ratio_ip2p}\n'
     print(string)
     logging.info(string)
-    cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, caption_before_list, caption_after_list, static_out_dir=static_out_dir, extra_string=string)
+    cal_metrics_write(
+        image_before_list, image_after_list, 
+        image_ip2p_list, caption_before_list, 
+        caption_after_list, static_out_dir=static_out_dir, 
+        type_name='Replace', extra_string=string
+    )
 
     
     
@@ -274,18 +279,18 @@ def Val_Move_Method(opt):
     # consider if there is need to save all images replaced
 
     # TODO: Clip Image Score & PSNR && SSIM
-    cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, caption_before_list, caption_after_list, static_out_dir=static_out_dir, extra_string=None)
+    cal_metrics_write(
+        image_before_list, image_after_list, 
+        image_ip2p_list, caption_before_list, 
+        caption_after_list, static_out_dir=static_out_dir, 
+        type_name='Move', extra_string=None
+    )
     
-
-    
-    
-    
-
 def main1(test_group_num=50):
 
     if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
     opt = get_arguments()
-    setattr(opt, 'test_group_num', 50)
+    setattr(opt, 'test_group_num', test_group_num)
     seed_everything(opt.seed)
 
     logging.basicConfig(

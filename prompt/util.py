@@ -196,12 +196,12 @@ def write_instruction(path, caption_before, caption_after, caption_edit):
 
 def write_valuation_results(path, typer='', clip_score=None, clip_directional_similarity=None, psnr_score=None, ssim_score=None, fid_score=None, extra_string=None):
     string = (f'Exp For: {typer}\nClip Score: {clip_score}\nClip Directional Similarity: {clip_directional_similarity}\n'
-              f'PSNR: {psnr_score}\nSSIM: {ssim_score}\nFID: {fid_score}') + f"\n{extra_string}" if extra_string is not None else ""
+              f'PSNR: {psnr_score}\nSSIM: {ssim_score}\nFID: {fid_score}') + (f"\n{extra_string}" if extra_string is not None else "")
     with open(path, 'w') as f:
         f.write(string)
     print(string)
 
-def cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, caption_before_list, caption_after_list, static_out_dir, extra_string=None):
+def cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, caption_before_list, caption_after_list, static_out_dir, type_name='Move', extra_string=None):
     assert isinstance(image_before_list,list)
     # use list[Image]
     # print(f'Cal: {(len(image_before_list), len(image_after_list), len(image_ip2p_list), len(caption_before_list), len(caption_after_list))}')
@@ -234,8 +234,8 @@ def cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, capt
         clip_score = string
         clip_score_ip2p = string
     
-    write_valuation_results(os.path.join(static_out_dir, 'all_results_Move_EditGPT.txt'), 'Move-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
-    write_valuation_results(os.path.join(static_out_dir, 'all_results_Move_Ip2p.txt'), 'Move-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p)
+    write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_EditGPT.txt'), 'Move-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
+    write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_Ip2p.txt'), 'Move-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p)
 
 
 

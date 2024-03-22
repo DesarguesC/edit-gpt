@@ -39,8 +39,6 @@ def use_exp_agent(opt, system_prompt):
     agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=system_prompt, proxy=opt.net_proxy)
     return agent
 
-
-
 def Val_Add_Method(opt):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017'
@@ -161,14 +159,14 @@ def Val_Add_Method(opt):
     # consider if there is need to save all images replaced
     acc_ratio_add, acc_ratio_ip2p = acc_num_add / len(selected_list), acc_num_ip2p / len(selected_list)
 
-    
-    
     string = f'Add Acc: \n\tEditGPT = {acc_ratio_add}\n\tIP2P = {acc_ratio_ip2p}\n'
     print(string)
     logging.info(string)
-    cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, caption_before_list, caption_after_list, static_out_dir=static_out_dir, extra_string=string)
-
-
+    cal_metrics_write(
+        image_before_list, image_after_list, 
+        image_ip2p_list, caption_before_list, caption_after_list, static_out_dir=static_out_dir, 
+        type_name='Add', extra_string=string
+    )
 
 def Val_Remove_Method(opt):
     seed_everything(opt.seed)
@@ -288,9 +286,12 @@ def Val_Remove_Method(opt):
     string = f'Remove Acc: \n\tEditGPT = {acc_ratio_remove}\n\tIP2P = {acc_ratio_ip2p}\n'
     print(string)
     logging.info(string)
-    cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, caption_before_list, caption_after_list, static_out_dir=static_out_dir, extra_string=string)
-
-
+    cal_metrics_write(
+        image_before_list, image_after_list, 
+        image_ip2p_list, caption_before_list, 
+        caption_after_list, static_out_dir=static_out_dir, 
+        type_name='Remove', extra_string=string
+    )
 
 def main2(test_group_num=50):
 
@@ -306,7 +307,10 @@ def main2(test_group_num=50):
     )
     
     opt.out_dir = '../autodl-tmp/Exp_Add'
-    if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip -r {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
+    if os.path.exists(opt.out_dir): 
+        os.system(f'rm {opt.out_dir}.zip')
+        os.system(f' && zip -r {opt.out_dir}.zip {opt.out_dir}')
+        os.system(f'rm -rf {opt.out_dir}')
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))
@@ -315,7 +319,10 @@ def main2(test_group_num=50):
     Val_Add_Method(opt)
 
     opt.out_dir = '../autodl-tmp/Exp_Remove'
-    if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
+    if os.path.exists(opt.out_dir): 
+        os.system(f'rm {opt.out_dir}.zip')
+        os.system(f' && zip -r {opt.out_dir}.zip {opt.out_dir}')
+        os.system(f'rm -rf {opt.out_dir}')
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))
@@ -324,13 +331,12 @@ def main2(test_group_num=50):
     Val_Remove_Method(opt)
     
 
-
 if __name__ == '__main__':
     start_time = time.time()
     from Exp_replace_move import main1
     print('\nnFirst: Replace & Move \n\n')
-    main1(2)
+    main1(test_group_num=2)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(2)
+    main2(test_group_num=2)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

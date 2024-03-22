@@ -32,7 +32,7 @@ def preload_vqa_model(model_path, device='cuda', model_name='blip'):
 def How_Many_label(model_dict, image, label, device='cuda'):
     processor = model_dict['processor']
     model = model_dict['model']
-    model_name = model_dcit['model_name']
+    model_name = model_dict['model_name']
     text = "How many " + label + "s are in the image? (If more than 3, you answer 10. If nothing, you answer 0.)"    
     encoding = processor(image, text, return_tensors="pt").to(device)
     try:
