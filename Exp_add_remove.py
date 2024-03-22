@@ -14,8 +14,7 @@ from preload_utils import *
 
 from operations.vqa_utils import preload_vqa_model, Val_add_amount, IsRemoved
 
-from torchmetrics.functional.multimodal import clip_score as CLIP
-from functools import partial
+
 from pytorch_lightning import seed_everything
 
 def preload_add_model(opt):
@@ -121,9 +120,9 @@ def Val_Add_Method(opt):
             caption_before_list.append(caption1)
             caption_after_list.append(caption2)
 
-            string_ = f"{len(image_before_list), len(image_after_list), len(image_ip2p_list), len(caption_before_list), len(caption_after_list)}"
-            print(string_)
-            logging.info(string_)
+            # string_ = f"{len(image_before_list), len(image_after_list), len(image_ip2p_list), len(caption_before_list), len(caption_after_list)}"
+            # print(string_)
+            # logging.info(string_)
 
             ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
             out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')

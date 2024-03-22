@@ -176,15 +176,13 @@ def Val_Move_Method(opt):
     val_folder = '../autodl-tmp/COCO/val2017/'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
-    
-    caption_before_list, caption_after_list = [], []
-    image_before_list, image_after_list, image_ip2p_list = [], [], []
-
     # for validation after
     with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
         caption = json.load(f)    
     # query caption via image_id
     captions_dict = {}
+    caption_before_list, caption_after_list = [], []
+    image_before_list, image_after_list, image_ip2p_list = [], [], []
 
     preloaded_move_model = preload_move_model(opt) if opt.preload_all_models else None
     preloaded_agent = preload_all_agents(opt) if opt.preload_all_agents else None
@@ -203,19 +201,23 @@ def Val_Move_Method(opt):
     selected_list = []
     
     static_out_dir = opt.out_dir
+    if not os.path.exists(opt.out_dir):
+        os.mkdir(opt.out_dir)
 
     while len(selected_list) < opt.test_group_num:
-        while True:
-            idx = randint(0, length)
-            if idx in selected_list: continue
-            else: break
+        start_time = time.time()
+
+        idx = randint(0, length)    
+        while idx in selected_list:
+            idx = randint(0, length)    
+        selected_list.append(idx)
+
         opt.out_dir = os.path.join(static_out_dir, f'{len(selected_list):0{6}}')
         if not os.path.exists(opt.out_dir):
             os.mkdir(opt.out_dir)
             os.mkdir(f'{opt.out_dir}/Inputs-Outputs/')
 
         try:
-            selected_list.append(idx)
             annotation = data['annotations'][idx]
             start_time = time.time()
 
@@ -257,12 +259,17 @@ def Val_Move_Method(opt):
             out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
             write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', c1, c2, opt.edit_txt)
 
+            end_time = time.time()
+            string = (f'Images have been moved: {len(selected_list)} | Time cose: {end_time - start_time}')
+            print(string)
+            logging.info(string)
+            
         except Exception as e:
             string = f'Exception Occurred: {e}'
             print(string)
             logging.error(string)
             del selected_list[-1]
-
+    
     del preloaded_agent, preloaded_move_model
     # consider if there is need to save all images replaced
 

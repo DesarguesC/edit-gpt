@@ -4,6 +4,8 @@ from jieba import re
 from torchmetrics.image.fid import FrechetInceptionDistance as FID
 import numpy as np
 from basicsr.utils import tensor2img, img2tensor
+from torchmetrics.functional.multimodal import clip_score as CLIP
+from functools import partial
 
 def get_image_from_box(image, box):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -200,9 +202,11 @@ def write_valuation_results(path, typer='', clip_score=None, clip_directional_si
     print(string)
 
 def cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, caption_before_list, caption_after_list, static_out_dir, extra_string=None):
+    assert isinstance(image_before_list,list)
     # use list[Image]
-    clip_directional_similarity = cal_similarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
-    clip_directional_similarity_ip2p = cal_similarity(image_before_list, image_ip2p_list, caption_before_list, caption_after_list)
+    # print(f'Cal: {(len(image_before_list), len(image_after_list), len(image_ip2p_list), len(caption_before_list), len(caption_after_list))}')
+    clip_directional_similarity = Cal_ClipDirectionalSimilarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
+    clip_directional_similarity_ip2p = Cal_ClipDirectionalSimilarity(image_before_list, image_ip2p_list, caption_before_list, caption_after_list)
 
     fid_score = 0 # cal_fid(image_before_list, image_after_list)
     fid_score_ip2p = 0 # cal_fid(image_before_list, image_ip2p_list)
