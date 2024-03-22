@@ -1,8 +1,10 @@
 from prompt.util import Cal_ClipDirectionalSimilarity as cal_similarity
 from prompt.util import Cal_FIDScore as cal_fid
+from prompt.util import PSNR_compute, SSIM_compute, calculate_clip_score
 from PIL import Image
 from basicsr import tensor2img, img2tensor
 import numpy as np
+from Exp_replace_move import write_valuation_results
 
 def main_1():
     c1 = 'a field'
@@ -65,10 +67,56 @@ def main4():
     clip_score = calculate_clip_score([B] * 2, [prompts] * 2, clip_score_fn=clip_score_fn)
     print(clip_score)
 
+
+def main5():
+    base_folder = "../Exp_Remove" # test move
+    folders = os.listdir(base_folder)
+    clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
+    in_img_list, EditGPT_img_list, Ip2p_img_list = [], [], []
+    cap_1_list, cap_2_list = [], []
+    
+    for folder in folders:
+        if not '0' in folder: continue
+        test_folder = os.path.join(base_folder, folder, 'Inputs-Outputs')
+        caption_path = os.path.join(test_folder, 'caption.txt')
+        in_img_path = os.path.join(test_folder, 'input.jpg')
+        EditGPT_img_path = os.path.join(test_folder, 'output-EditPGT.jpg')
+        Ip2p_img_path = os.path.join(test_folder, 'output-Ip2p.jpg')
+        with open(caption_path, 'r') as f:
+            string = f.read().strip().split('\n')
+        assert len(string) == 3
+        
+        cap_1_list.append(string[0])
+        cap_2_list.append(string[1])
+        
+        in_img_list.append(Image.open(in_img_path))
+        EditGPT_img_list.append(Image.open(EditGPT_img_path))
+        Ip2p_img_list.append(Image.open(Ip2p_img_path))
+        
+    d_clip_EditGPT = cal_similarity(in_img_list, EditGPT_img_list, cap_1_list, cap_2_list)
+    d_clip_Ip2p = cal_similarity(in_img_list, Ip2p_img_list, cap_1_list, cap_2_list)
+
+    for i in range(len(in_img_list)):
+        in_img_list[i] = np.array(in_img_list[i])
+        EditGPT_img_list[i] = np.array(EditGPT_img_list[i])
+        Ip2p_img_list[i] = np.array(Ip2p_img_list[i])
     
     
+    clip_EditGPT = 0 # calculate_clip_score(EditGPT_img_list, cap_2)
+    clip_Ip2p = 0 # calculate_clip_score(Ip2p_img_list, cap_2)
+    
+    ssim_EditGPT = SSIM_compute(in_img_list, EditGPT_img_list)
+    psnr_EditGPT = PSNR_compute(in_img_list, EditGPT_img_list)
+    
+    ssim_Ip2p = SSIM_compute(in_img_list, Ip2p_img_list)
+    psnr_Ip2p = PSNR_compute(in_img_list, Ip2p_img_list)
+    
+    write_valuation_results(os.path.join(base_folder, 'all_results_Remove_EditGPT.txt'), 'Remove-EditGPT', clip_EditGPT,
+                            d_clip_EditGPT, psnr_EditGPT, ssim_EditGPT, 0)
+    write_valuation_results(os.path.join(base_folder, 'all_results_Remove.txt'), 'Remove-EditIp2p', clip_Ip2p,
+                            d_clip_Ip2p, psnr_Ip2p, ssim_Ip2p, 0)
     
 
 
 if __name__ == '__main__':
-    main4()
+    main5()
