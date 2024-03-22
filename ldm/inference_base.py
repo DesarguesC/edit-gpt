@@ -262,6 +262,13 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         help='when you are testing system on a huge system, you should set it as True'
     )
 
+    parser.add_argument(
+        '--with_ip2p_val',
+        type=str2bool,
+        default=False,
+        help='whether to valuate ip2p simultaneously'
+    )
+
     return parser
 
 def get_sd_models(opt):

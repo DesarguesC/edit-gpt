@@ -206,7 +206,8 @@ def cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, capt
     # use list[Image]
     # print(f'Cal: {(len(image_before_list), len(image_after_list), len(image_ip2p_list), len(caption_before_list), len(caption_after_list))}')
     clip_directional_similarity = Cal_ClipDirectionalSimilarity(image_before_list, image_after_list, caption_before_list, caption_after_list)
-    clip_directional_similarity_ip2p = Cal_ClipDirectionalSimilarity(image_before_list, image_ip2p_list, caption_before_list, caption_after_list)
+    if image_ip2p_list is not None:
+        clip_directional_similarity_ip2p = Cal_ClipDirectionalSimilarity(image_before_list, image_ip2p_list, caption_before_list, caption_after_list)
 
     fid_score = 0 # cal_fid(image_before_list, image_after_list)
     fid_score_ip2p = 0 # cal_fid(image_before_list, image_ip2p_list)
@@ -215,18 +216,21 @@ def cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, capt
     for i in range(len(image_after_list)):
         image_after_list[i] = np.array(image_after_list[i])
         image_before_list[i] = np.array(image_before_list[i])
-        image_ip2p_list[i] = np.array(image_ip2p_list[i])
+        if image_ip2p_list is not None:
+            image_ip2p_list[i] = np.array(image_ip2p_list[i])
 
     ssim_score = SSIM_compute(image_before_list, image_after_list)
     psnr_score = PSNR_compute(image_before_list, image_after_list)
 
-    ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
-    psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
+    if image_ip2p_list is not None:
+        ssim_score_ip2p = SSIM_compute(image_before_list, image_ip2p_list)
+        psnr_score_ip2p = PSNR_compute(image_before_list, image_ip2p_list)
     
     clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
     try:
         clip_score = calculate_clip_score(image_after_list, caption_after_list, clip_score_fn=clip_score_fn)
-        clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
+        if image_ip2p_list is not None:
+            clip_score_ip2p = calculate_clip_score(image_ip2p_list, caption_after_list, clip_score_fn=clip_score_fn)
     except Exception as e:
         string = f'Exception Occurred when calculating Clip Score: {e}'
         print(string)
@@ -235,7 +239,8 @@ def cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, capt
         clip_score_ip2p = string
     
     write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_EditGPT.txt'), 'Move-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score)
-    write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_Ip2p.txt'), 'Move-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p)
+    if image_ip2p_list is not None:
+        write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_Ip2p.txt'), 'Move-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p)
 
 
 

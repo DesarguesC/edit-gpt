@@ -69,10 +69,10 @@ def main4():
 
 
 def Validation_All():
-    
-    for Name in ['Add', 'Remove', 'Replace', 'Move']:
-    
-        base_folder = f"../autodl-tmp/Exp_{Name}" # test move
+    for Name in ['Remove']:
+    # for Name in ['Add', 'Remove', 'Replace', 'Move']:
+        base_folder = f"../Exp_{Name}"
+        # base_folder = f"../autodl-tmp/Exp_{Name}" # test move
         folders = os.listdir(base_folder)
         clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
         in_img_list, EditGPT_img_list, Ip2p_img_list = [], [], []
@@ -84,7 +84,7 @@ def Validation_All():
             test_folder = os.path.join(base_folder, folder, 'Inputs-Outputs')
             caption_path = os.path.join(test_folder, 'caption.txt')
             in_img_path = os.path.join(test_folder, 'input.jpg')
-            EditGPT_img_path = os.path.join(test_folder, 'output-EditGPT.jpg')
+            EditGPT_img_path = os.path.join(test_folder, 'output-EditPGT.jpg')
             Ip2p_img_path = os.path.join(test_folder, 'output-Ip2p.jpg')
             with open(caption_path, 'r') as f:
                 string = f.read().strip().split('\n')

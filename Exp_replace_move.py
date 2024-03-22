@@ -20,7 +20,7 @@ def preload_replace_model(opt):
     return {
         'preloaded_example_generator': preload_example_generator(opt), 
         # XL - 8272 MiB, XL_ad - 8458 MiB, V1.5 - 10446 MiB
-        'preloaded_ip2p': preload_ip2p(opt),  # 8854 MiB
+        'preloaded_ip2p': preload_ip2p(opt) if opt.with_ip2p_val else None,  # 8854 MiB
         'preloaded_example_painter': preload_paint_by_example_model(opt), # 10446 MiB
         'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
         'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
@@ -30,7 +30,7 @@ def preload_replace_model(opt):
 def preload_move_model(opt):
     return {
         'preloaded_example_painter': preload_paint_by_example_model(opt), # 10446 MiB
-        'preloaded_ip2p': preload_ip2p(opt),  # 8854 MiB
+        'preloaded_ip2p': preload_ip2p(opt) if opt.with_ip2p_val else None,  # 8854 MiB
         'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
         'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
         'preloaded_lama_remover': preload_lama_remover(opt) # 10446 MiB
@@ -39,7 +39,6 @@ def preload_move_model(opt):
 def use_exp_agent(opt, system_prompt):
     agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=system_prompt, proxy=opt.net_proxy)
     return agent
-
 
 
 def read_original_prompt(path_to_json):
@@ -82,7 +81,7 @@ def Val_Replace_Method(opt):
 
     image_before_list,  image_after_list,  image_ip2p_list = [], [], []
     caption_before_list, caption_after_list = [], []
-    acc_num_replace = acc_num_ip2p = 0
+    acc_num_replace, acc_num_ip2p = 0, 0
     static_out_dir = opt.out_dir
 
     # 4-6 images in a folder
@@ -117,35 +116,44 @@ def Val_Replace_Method(opt):
             out_pil = Replace_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
-            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
-            if out_ip2p.size != (512,512):
-                out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
+            if opt.with_ip2p_val:
+                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
+                if out_ip2p.size != (512,512):
+                    out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
             ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
             out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
-            out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
+            if opt.with_ip2p_val:
+                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
             write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
             image_before_list.append(ori_img)
             image_after_list.append(out_pil)
-            image_ip2p_list.append(out_ip2p)
+            if opt.with_ip2p_val:
+                image_ip2p_list.append(out_ip2p)
+                
             caption_before_list.append(caption1)
             caption_after_list.append(caption2)
 
-            amount_list = A_IsReplacedWith_B(model_dict, label_ori, label_new, ori_img, [out_pil, out_ip2p], opt.device)
-            if len(amount_list) != 2:
-                string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
-                print(string__)
-                logging.warning(string__)
-            a, b = amount_list[0], amount_list[1]
-            acc_num_replace += a
-            acc_num_ip2p += b
+            amount_list = A_IsReplacedWith_B(model_dict, label_ori, label_new, ori_img, [out_pil, out_ip2p] if opt.with_ip2p_val else out_pil, opt.device)
+            if opt.with_ip2p_val:    
+                if len(amount_list) != 2:
+                    string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
+                    print(string__)
+                    logging.warning(string__)
+                a, b = amount_list[0], amount_list[1]
+                acc_num_replace += a
+                acc_num_ip2p += b
+            else:
+                assert not isinstance(amount_list, list)
+                acc_num_replace += amount_list
 
             end_time = time.time()
 
             string = (
                 f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if a == 1 else False}|'
-                f'{True if b == 1 else False}] | Time cost: {end_time - start_time}')
+                f'{True if b == 1 else False}] | Time cost: {end_time - start_time}') if opt.with_ip2p_val else \
+                f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT] ~ [{True if amount_list == 1 else False}] | Time cost: {end_time - start_time}'
             print(string)
             logging.info(string)
 
@@ -160,21 +168,20 @@ def Val_Replace_Method(opt):
     
 
     del preloaded_agent, preloaded_replace_model
-    acc_ratio_replace, acc_ratio_ip2p = acc_num_replace / len(selected_list), acc_num_ip2p / len(selected_list)
+    acc_ratio_replace = acc_num_replace / len(selected_list)
+    if opt.with_ip2p_val:
+        acc_ratio_ip2p = acc_num_ip2p / len(selected_list)
     # consider if there is need to save all images replaced
     
-    string = f'Replace Acc: \n\tEditGPT = {acc_ratio_replace}\n\tIP2P = {acc_ratio_ip2p}\n'
+    string = f'Replace Acc: \n\tEditGPT = {acc_ratio_replace}\n' + (f'\tIP2P = {acc_ratio_ip2p}\n' if opt.with_ip2p_val else '')
     print(string)
     logging.info(string)
     cal_metrics_write(
         image_before_list, image_after_list, 
-        image_ip2p_list, caption_before_list, 
+        image_ip2p_list if opt.with_ip2p_val else None, caption_before_list, 
         caption_after_list, static_out_dir=static_out_dir, 
         type_name='Replace', extra_string=string
     )
-
-    
-    
 
 def Val_Move_Method(opt):
     seed_everything(opt.seed)
@@ -243,9 +250,10 @@ def Val_Move_Method(opt):
             out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil, (512,512), method=Image.Resampling.LANCZOS)
-            out_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
-            if out_ip2p.size != (512,512):
-                out_ip2p = ImageOps.fit(out_ip2p, (512,512), method=Image.Resampling.LANCZOS)
+            if opt.with_ip2p_val:
+                out_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
+                if out_ip2p.size != (512,512):
+                    out_ip2p = ImageOps.fit(out_ip2p, (512,512), method=Image.Resampling.LANCZOS)
 
             end_time = time.time()
             string = f'Images have been moved: {len(selected_list)} | Time cost: {end_time - start_time}'
@@ -254,14 +262,16 @@ def Val_Move_Method(opt):
 
             image_before_list.append(img_pil)
             image_after_list.append(out_pil)
-            image_ip2p_list.append(out_ip2p)
+            if opt.with_ip2p_val:
+                image_ip2p_list.append(out_ip2p)
             c1, c2 = f'{caption}; {label} at \'{ori_place}\'', f'{caption}; {label} at \'{gen_place}\''
             caption_before_list.append(c1)
             caption_after_list.append(c2)
 
             img_pil.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
             out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
-            out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
+            if opt.with_ip2p_val:
+                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
             write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', c1, c2, opt.edit_txt)
 
             end_time = time.time()
@@ -281,7 +291,7 @@ def Val_Move_Method(opt):
     # TODO: Clip Image Score & PSNR && SSIM
     cal_metrics_write(
         image_before_list, image_after_list, 
-        image_ip2p_list, caption_before_list, 
+        image_ip2p_list if opt.with_ip2p_val else None, caption_before_list, 
         caption_after_list, static_out_dir=static_out_dir, 
         type_name='Move', extra_string=None
     )
