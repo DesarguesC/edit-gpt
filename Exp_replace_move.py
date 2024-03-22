@@ -308,10 +308,12 @@ def main1(test_group_num=50):
         format = '%(asctime)s : %(levelname)s : %(message)s', 
         filename='Replace_Move.log'
     )
-
     
     opt.out_dir = '../autodl-tmp/Exp_Replace'
-    if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
+    if os.path.exists(opt.out_dir): 
+        os.system(f'rm {opt.out_dir}.zip')
+        os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
+        os.system(f'rm -rf {opt.out_dir}')
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))
@@ -320,7 +322,10 @@ def main1(test_group_num=50):
     Val_Replace_Method(opt)
     
     opt.out_dir = '../autodl-tmp/Exp_Move'
-    if os.path.exists(opt.out_dir): os.system(f'rm {opt.out_dir}.zip && zip {opt.out_dir}.zip {opt.out_dir} && rm -rf {opt.out_dir}')
+    if os.path.exists(opt.out_dir): 
+        os.system(f'rm {opt.out_dir}.zip')
+        os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
+        os.system(f'rm -rf {opt.out_dir}')
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
     base_cnt = len(os.listdir(opt.out_dir))

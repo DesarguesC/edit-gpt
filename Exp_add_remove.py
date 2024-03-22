@@ -331,7 +331,7 @@ def main2(test_group_num=50):
     opt.out_dir = '../autodl-tmp/Exp_Add'
     if os.path.exists(opt.out_dir): 
         os.system(f'rm {opt.out_dir}.zip')
-        os.system(f' && zip -r {opt.out_dir}.zip {opt.out_dir}')
+        os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
         os.system(f'rm -rf {opt.out_dir}')
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
@@ -343,7 +343,7 @@ def main2(test_group_num=50):
     opt.out_dir = '../autodl-tmp/Exp_Remove'
     if os.path.exists(opt.out_dir): 
         os.system(f'rm {opt.out_dir}.zip')
-        os.system(f' && zip -r {opt.out_dir}.zip {opt.out_dir}')
+        os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
         os.system(f'rm -rf {opt.out_dir}')
     if not os.path.exists(opt.out_dir):
         os.mkdir(opt.out_dir)
