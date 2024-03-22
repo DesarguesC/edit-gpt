@@ -160,7 +160,7 @@ def replace_target(
                     else get_response(edit_agent, (question if try_time < 3 else f'{question}\n{notes}')).strip()
                 ) if x not in ['', ' ']]
 
-        new_noun, x, y, w, h = box_0[0], box_0[1], box_0[2], box_0[3], box_0[4]
+        new_noun, x, y, w, h = box_0[0], float(box_0[1]), float(box_0[2]), float(box_0[3]), float(box_0[4])
         box_0 = (x,y,w,h)
     print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
     box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
