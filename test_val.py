@@ -1,6 +1,6 @@
 from prompt.util import Cal_ClipDirectionalSimilarity as cal_similarity
 from prompt.util import Cal_FIDScore as cal_fid
-from prompt.util import PSNR_compute, SSIM_compute, calculate_clip_score
+from prompt.util import cal_metrics_write
 from PIL import Image
 from basicsr import tensor2img, img2tensor
 import numpy as np
@@ -88,33 +88,36 @@ def main5():
         
         cap_1_list.append(string[0])
         cap_2_list.append(string[1])
-        
         in_img_list.append(Image.open(in_img_path))
         EditGPT_img_list.append(Image.open(EditGPT_img_path))
         Ip2p_img_list.append(Image.open(Ip2p_img_path))
+        # print(f'{(len(in_img_list), len(EditGPT_img_list), len(Ip2p_img_list), len(cap_1_list), len(cap_2_list))}')
+    
+    
+    cal_metrics_write(in_img_list, EditGPT_img_list, Ip2p_img_list, cap_1_list, cap_2_list, static_out_dir=base_folder, extra_string=None)
         
-    d_clip_EditGPT = cal_similarity(in_img_list, EditGPT_img_list, cap_1_list, cap_2_list)
-    d_clip_Ip2p = cal_similarity(in_img_list, Ip2p_img_list, cap_1_list, cap_2_list)
+#     d_clip_EditGPT = cal_similarity(in_img_list, EditGPT_img_list, cap_1_list, cap_2_list)
+#     d_clip_Ip2p = cal_similarity(in_img_list, Ip2p_img_list, cap_1_list, cap_2_list)
 
-    for i in range(len(in_img_list)):
-        in_img_list[i] = np.array(in_img_list[i])
-        EditGPT_img_list[i] = np.array(EditGPT_img_list[i])
-        Ip2p_img_list[i] = np.array(Ip2p_img_list[i])
+#     for i in range(len(in_img_list)):
+#         in_img_list[i] = np.array(in_img_list[i])
+#         EditGPT_img_list[i] = np.array(EditGPT_img_list[i])
+#         Ip2p_img_list[i] = np.array(Ip2p_img_list[i])
     
     
-    clip_EditGPT = 0 # calculate_clip_score(EditGPT_img_list, cap_2)
-    clip_Ip2p = 0 # calculate_clip_score(Ip2p_img_list, cap_2)
+#     clip_EditGPT = calculate_clip_score(EditGPT_img_list, cap_2)
+#     clip_Ip2p = calculate_clip_score(Ip2p_img_list, cap_2)
     
-    ssim_EditGPT = SSIM_compute(in_img_list, EditGPT_img_list)
-    psnr_EditGPT = PSNR_compute(in_img_list, EditGPT_img_list)
+#     ssim_EditGPT = SSIM_compute(in_img_list, EditGPT_img_list)
+#     psnr_EditGPT = PSNR_compute(in_img_list, EditGPT_img_list)
     
-    ssim_Ip2p = SSIM_compute(in_img_list, Ip2p_img_list)
-    psnr_Ip2p = PSNR_compute(in_img_list, Ip2p_img_list)
+#     ssim_Ip2p = SSIM_compute(in_img_list, Ip2p_img_list)
+#     psnr_Ip2p = PSNR_compute(in_img_list, Ip2p_img_list)
     
-    write_valuation_results(os.path.join(base_folder, 'all_results_Remove_EditGPT.txt'), 'Remove-EditGPT', clip_EditGPT,
-                            d_clip_EditGPT, psnr_EditGPT, ssim_EditGPT, 0)
-    write_valuation_results(os.path.join(base_folder, 'all_results_Remove.txt'), 'Remove-EditIp2p', clip_Ip2p,
-                            d_clip_Ip2p, psnr_Ip2p, ssim_Ip2p, 0)
+#     write_valuation_results(os.path.join(base_folder, 'all_results_Remove_EditGPT.txt'), 'Remove-EditGPT', clip_EditGPT,
+#                             d_clip_EditGPT, psnr_EditGPT, ssim_EditGPT, 0)
+#     write_valuation_results(os.path.join(base_folder, 'all_results_Remove.txt'), 'Remove-EditIp2p', clip_Ip2p,
+#                             d_clip_Ip2p, psnr_Ip2p, ssim_Ip2p, 0)
     
 
 
