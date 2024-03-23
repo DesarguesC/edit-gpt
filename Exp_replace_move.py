@@ -131,7 +131,7 @@ def Val_Replace_Method(opt):
             image_after_list.append(out_pil)
             if opt.with_ip2p_val:
                 image_ip2p_list.append(out_ip2p)
-                
+
             caption_before_list.append(caption1)
             caption_after_list.append(caption2)
 
@@ -238,7 +238,7 @@ def Val_Move_Method(opt):
             img_id, label_id = annotation['image_id'], annotation['category_id']
             caption = captions_dict[str(img_id)]
             label = metadata.stuff_classes[int(float(label_id))]
-            
+
             place = [x for x in get_response(agent, f'{opt.edit_txt}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
             assert len(place) == 2, f'place = {place}'
             ori_place, gen_place = place[0], place[1]
@@ -246,7 +246,7 @@ def Val_Move_Method(opt):
             opt.edit_txt = f'move {label} from \'{ori_place}\' to \'{gen_place}\'' # regularized edit_txt
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
             img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
-            
+
             out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil, (512,512), method=Image.Resampling.LANCZOS)

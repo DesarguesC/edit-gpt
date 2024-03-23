@@ -132,7 +132,7 @@ def Val_Add_Method(opt):
 
 
             amount_list = Val_add_amount(model_dict, add_label, ori_img, [out_pil, out_ip2p] if opt.with_ip2p_val else None, device=opt.device)
-            
+
             if opt.with_ip2p_val:
                 if len(amount_list) != 2:
                     string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
@@ -156,7 +156,7 @@ def Val_Add_Method(opt):
             print(string)
             logging.info(string)
         
-        except Exception as e:
+          except Exception as e:
             string = f'Exception Occurred: {e}'
             print(string)
             logging.error(string)

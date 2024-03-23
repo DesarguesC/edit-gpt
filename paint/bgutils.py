@@ -107,14 +107,19 @@ def target_removing(
 def max_min_box(mask0):
     mask0[mask0>0.5] = 1
     mask0[mask0<=0.5] = 0
-    print(f'TEST: mask.shape = {mask0.shape}')
-    H, W = mask0.shape[-2:]
+    print(f'TEST-min-max: mask.shape = {mask0.shape}') # 1 * h * w
+    if len(mask0.shape) == 4:
+        *_, H, W = mask0.shape
+    elif len(mask0.shape) == 3:    
+        _, H, W = mask0.shape
+    else:
+        H, W = mask0.shape
     max_x = max_y = -1
     min_x = min_y = max(H,W) * 2
 
     for i in range(H):
         for j in range(W):
-            if mask0[0][i][j] == 1:
+            if (len(mask0.shape) == 2 and mask0[i][j].item() == 1) or (len(mask0.shape) == 3 and mask0[0][i][j].item() == 1):
                 max_x, min_x = max(j, max_x), min(j, min_x)
                 max_y, min_y = max(i, max_y), min(i, min_y)
     return (min_x, min_y, max_x-min_x, max_y-min_y)
