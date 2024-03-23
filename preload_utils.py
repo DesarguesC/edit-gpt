@@ -11,7 +11,7 @@ from pytorch_lightning import seed_everything
 from ldm.util import load_model_from_config
 from ldm.inference_base import *
 from paint.control import get_adapter, get_adapter_feature, get_style_model, process_style_cond
-
+from paint.control import *
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.plms import PLMSSampler
 
@@ -27,8 +27,6 @@ from seem.utils.visualizer import Visualizer
 from detectron2.utils.colormap import random_color
 from detectron2.data import MetadataCatalog
 from detectron2.structures import BitMasks
-from modeling.language.loss import vl_similarity
-from utils.constants import COCO_PANOPTIC_CLASSES
 from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
 
 from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL, DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
@@ -117,20 +115,8 @@ def preload_v1_5_generator(opt):
     if opt.example_type == 'v1.5_adapter':
         print('-'*9 + 'Generating via Style Adapter (depth)' + '-'*9)
         adapter, cond_model = get_adapter(opt, cond_type='depth'), get_depth_model(opt)
-        print(f'BEFORE: cond_img.size = {ori_img.size}')
-        cond = process_depth_cond(opt, ori_img, cond_model) # not a image
-        print(f'cond.shape = {cond.shape}, cond_mask.shape = {cond_mask.shape}')
-        # resize mask to the shape of style_cond ?
-        cond_mask = torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
-        print(f'cond_mask.shape = {cond_mask.shape}')
-        if cond_mask is not None and torch.max(cond_mask) <= 1.:
-            cond_mask[cond_mask < 0.5] = (0.05 if opt.mask_ablation else 0.)
-            cond_mask[cond_mask >= 0.5] = (0.95 if opt.mask_ablation else 1.)
-            # TODO: check if mask smoothing is needed
-        cond = cond * ( cond_mask * (0.8 if opt.mask_ablation else 1.) ) # 1 - cond_mask ?
-        cv2.imwrite(ad_output, tensor2img(cond))
-        adapter_features, append_to_context = get_adapter_feature(cond, adapter)
-    else: 
+    else:
+        adapter, cond_model = None, None
         adapter_features, append_to_context = None, None
         # opt.example_type == 'v1.5'
         # difference between v1.5 and v1.5_adapter is just to generate adapter
@@ -138,9 +124,9 @@ def preload_v1_5_generator(opt):
 
     return {
         'sd_model': sd_model,
-        'sd_sampler': sd_sampler, 
-        'adapter_features': adapter_features, 
-        'append_to_context': append_to_context
+        'sd_sampler': sd_sampler,
+        'adapter': adapter,
+        'cond_model': cond_model
     }
 
 def preload_example_generator(opt):

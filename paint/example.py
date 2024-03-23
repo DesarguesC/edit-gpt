@@ -188,32 +188,49 @@ def generate_example(
                 print('-'*9 + 'Generating via Style Adapter (depth)' + '-'*9)
                 adapter, cond_model = get_adapter(opt, cond_type='depth'), get_depth_model(opt)
                 print(f'BEFORE: cond_img.size = {ori_img.size}')
-                cond = process_depth_cond(opt, ori_img, cond_model) # not a image
-                if cond is not None and cond_mask is not None:
-                    print(f'cond.shape = {cond.shape}, cond_mask.shape = {cond_mask.shape}')
-                # resize mask to the shape of style_cond ?
-                cond_mask = None if cond_mask is None else torch.cat([torch.from_numpy(cond_mask)]*3, dim=0).unsqueeze(0).to(opt.device)
-                if cond_mask is not None and torch.max(cond_mask) <= 1.:
-                    print(f'cond_mask.shape = {cond_mask.shape}')
-                    cond_mask[cond_mask < 0.5] = (0.05 if opt.mask_ablation else 0.)
-                    cond_mask[cond_mask >= 0.5] = (0.95 if opt.mask_ablation else 1.)
-                    # TODO: check if mask smoothing is needed
-                if cond_mask is not None:
-                    cond = cond * ( cond_mask * (0.8 if opt.mask_ablation else 1.) ) # 1 - cond_mask ?
-                else:
-                    cond = cond * (0.95 if opt.mask_ablation else 1.)
-                cv2.imwrite(ad_output, tensor2img(cond))
-                adapter_features, append_to_context = get_adapter_feature(cond, adapter)
+
             else: 
                 adapter_features, append_to_context = None, None
                 # opt.example_type == 'v1.5'
-                # difference between v1.5 and v1.5_adapter is just to generate adapter    
+                # difference between v1.5 and v1.5_adapter is just to generate adapter
+
+        # print(f'BEFORE: cond_img.size = {ori_img.size}')
+        # cond = process_depth_cond(opt, ori_img, cond_model)  # not a image
+        # print(f'cond.shape = {cond.shape}, cond_mask.shape = {cond_mask.shape}')
+        # # resize mask to the shape of style_cond ?
+        # cond_mask = torch.cat([torch.from_numpy(cond_mask)] * 3, dim=0).unsqueeze(0).to(opt.device)
+        # print(f'cond_mask.shape = {cond_mask.shape}')
+        # if cond_mask is not None and torch.max(cond_mask) <= 1.:
+        #     cond_mask[cond_mask < 0.5] = (0.05 if opt.mask_ablation else 0.)
+        #     cond_mask[cond_mask >= 0.5] = (0.95 if opt.mask_ablation else 1.)
+        #     # TODO: check if mask smoothing is needed
+        # cond = cond * (cond_mask * (0.8 if opt.mask_ablation else 1.))  # 1 - cond_mask ?
+        # cv2.imwrite(cond, tensor2img(cond))
+        # adapter_features, append_to_context = get_adapter_feature(cond, adapter)
+
         else:
             sd_model = preloaded_example_generator['sd_model']
             sd_sampler = preloaded_example_generator['sd_sampler']
-            adapter_features = preloaded_example_generator['adapter_features']
-            append_to_context =preloaded_example_generator['append_to_context']
-        
+            adapter = preloaded_example_generator['adapter']
+            cond_model = preloaded_example_generator['conda_model']
+            cond = process_depth_cond(opt, ori_img, cond_model)  # not a image
+            if cond is not None and cond_mask is not None:
+                print(f'cond.shape = {cond.shape}, cond_mask.shape = {cond_mask.shape}')
+            # resize mask to the shape of style_cond ?
+            cond_mask = None if cond_mask is None else torch.cat([torch.from_numpy(cond_mask)] * 3, dim=0).unsqueeze(
+                0).to(opt.device)
+            if cond_mask is not None and torch.max(cond_mask) <= 1.:
+                print(f'cond_mask.shape = {cond_mask.shape}')
+                cond_mask[cond_mask < 0.5] = (0.05 if opt.mask_ablation else 0.)
+                cond_mask[cond_mask >= 0.5] = (0.95 if opt.mask_ablation else 1.)
+                # TODO: check if mask smoothing is needed
+            if cond_mask is not None:
+                cond = cond * (cond_mask * (0.8 if opt.mask_ablation else 1.))  # 1 - cond_mask ?
+            else:
+                cond = cond * (0.95 if opt.mask_ablation else 1.)
+            cv2.imwrite(ad_output, tensor2img(cond))
+            adapter_features, append_to_context = get_adapter_feature(cond, adapter)
+
         with torch.inference_mode(), sd_model.ema_scope(), autocast('cuda'):
             seed_everything(opt.seed)
             diffusion_image = diffusion_inference(opt, prompts, sd_model, sd_sampler, adapter_features=adapter_features, append_to_context=append_to_context)

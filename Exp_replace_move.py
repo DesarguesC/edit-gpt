@@ -165,8 +165,6 @@ def Val_Replace_Method(opt):
 
     # TODO: Clip Image Score & PSNR && SSIM
 
-    
-
     del preloaded_agent, preloaded_replace_model
     acc_ratio_replace = acc_num_replace / len(selected_list)
     if opt.with_ip2p_val:
@@ -185,11 +183,11 @@ def Val_Replace_Method(opt):
 
 def Val_Move_Method(opt):
     seed_everything(opt.seed)
-    val_folder = '../autodl-tmp/COCO/val2017/'
+    val_folder = '../autodl-tmp/COCO/train2017/'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
     # for validation after
-    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
         caption = json.load(f)    
     # query caption via image_id
     captions_dict = {}
@@ -206,7 +204,7 @@ def Val_Move_Method(opt):
         else:
             captions_dict[image_id] = x['caption']
 
-    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data = json.load(f)
     
     length = len(data['annotations'])

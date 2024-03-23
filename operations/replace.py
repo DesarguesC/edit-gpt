@@ -148,7 +148,7 @@ def replace_target(
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
 
-    while box_0 == (0, 0, 0, 0) or box_0[2] == 0 or box_0[3] == 0:
+    while box_0 == (0,0,0,0) or box_0[2] == 0 or box_0[3] == 0:
         if try_time > 0:
             if try_time > 6:
                 box_0 = (50, 50, 50, 50)
@@ -160,13 +160,17 @@ def replace_target(
                     gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
                     else get_response(edit_agent, (question if try_time < 3 else f'{question}\n{notes}')).strip()
                 ) if x not in ['', ' ']]
-
+        print(f'box_ans = {box_0}')
+        if len(box_0) < 4:
+            print('WARNING: string return')
+            try_time += 1
+            continue
         new_noun, x, y, w, h = box_0[0], float(box_0[1]), float(box_0[2]), float(box_0[3]), float(box_0[4])
-        box_0 = (x,y,w,h)
-    print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
-    box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
-    box_0 = fix_box(box_0, (opt.H,opt.W,3))
-    print(f'fixed box: (x,y,w,h) = {box_0}')
+
+        print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
+        box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
+        box_0 = fix_box(box_0, (opt.H,opt.W,3))
+        print(f'fixed box: (x,y,w,h) = {box_0}')
 
     target_mask = refactor_mask(box_2, mask_2, box_0, type='replace', use_max_min=opt.use_max_min)
     # mask2: Shape[1 * h * w], target_mask: Shape[1 * h * w]

@@ -107,7 +107,7 @@ def target_removing(
 def max_min_box(mask0):
     mask0[mask0>0.5] = 1
     mask0[mask0<=0.5] = 0
-    print(f'TEST-min-max: mask.shape = {mask0.shape}') # 1 * h * w
+    # print(f'TEST-min-max: mask.shape = {mask0.shape}') # 1 * h * w
     if len(mask0.shape) == 4:
         *_, H, W = mask0.shape
     elif len(mask0.shape) == 3:    
@@ -197,7 +197,7 @@ def fix_box(gpt_box, img_shape):
             w //= 2
             h //= 2
         else:
-            print(f'2-Fixing: with (W,H) = {(W_, H_)}')
+            print(f'2-Fixing: with (x,y) = {(x, y)}')
             x //= 2
             y //= 2
         flag += 1
