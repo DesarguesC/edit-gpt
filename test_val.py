@@ -130,7 +130,7 @@ def Validate_planner():
                 prompts = prompts + ('' if prompts is '' else '; ') + csv_dict[key]
             return length, prompts
         elif type == 'label':
-            return [value.lower() for (_, value) in csv_dict.items()]
+            return [value.lower().strip() for (_, value) in csv_dict.items()]
 
     from prompt.guide import get_response, get_bot, planning_system_prompt, planning_system_first_ask
     from task_planning import get_planns_directly
@@ -142,29 +142,36 @@ def Validate_planner():
     planning_agent = get_bot(engine=engine, system_prompt=planning_system_prompt, api_key=api_key, proxy=proxy)
     _ = get_response(planning_agent, planning_system_first_ask)
 
-    acc_num_dict = {}
+    score_list = []
     for i in range(len(raw_csv_list)):
         length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
         label_list = receive_from_csv(ground_csv_list[i], type='label')
         plans = get_planns_directly(planning_agent, prompts) # key: "type" in use | [{"type":..., "command":...}]
-        plan_list = [x['type'].lower() for x in plans]
+        plan_list = [x['type'].lower().strip() for x in plans]
 
-        # output与ground truth的长度不一定相同，这种变量是否有衡量指标
+        # Task Planner Validation Algorithim
+        j, p, q = 0, len(plan_list), len(label_list)
+        while label_list[j] == plan_list[j] and j < min(p, q):
+            j = j + 1
+        if j == q:
+            j = j - (p - q)
+        score_list.append(j / min(p, q))
 
-        for cnt in range(0, min(len(label_list), len(plan_list))):
-            if str(cnt) in acc_num_dict.keys():
-                acc_num_dict[str(cnt)] += int(label_list[cnt] == plan_list[cnt])
-            else:
-                acc_num_dict[str(cnt)] = int(label_list[cnt] == plan_list[cnt])
-        for cnt in range(min(len(label_list), len(plan_list)), max(len(label_list), len(plan_list))):
-            acc_num_dict[str(cnt)] = 0
-
-        # acc_num_dict记录在序列索引为i的位置对应正确了几次
-        # TODO: 是一个分布列？
-
-
-
-    pass
+    tot_score = np.mean(score_list)
+    print(f'Test Planner: Average score-ratio on {len(score_list)} pieces data: {tot_score}')
+    return tot_score
+        # ⬇️ just counting
+        # for cnt in range(0, min(len(label_list), len(plan_list))):
+        #     if str(cnt) in acc_num_dict.keys():
+        #         acc_num_dict[str(cnt)] += int(label_list[cnt] == plan_list[cnt])
+        #     else:
+        #         acc_num_dict[str(cnt)] = int(label_list[cnt] == plan_list[cnt])
+        # for cnt in range(min(len(label_list), len(plan_list)), max(len(label_list), len(plan_list))):
+        #     acc_num_dict[str(cnt)] = 0
+        #
+        # # acc_num_dict记录在序列索引为i的位置对应正确了几次
+        # # TODO: 是一个分布列？
+# done
 
 def Figure_Multi_Plans():
     # draw figure: y[clip score, clip directional similarity, PSNR, SSIM] ~ x[number of plans]
