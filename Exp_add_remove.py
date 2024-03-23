@@ -41,9 +41,9 @@ def use_exp_agent(opt, system_prompt):
 
 def Val_Add_Method(opt):
     seed_everything(opt.seed)
-    val_folder = '../autodl-tmp/COCO/val2017'
+    val_folder = '../autodl-tmp/COCO/train2017'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
-    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data_val = json.load(f)    
     # query caption via image_id
     selected_list = []
@@ -57,7 +57,7 @@ def Val_Add_Method(opt):
     preloaded_agent = preload_all_agents(opt) if opt.preload_all_models else None
     model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)
 
-    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
         captions = json.load(f)    
     
     captions_dict = {}
@@ -156,7 +156,7 @@ def Val_Add_Method(opt):
             print(string)
             logging.info(string)
         
-          except Exception as e:
+        except Exception as e:
             string = f'Exception Occurred: {e}'
             print(string)
             logging.error(string)
@@ -181,9 +181,9 @@ def Val_Add_Method(opt):
 
 def Val_Remove_Method(opt):
     seed_everything(opt.seed)
-    val_folder = '../autodl-tmp/COCO/val2017'
+    val_folder = '../autodl-tmp/COCO/train2017'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
-    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data_val = json.load(f)
         # query caption via image_id
     selected_list = []
@@ -199,7 +199,7 @@ def Val_Remove_Method(opt):
     if not os.path.exists(f'{opt.out_dir}/Inputs-Add/'):
         os.mkdir(f'{opt.out_dir}/Inputs-Add/')
 
-    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
         captions = json.load(f)
 
     captions_dict = {}

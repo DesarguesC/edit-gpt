@@ -53,9 +53,9 @@ def read_original_prompt(path_to_json):
 def Val_Replace_Method(opt):
     seed_everything(opt.seed)
     # agent = use_exp_agent(opt, system_prompt_edit_sort)
-    val_folder = '../autodl-tmp/COCO/val2017'
+    val_folder = '../autodl-tmp/COCO/train2017'
     metadata = MetadataCatalog.get('coco_2017_train_panoptic')
-    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data_val = json.load(f)['annotations']
         # query caption via image_id
     length = len(data_val)
@@ -68,7 +68,7 @@ def Val_Replace_Method(opt):
     preloaded_agent = preload_all_agents(opt) if opt.preload_all_agents else None
     model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)
 
-    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
         captions = json.load(f)
 
     captions_dict = {}
