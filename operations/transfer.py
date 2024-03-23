@@ -128,13 +128,13 @@ def Transfer_Me_SDEdit(
         preloaded_model = None,
     ):
     # i.e. Stable-Diffusion-XL refiner
-    if preloaded_model is None or 'refiner' not in preloaded_model['preloaded_example'].keys():
+    if preloaded_model is not None and 'preloaded_refiner' in preloaded_model.keys():
+        SDEdit_model = preloaded_model['preloaded_refiner'].to(opt.device)
+    elif preloaded_model is None or 'refiner' not in preloaded_model['preloaded_example'].keys():
         SDEdit_model = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0", torch_dtype=torch.float16, variant="fp16", use_safetensors=True
             )
         SDEdit_model.to(opt.device)
-    elif 'preloaded_refiner' in preloaded_model.keys():
-        SDEdit_model = preloaded_model['preloaded_refiner'].to(opt.device)
     else :
         SDEdit_model = preloaded_model['preloaded_example']['refiner'].to(opt.device)
 

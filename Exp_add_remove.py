@@ -25,6 +25,7 @@ def preload_add_model(opt):
         'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
         'preloaded_lama_remover': preload_lama_remover(opt), # 10446 MiB
         'preloaded_ip2p': preload_ip2p(opt) if opt.with_ip2p_val else None, # 8854 MiB
+        'preloaded_refiner': preload_refiner(opt) if opt.example_type != 'XL' else None
     }
 
 def preload_remove_model(opt):
@@ -33,6 +34,7 @@ def preload_remove_model(opt):
         'preloaded_seem_detector': preload_seem_detector(opt),  # 10446 MiB
         'preloaded_lama_remover': preload_lama_remover(opt),  # 10446 MiB
         'preloaded_ip2p': preload_ip2p(opt) if opt.with_ip2p_val else None,
+        'preloaded_refiner': preload_refiner(opt) if opt.example_type != 'XL' else None
     }
 
 def use_exp_agent(opt, system_prompt):
@@ -357,8 +359,8 @@ if __name__ == '__main__':
     start_time = time.time()
     from Exp_replace_move import main1
     print('\nnFirst: Replace & Move \n\n')
-    main1(test_group_num=1)
+    main1(test_group_num=50)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(test_group_num=1)
+    main2(test_group_num=50)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

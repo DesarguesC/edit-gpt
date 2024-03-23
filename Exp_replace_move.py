@@ -24,7 +24,8 @@ def preload_replace_model(opt):
         'preloaded_example_painter': preload_paint_by_example_model(opt), # 10446 MiB
         'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
         'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
-        'preloaded_lama_remover': preload_lama_remover(opt) # 10446 MiB
+        'preloaded_lama_remover': preload_lama_remover(opt), # 10446 MiB
+        'preloaded_refiner': preload_refiner(opt) if opt.example_type != 'XL' else None
     }
 
 def preload_move_model(opt):
@@ -33,7 +34,8 @@ def preload_move_model(opt):
         'preloaded_ip2p': preload_ip2p(opt) if opt.with_ip2p_val else None,  # 8854 MiB
         'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
         'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
-        'preloaded_lama_remover': preload_lama_remover(opt) # 10446 MiB
+        'preloaded_lama_remover': preload_lama_remover(opt), # 10446 MiB
+        'preloaded_refiner': preload_refiner(opt) if opt.example_type != 'XL' else None
     }
 
 def use_exp_agent(opt, system_prompt):
