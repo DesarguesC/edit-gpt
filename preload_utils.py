@@ -126,7 +126,9 @@ def preload_v1_5_generator(opt):
         'sd_model': sd_model,
         'sd_sampler': sd_sampler,
         'adapter': adapter,
-        'cond_model': cond_model
+        'cond_model': cond_model,
+        'adapter_features': None,
+        'append_to_context': None
     }
 
 def preload_example_generator(opt):

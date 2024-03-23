@@ -136,7 +136,7 @@ def Val_Replace_Method(opt):
             caption_after_list.append(caption2)
 
             amount_list = A_IsReplacedWith_B(model_dict, label_ori, label_new, ori_img, [out_pil, out_ip2p] if opt.with_ip2p_val else out_pil, opt.device)
-            if opt.with_ip2p_val:    
+            if opt.with_ip2p_val:
                 if len(amount_list) != 2:
                     string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
                     print(string__)
