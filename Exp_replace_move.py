@@ -124,7 +124,7 @@ def Val_Replace_Method(opt):
             ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
             out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
             if opt.with_ip2p_val:
-                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
+                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-{opt.model_type}.jpg')
             write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
             image_before_list.append(ori_img)
@@ -151,7 +151,7 @@ def Val_Replace_Method(opt):
             end_time = time.time()
 
             string = (
-                f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if a == 1 else False}|'
+                f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT/{opt.model_type}]~[{True if a == 1 else False}|'
                 f'{True if b == 1 else False}] | Time cost: {end_time - start_time}') if opt.with_ip2p_val else \
                 f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT] ~ [{True if amount_list == 1 else False}] | Time cost: {end_time - start_time}'
             print(string)
@@ -171,14 +171,14 @@ def Val_Replace_Method(opt):
         acc_ratio_ip2p = acc_num_ip2p / len(selected_list)
     # consider if there is need to save all images replaced
     
-    string = f'Replace Acc: \n\tEditGPT = {acc_ratio_replace}\n' + (f'\tIP2P = {acc_ratio_ip2p}\n' if opt.with_ip2p_val else '')
+    string = f'Replace Acc: \n\tEditGPT = {acc_ratio_replace}\n' + (f'\t{opt.model_type} = {acc_ratio_ip2p}\n' if opt.with_ip2p_val else '')
     print(string)
     logging.info(string)
     cal_metrics_write(
         image_before_list, image_after_list, 
         image_ip2p_list if opt.with_ip2p_val else None, caption_before_list, 
         caption_after_list, static_out_dir=static_out_dir, 
-        type_name='Replace', extra_string=string
+        type_name='Replace', extra_string=string, model_type=opt.model_type
     )
 
 def Val_Move_Method(opt):
@@ -269,7 +269,7 @@ def Val_Move_Method(opt):
             img_pil.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
             out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
             if opt.with_ip2p_val:
-                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-IP2P.jpg')
+                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-{opt.model_type}.jpg')
             write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', c1, c2, opt.edit_txt)
 
             end_time = time.time()
@@ -291,7 +291,7 @@ def Val_Move_Method(opt):
         image_before_list, image_after_list, 
         image_ip2p_list if opt.with_ip2p_val else None, caption_before_list, 
         caption_after_list, static_out_dir=static_out_dir, 
-        type_name='Move', extra_string=None
+        type_name='Move', extra_string=None, model_type=opt.model_type
     )
     
 def main1(test_group_num=50):

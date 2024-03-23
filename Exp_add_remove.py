@@ -127,7 +127,7 @@ def Val_Add_Method(opt):
             ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
             out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
             if opt.with_ip2p_val:
-                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-Ip2p.jpg')
+                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-{opt.model_type}.jpg')
             write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
 
@@ -150,7 +150,7 @@ def Val_Add_Method(opt):
                 acc_num_add = acc_num_add + ac_or_not_add
 
             end_time = time.time()
-            string = (f'Images have been added: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if ac_or_not_add==1 else False}|'
+            string = (f'Images have been added: {len(selected_list)} | Acc: [EditGPT/{opt.model_type}]~[{True if ac_or_not_add==1 else False}|'
                       f'{True if ac_or_not_ip2p==1 else False}] | Time cost: {end_time - start_time}') if opt.with_ip2p_val else \
                       f'Images have been added: {len(selected_list)} | Acc: [EditGPT]~[{True if ac_or_not_add==1 else False}] | Time cost: {end_time - start_time}'
             print(string)
@@ -170,13 +170,13 @@ def Val_Add_Method(opt):
     if opt.with_ip2p_val:
         acc_ratio_ip2p = acc_num_ip2p / len(selected_list)
 
-    string = f'Add Acc: \n\tEditGPT = {acc_ratio_add}\n' + (f'\tIP2P = {acc_ratio_ip2p}\n' if opt.with_ip2p_val else '')
+    string = f'Add Acc: \n\tEditGPT = {acc_ratio_add}\n' + (f'\t{opt.model_type} = {acc_ratio_ip2p}\n' if opt.with_ip2p_val else '')
     print(string)
     logging.info(string)
     cal_metrics_write(
         image_before_list, image_after_list, 
         image_ip2p_list if opt.with_ip2p_val else None, caption_before_list, caption_after_list, static_out_dir=static_out_dir, 
-        type_name='Add', extra_string=string
+        type_name='Add', extra_string=string, model_type=opt.model_type
     )
 
 def Val_Remove_Method(opt):
@@ -264,7 +264,7 @@ def Val_Remove_Method(opt):
             ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
             out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
             if opt.with_ip2p_val:
-                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-Ip2p.jpg')
+                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-{opt.model_type}.jpg')
             write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
             amount_list = IsRemoved(model_dict, ori_label, ori_img, [out_pil, out_ip2p] if opt.with_ip2p_val else out_pil, device=opt.device)
@@ -285,7 +285,7 @@ def Val_Remove_Method(opt):
                 acc_num_remove = acc_num_remove + ac_or_not_remove
 
             end_time = time.time()
-            string = (f'Images have been removed: {len(selected_list)} | Acc: [EditGPT/Ip2p]~[{True if ac_or_not_remove == 1 else False} '
+            string = (f'Images have been removed: {len(selected_list)} | Acc: [EditGPT/{opt.model_type}]~[{True if ac_or_not_remove == 1 else False} '
                       f'|{True if ac_or_not_ip2p == 1 else False}] | Time cost: {end_time - start_time}') if opt.with_ip2p_val else \
                       f'Images have been removed: {len(selected_list)} | Acc: [EditGPT]~[{True if ac_or_not_remove == 1 else False}] | Time cost: {end_time - start_time}'
             print(string)
@@ -305,14 +305,14 @@ def Val_Remove_Method(opt):
     if opt.with_ip2p_val:
         acc_ratio_ip2p = acc_num_ip2p / len(selected_list)
 
-    string = f'Remove Acc: \n\tEditGPT = {acc_ratio_remove}\n' + (f'\tIP2P = {acc_ratio_ip2p}\n' if opt.with_ip2p_val else '')
+    string = f'Remove Acc: \n\tEditGPT = {acc_ratio_remove}\n' + (f'\t{opt.model_type} = {acc_ratio_ip2p}\n' if opt.with_ip2p_val else '')
     print(string)
     logging.info(string)
     cal_metrics_write(
         image_before_list, image_after_list, 
         image_ip2p_list if opt.with_ip2p_val else None, caption_before_list, 
         caption_after_list, static_out_dir=static_out_dir, 
-        type_name='Remove', extra_string=string
+        type_name='Remove', extra_string=string, model_type=opt.model_type
     )
 
 def main2(test_group_num=50):
@@ -357,8 +357,8 @@ if __name__ == '__main__':
     start_time = time.time()
     from Exp_replace_move import main1
     print('\nnFirst: Replace & Move \n\n')
-    main1(test_group_num=50)
+    main1(test_group_num=1)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(test_group_num=50)
+    main2(test_group_num=1)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

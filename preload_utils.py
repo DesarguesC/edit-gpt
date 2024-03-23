@@ -69,7 +69,7 @@ def preload_XL_generator(opt):
     pipe.to("cuda")
     # pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
     refiner = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-                    f"../autodl-tmp/stabilityai/stable-diffusion-xl-refiner-1.0",
+                    f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0",
                     text_encoder_2 = pipe.text_encoder_2,
                     vae = pipe.vae,
                     torch_dtype = torch.float16, 
@@ -210,11 +210,17 @@ def preload_lama_remover(opt):
         'predict_config': predict_config
     }
 
-# yaml, load_checkpoint ?
+def preload_refiner(opt):
+    return  StableDiffusionXLImg2ImgPipeline.from_pretrained(
+        f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0", torch_dtype=torch.float16, variant="fp16",
+        use_safetensors=True
+    ).to(opt.device)
+
+
 
 def preload_all_models(opt):
     seed_everything(opt.seed)
-    return {
+    preloaded_model =  {
         'preloaded_ip2p': preload_ip2p(opt), # 8854 MiB
         'preloaded_example_generator': preload_example_generator(opt), 
         # XL - 8272 MiB, XL_ad - 8458 MiB, V1.5 - 10446 MiB
@@ -223,6 +229,10 @@ def preload_all_models(opt):
         'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
         'preloaded_lama_remover': preload_lama_remover(opt) # 10446 MiB
     }
+    if opt.exmaple_type != 'XL':
+        preloaded_model['preloaded_refiner'] = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+                f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0", torch_dtype=torch.float16, variant="fp16", use_safetensors=True
+            ).to(opt.device)
 
 
 def preload_all_agents(opt):

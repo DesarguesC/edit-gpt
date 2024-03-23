@@ -6,6 +6,7 @@ import numpy as np
 from basicsr.utils import tensor2img, img2tensor
 from torchmetrics.functional.multimodal import clip_score as CLIP
 from functools import partial
+import logging
 
 def get_image_from_box(image, box):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -201,7 +202,10 @@ def write_valuation_results(path, typer='', clip_score=None, clip_directional_si
         f.write(string)
     print(string)
 
-def cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, caption_before_list, caption_after_list, static_out_dir, type_name='Move', extra_string=None):
+def cal_metrics_write(
+        image_before_list, image_after_list, image_ip2p_list,
+        caption_before_list, caption_after_list, static_out_dir,
+        type_name='Move', extra_string=None, model_type='Ip2p'):
     assert isinstance(image_before_list,list)
     # use list[Image]
     # print(f'Cal: {(len(image_before_list), len(image_after_list), len(image_ip2p_list), len(caption_before_list), len(caption_after_list))}')
@@ -240,7 +244,7 @@ def cal_metrics_write(image_before_list, image_after_list, image_ip2p_list, capt
     
     write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_EditGPT.txt'), f'{type_name}-EditGPT', clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=extra_string)
     if image_ip2p_list is not None:
-        write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_Ip2p.txt'), f'{type_name}-Ip2p', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=extra_string)
+        write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_{model_type}.txt'), f'{type_name}-{model_type}', clip_score_ip2p, clip_directional_similarity_ip2p, psnr_score_ip2p, ssim_score_ip2p, fid_score_ip2p, extra_string=extra_string)
 
 
 

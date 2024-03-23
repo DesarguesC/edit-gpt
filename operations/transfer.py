@@ -128,13 +128,16 @@ def Transfer_Me_SDEdit(
         preloaded_model = None,
     ):
     # i.e. Stable-Diffusion-XL refiner
-    if preloaded_model is None or opt.example_type != 'XL':
+    if preloaded_model is None or 'refiner' not in preloaded_model['preloaded_example'].keys():
         SDEdit_model = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0", torch_dtype=torch.float16, variant="fp16", use_safetensors=True
             )
-        SDEdit_model.to(opt.devoce)
-    else:
+        SDEdit_model.to(opt.device)
+    elif 'preloaded_refiner' in preloaded_model.keys():
+        SDEdit_model = preloaded_model['preloaded_refiner'].to(opt.device)
+    else :
         SDEdit_model = preloaded_model['preloaded_example']['refiner'].to(opt.device)
+
 
     opt, img_pil = get_reshaped_img(opt, input_pil)
     t = 0
@@ -147,7 +150,7 @@ def Transfer_Me_SDEdit(
         prompt = opt.edit_txt,
         num_inference_steps = opt.steps,
         image = input_pil.convert('RGB')
-    )
+    ).images[0]
     out_name = opt.out_name.strip('.jpg')
     name_ = f'./{opt.base_dir}/{out_name}'  # if record_history else f'./{opt.out_dir}/Transfer/trans'
     t = 0
