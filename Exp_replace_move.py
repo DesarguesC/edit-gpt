@@ -117,7 +117,7 @@ def Val_Replace_Method(opt):
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
             if opt.with_ip2p_val:
-                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
+                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False, model_type=opt.model_type)
                 if out_ip2p.size != (512,512):
                     out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
@@ -249,7 +249,7 @@ def Val_Move_Method(opt):
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil, (512,512), method=Image.Resampling.LANCZOS)
             if opt.with_ip2p_val:
-                out_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
+                out_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False, model_type=opt.model_type)
                 if out_ip2p.size != (512,512):
                     out_ip2p = ImageOps.fit(out_ip2p, (512,512), method=Image.Resampling.LANCZOS)
 

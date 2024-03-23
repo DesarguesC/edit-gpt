@@ -50,14 +50,15 @@ def Transfer_Me_ip2p(
     """
     seed_everything(opt.seed)
     if model_type == 'SDEdit':
+        print('Transfer with SDEdit')
         return Transfer_Me_SDEdit(
             opt,
             input_pil,
             img_cfg,
             txt_cfg,
             preloaded_model,
-            record_history,
         )
+    print('Transfer with Ip2p')
     # 'dilate_kernel_size'  unused
     # Consider: whether mask play some roles in ip2p.
     if preloaded_model is None:
@@ -125,8 +126,6 @@ def Transfer_Me_SDEdit(
         txt_cfg: float = 7.5,
         dilate_kernel_size: int = 15,
         preloaded_model = None,
-        record_history = True,
-        model_type = 'ip2p'
     ):
     # i.e. Stable-Diffusion-XL refiner
     if preloaded_model is None or opt.example_type != 'XL':

@@ -269,6 +269,13 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         help='whether to valuate ip2p simultaneously'
     )
 
+    parser.add_argument(
+        '--model_type',
+        type=str,
+        default='Ip2p',
+        help='choose which model to directly edit'
+    )
+
     return parser
 
 def get_sd_models(opt):

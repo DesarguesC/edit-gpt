@@ -56,7 +56,8 @@ def Transfer_Method(
         input_pil: Image = None,
         preloaded_model = None,
         preloaded_agent = None,
-        record_history = True
+        record_history = True,
+        model_type='Ip2p'
     ):
     opt = gpt_mkdir(opt, Type='transfer')
     # no need of extra agents
@@ -66,7 +67,8 @@ def Transfer_Method(
                         txt_cfg = opt.txt_cfg, 
                         dilate_kernel_size = 15, 
                         preloaded_model = preloaded_model,
-                        record_history = record_history    
+                        record_history = record_history,
+                        model_type=model_type
                     )
 
     if record_history:
