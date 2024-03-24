@@ -1,11 +1,26 @@
 from prompt.util import Cal_ClipDirectionalSimilarity as cal_similarity
 from prompt.util import Cal_FIDScore as cal_fid
-from prompt.util import cal_metrics_write
-from PIL import Image
+from prompt.util import cal_metrics_write, PSNR_compute, SSIM_compute
+from PIL import Image, ImageOps
+from prompt.util import *
 from basicsr import tensor2img, img2tensor
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
+import logging, json
+
+from operations.vqa_utils import *
+from torchmetrics.functional.multimodal import clip_score as CLIP
+from functools import partial
+
+# validate multi task
+from operations.utils import get_reshaped_img
+from preload_utils import preload_all_models, preload_all_agents
+from task_planning import get_operation_menu
+from prompt.arguments import get_arguments
+
+from prompt.guide import get_response, get_bot, planning_system_prompt, planning_system_first_ask
+from task_planning import get_planns_directly
 
 
 def main_1():
@@ -27,10 +42,6 @@ def main_1():
 
     fid_score = cal_fid(real_image_list, fake_image_list)
     print('fid score = ', fid_score)
-
-from operations.vqa_utils import *
-
-
 # def main2():
 #     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 #     model_base_path = '../autodl-tmp'
@@ -42,8 +53,6 @@ from operations.vqa_utils import *
 #     print(IsRemoved(model_dict, 'flowers', ori, remove, device))
 #     # print(Val(model_dict, 'flowers',ori, ))
 
-from PIL import Image, ImageOps
-from prompt.util import *
 def main3():
     A = ImageOps.fit(Image.open('./assets/room.jpg').convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
     B = ImageOps.fit(Image.open('./assets/dog.jpg').convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
@@ -52,8 +61,6 @@ def main3():
     psnr = PSNR_compute(A,B)
     print(psnr)
 
-from torchmetrics.functional.multimodal import clip_score as CLIP
-from functools import partial
 def main4():
     A = ImageOps.fit(Image.open('./input.jpg').convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
     B = ImageOps.fit(Image.open('./output.jpg').convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
@@ -68,7 +75,6 @@ def main4():
     clip_score_fn = partial(CLIP, model_name_or_path='../autodl-tmp/openai/clip-vit-large-patch14')
     clip_score = calculate_clip_score([B] * 2, [prompts] * 2, clip_score_fn=clip_score_fn)
     print(clip_score)
-
 
 def Validation_All():
     # For Interrupt Calculating
@@ -102,7 +108,6 @@ def Validation_All():
     
         cal_metrics_write(in_img_list, EditGPT_img_list, Ip2p_img_list, cap_1_list, cap_2_list, static_out_dir=base_folder, type_name=Name, extra_string=None)
 
-
 def receive_from_csv(input_csv, type='raw'):
     if isinstance(input_csv, str):
         input_csv = pd.read_csv(input_csv)
@@ -120,7 +125,34 @@ def receive_from_csv(input_csv, type='raw'):
     elif type == 'label':
         return [value.lower().strip() for (_, value) in csv_dict.items()]
 
+
+# def find_img_dict_file(csv_raw_path):
+#     # csv_path: ......./GPT-x/xxxx.csv
+
 def Validate_planner():
+    opt = get_arguments()
+    static_out_dir = opt.out_dir
+    if os.path.exists(static_out_dir): os.system(f'rm -rf {static_out_dir}')
+    os.mkdir(static_out_dir)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s : %(levelname)s : %(message)s',
+        filename=f'{static_out_dir}/multi-task-valuation.log'
+    )
+
+    # prepare for COCO
+    coco_base_path = '../autodl-tmp/COCO/val2017'
+    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
+        caption = json.load(f)
+    captions_dict = {}
+    for x in caption['annotations']:
+        image_id = str(x['image_id'])
+        if image_id in captions_dict:
+            captions_dict[image_id] = captions_dict[image_id] + '; ' + x['caption']
+        else:
+            captions_dict[image_id] = x['caption']
+
     # validate the accuracy of GPT task planner on human labeled dataset
     base_path = '../autodl-tmp/planner-test-labeled/'
     all_data_folder = []
@@ -130,99 +162,127 @@ def Validate_planner():
             # print(f'gpt_i_folder = {gpt_i_folder}')
             if 'zip' not in gpt_i_folder and '.DS_Store' not in gpt_i_folder:
                 all_data_folder.append(os.path.join(folder, gpt_i_folder))
-    raw_csv_list, ground_csv_list = [], []
 
-    for folder in all_data_folder: # xxxx/GPT-1/
-        # print(folder)
-        # img_mapping = pd.read_csv(os.path.join(folder, 'data.csv'))
-        raw_path = os.path.join(folder, 'GPT_gen_raw')
-        for csv_ in os.listdir(raw_path):
-            if not csv_.endswith('.csv'): continue
-            raw_csv_list.append(os.path.join(raw_path, csv_))
-        ground_path = os.path.join(folder, 'GPT_gen_label')
-        for csv_ in os.listdir(ground_path):
-            if not csv_.endswith('.csv'): continue
-            ground_csv_list.append(os.path.join(ground_path, csv_))
-    assert len(raw_csv_list) == len(ground_csv_list), f'len(raw_csv_list) = {len(raw_csv_list)}, len(ground_csv_list) = {len(ground_csv_list)}'
-    print(f'len(raw_csv_list) = {len(raw_csv_list)}, len(ground_csv_list) = {len(ground_csv_list)}')
-
-    from prompt.guide import get_response, get_bot, planning_system_prompt, planning_system_first_ask
-    from task_planning import get_planns_directly
-
-    engine = 'gpt-3.5-turbo'
-    proxy = 'http://127.0.0.1'
-    api_key = list(pd.read_csv('./key.csv')['key'])[0]
-
-    planning_agent = get_bot(engine=engine, system_prompt=planning_system_prompt, api_key=api_key, proxy=proxy)
+    planning_agent = get_bot(engine=opt.engine, system_prompt=planning_system_prompt, api_key=opt.api_key, proxy=opt.proxy)
     _ = get_response(planning_agent, planning_system_first_ask)
 
     score_list = []
-    tot = len(raw_csv_list)
     cur_dict = {}
 
-    # tot = 1
-    for i in range(tot):
-        length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
-        label_list = receive_from_csv(ground_csv_list[i], type='label')
-        plans = get_planns_directly(planning_agent, prompts) # key: "type" in use | [{"type":..., "command":...}]
-        plan_list = [x['type'].lower().strip() for x in plans]
+    operation_menu = get_operation_menu()
+    preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
+    preloaded_agents = preload_all_agents(opt) if opt.prelaod_all_agents else None
 
-        # Task Planner Validation Algorithm
-        j, p, q = 0, len(plan_list), len(label_list)
-        while j < min(p, q) and label_list[j] == plan_list[j]:
-            j = j + 1
-        if j == q - 1:
-            j = j - (p - q)
-        # cur_score =
-        score_list.append(j / min(p, q))
-        cur_dict[str(length)] = np.mean(score_list)
+    img_before, img_after, cap_before, cap_after = [], [], [], []
+    cnt_global = 0
 
-        print(f'Current Score [{(i+1):0{3}}|tot]: {cur_dict[str(length)]}')
+    for qwq in range(len(all_data_folder)): # xxxx/GPT-1/
+        # print(folder)
+        # img_mapping = pd.read_csv(os.path.join(folder, 'data.csv'))
+        folder = all_data_folder[qwq]
+        raw_path = os.path.join(folder, 'GPT_gen_raw')
+        ground_path = os.path.join(folder, 'GPT_gen_label')
+        image_path = os.path.join(folder, 'GPT_img')
+
+        pre_read_coco_dict = pd.read_csv(os.path.join(folder, 'data.csv'))
+
+        raw_csv_list = [os.path.join(raw_path, csv_) for csv_ in os.listdir(raw_path) if csv_.endswith('.csv')]
+        ground_csv_list = [os.path.join(ground_path, csv_) for csv_ in os.listdir(ground_path) if csv_.endswith('.csv')]
+        img_list = [os.path.join(image_path, img_) for img_ in os.listdir(image_path) if img_.endswith('.jpg')]
+
+        assert len(raw_csv_list) == len(ground_csv_list), f'len(raw_csv_list) = {len(raw_csv_list)}, len(ground_csv_list) = {len(ground_csv_list)}'
+        tot = len(raw_csv_list)
+
+        tot = 1
+        for i in range(tot):
+            opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
+            os.mkdir(opt.out_dir)
+            cnt_global += 1
+            length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
+            label_list = receive_from_csv(ground_csv_list[i], type='label')
+            plans = get_planns_directly(planning_agent, prompts) # key: "type" in use | [{"type":..., "command":...}]
+            plan_list = [x['type'].lower().strip() for x in plans]
+
+            # Task Planner Validation Algorithm
+            j, p, q = 0, len(plan_list), len(label_list)
+            while j < min(p, q) and label_list[j] == plan_list[j]:
+                j = j + 1
+            if j == q - 1:
+                j = j - (p - q)
+
+            cur_score = j / min(p, q)
+            score_list.append(cur_score)
+            if str(length) in cur_dict.keys():
+                cur_dict[str(length)].append(cur_score)
+            else:
+                cur_dict[str(length)] = [cur_score]
+
+            score_string = f'Validate Step [{(i+1):0{3}}|{tot:0{3}}|{qwq:0{2}}]: current score: {cur_score}, average score: {np.mean(score_list)}'
+            print(score_string)
+            logging.info(score_string)
+
+            planning_folder = os.path.join(opt.out_dir, 'plans')
+            if not os.path.exists(planning_folder): os.mkdir(planning_folder)
+            img_file = pre_read_coco_dict[str(int(img_list[i].strip('.jpg')))]
+            opt.in_dir = os.path.join(coco_base_path, img_file)
+            img_pil_before = get_reshaped_img(opt, img_pil=None)
+            # cap1 = captions_dict[img_file.strip('.jpg')]
+            # cap2 = f'{cap1}, edited by {cap}'
+
+            for plan_item in plans:
+                plan_type = plan_item['type']
+                edit_tool = operation_menu[plan_type]
+                opt.edit_txt = plan_item['command']
+
+                img_pil_after, _ = edit_tool(
+                        opt,
+                        current_step = 0,
+                        tot_step = 0,
+                        input_pil = img_pil_before,
+                        preloaded_model = preloaded_models,
+                        preloaded_agent = preloaded_agents
+                    )
+                img_pil_before = img_pil_after
+
+            img_before.append(img_pil_before)
+            img_after.append(img_pil_after)
+
+            # Token limitation: Fail to calculate CLIP related score
+            # cap_before.append()
+            # cap_after.append()
 
     tot_score = np.mean(score_list)
     print(f'Test Planner: Average score-ratio on {len(score_list)} pieces data: {tot_score}')
 
+
+
     from raw_gen import csv_writer
     from matplotlib import pyplot as plt
-    csv_writer('./dict-task-planning.csv', cur_dict)
+    csv_writer(f'{static_out_dir}/dict-task-planning.csv', cur_dict)
     print(cur_dict)
     x, y = [], []
     for (k,v) in cur_dict.items():
         x.append(int(float(k)))
         y.append(v)
-    plt.scatter(x, y, s=8, color='blue', marker='+')
-    # while len(x) < 4:
-    #     x.append(randint(1,10))
-    #     y.append(randint(50,100)/100)
-    # x, y = np.array(x), np.array(y)
-    #
-    # # Smooth Curve
+    plt.plot(x, y, color='blue', marker='*')
 
-    # from scipy.interpolate import interp1d
-    # func = interp1d(x, y, kind='cubic')
-    # x_smooth = np.linspace(np.min(x) - 1., np.max(x) + 1., 100)
-    # plt.scatter(x_smooth, func(x_smooth), label='', color='blue')
     plt.xlabel('Task Length (ground truth)')
     plt.xticks(np.arange(min(np.min(x) - 1, 0), max(np.max(x) + 1, 12), 1))
     plt.ylabel('Accuracy')
-    plt.title('task planning accuracy under our algorithm')
+    plt.title('Task Planning Accuracy Score')
     # plt.legend()
     plt.grid(True)
-    plt.savefig('./planner-curve.jpg')
+    plt.savefig(f'{static_out_dir}/planner-curve.jpg')
 
-    return tot_score, cur_dict
-        # ⬇️ just counting
-        # for cnt in range(0, min(len(label_list), len(plan_list))):
-        #     if str(cnt) in acc_num_dict.keys():
-        #         acc_num_dict[str(cnt)] += int(label_list[cnt] == plan_list[cnt])
-        #     else:
-        #         acc_num_dict[str(cnt)] = int(label_list[cnt] == plan_list[cnt])
-        # for cnt in range(min(len(label_list), len(plan_list)), max(len(label_list), len(plan_list))):
-        #     acc_num_dict[str(cnt)] = 0
-        #
-        # # acc_num_dict记录在序列索引为i的位置对应正确了几次
-        # # TODO: 是一个分布列？
-# done
+    del preloaded_agents, preloaded_models
+
+    ssim_score = SSIM_compute(img_before, img_after)
+    psnr_score = PSNR_compute(img_before, img_after)
+    write_valuation_results(os.path.join(base_path, 'multi-test-result.txt'), typer='Multi Task planning', clip_score='not cal', clip_directional_similarity='not cal', psnr_score=psnr_score, ssim_score=ssim_score)
+
+
+
+
 
 def Figure_Multi_Plans():
     # draw figure: y[clip score, clip directional similarity, PSNR, SSIM] ~ x[number of plans]

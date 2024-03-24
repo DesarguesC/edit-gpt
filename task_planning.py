@@ -234,15 +234,18 @@ def get_planns_directly(agent, prompt):
     return response
 
 
-def main():
-    opt = get_arguments()
-    operation_menu = {
+def get_operation_menu():
+    return {
         "add": Add_Method,
         "remove": Remove_Method,
         "replace": Replace_Method,
         "move": Move_Method,
         "transfer": Transfer_Method
     }
+
+def main():
+    opt = get_arguments()
+    operation_menu = get_operation_menu()
         
     preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
     preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
