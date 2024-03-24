@@ -160,7 +160,7 @@ def Validate_planner():
     tot = len(raw_csv_list)
     cur_dict = {}
 
-    tot = 1
+    # tot = 1
     for i in range(tot):
         length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
         label_list = receive_from_csv(ground_csv_list[i], type='label')
@@ -208,7 +208,7 @@ def Validate_planner():
     plt.title('task planning accuracy under our algorithm')
     # plt.legend()
     plt.grid(True)
-    plt.savefig('./curve.jpg')
+    plt.savefig('./planner-curve.jpg')
 
     return tot_score, cur_dict
         # ⬇️ just counting
