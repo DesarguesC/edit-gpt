@@ -172,6 +172,7 @@ def Validate_planner():
     planning_agent = get_planning_system_agent(opt)
 
     img_before, img_after, cap_before, cap_after = [], [], [], []
+    img_dict = {} # cap_before_dict, cap_after_dict = {}, {}, {}, {}
     cnt_global = 0
 
 
@@ -193,7 +194,7 @@ def Validate_planner():
         assert len(raw_csv_list) == len(ground_csv_list), f'len(raw_csv_list) = {len(raw_csv_list)}, len(ground_csv_list) = {len(ground_csv_list)}'
         tot = len(raw_csv_list)
 
-        # tot = 2 # TODO: For Test
+        tot = 10 # TODO: For Test
         for i in range(tot):
             try:
                 opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
@@ -218,13 +219,13 @@ def Validate_planner():
                 else:
                     cur_dict[str(length)] = [cur_score]
 
-                score_string = f'Validate Step [{(i+1):0{3}}|{tot:0{3}}]|[{(qwq+1):0{2}}|{(len(all_data_folder)+1):0{2}}] †† current score: {cur_score}, average score: {np.mean(score_list)}'
+                score_string = f'\n\tValidate Step [{(i+1):0{3}}|{tot:0{3}}]|[{(qwq+1):0{2}}|{(len(all_data_folder)+1):0{2}}] †† current score: {cur_score}, average score: {np.mean(score_list)}\n'
                 print(score_string)
                 logging.info(score_string)
 
                 planning_folder = os.path.join(opt.out_dir, 'plans')
                 if not os.path.exists(planning_folder): os.mkdir(planning_folder)
-                print(pre_read_coco_dict)
+                # print(pre_read_coco_dict)
                 img_file = list(pre_read_coco_dict[str(raw_img_list[i].strip('.jpg'))])[0] # ends with '.jpg'
                 opt.in_dir = os.path.join(coco_base_path, img_file)
                 opt, img_pil_before = get_reshaped_img(opt, img_pil=None, val=True) # opt return, obtain (W, H)
@@ -253,6 +254,13 @@ def Validate_planner():
 
                 img_before.append(img_pil_before)
                 img_after.append(img_pil_after)
+                
+                if str(length) in img_dict.keys():
+                    img_dict[str(length)][0].append(img_pil_before)
+                    img_dict[str(length)][1].append(img_pil_after)
+                else:
+                    img_dict[str(length)] = [[img_pil_before], [img_pil_after]]
+                    
 
             except Exception as err:
                 string = f'Error occurred: {err}'
@@ -275,8 +283,11 @@ def Validate_planner():
     x, y = [], []
     for (k,v) in cur_dict.items():
         x.append(int(float(k)))
-        y.append(v)
-    plt.plot(x, y, color='blue', marker='*')
+        y.append(np.mean(v))
+    
+    assert len(x) == len(y), f'len(x) = {len(x)}, len(y) = {y}'
+    plt.scatter(np.array(x), np.array(y), color='blue', marker='*')
+    plt.plot(x, y, 'b-')
 
     plt.xlabel('Task Length (ground truth)')
     plt.xticks(np.arange(min(np.min(x) - 1, 0), max(np.max(x) + 1, 12), 1))
@@ -285,9 +296,8 @@ def Validate_planner():
     # plt.legend()
     plt.grid(True)
     plt.savefig(f'{static_out_dir}/planner-curve.jpg')
-
-    del preloaded_agents, preloaded_models
     
+    del preloaded_agents, preloaded_models
     for i in range(len(img_before)):
         img_before[i] = np.array(img_before[i])
         img_after[i] = np.array(img_after[i])
@@ -297,8 +307,35 @@ def Validate_planner():
     extra_string = f'tot task planning accuracy = {tot_score}'
     writing_string = write_valuation_results(os.path.join(base_path, 'multi-test-result.txt'), typer='Multi Task planning', psnr_score=psnr_score, ssim_score=ssim_score)
     logging.info(writing_string)
-
-
+    
+    psnr_dict, ssim_dict = {}, {}
+    index, ssim_list, psnr_list = [], [], []
+    for (k, v) in img_dict.items():
+        index.append(int(k))
+        for i in range(len(v[0])):
+            v[0][i] = np.array(v[0][i])
+            v[1][i] = np.array(v[0][i])
+         
+        ssim_dict[k] = SSIM_compute(v[0], v[1])
+        psnr_dict[k] = PSNR_compute(v[0], v[1])
+            
+        ssim_list.append(psnr_dict[k])
+        psnr_list.append(ssim_dict[k])
+    
+    plt.scatter(np.array(index), np.array(psnr_list), color='blue', marker='*')
+    plt.scatter(np.array(index), np.array(ssim_list), color='red', marker='+')
+    
+    plt.plot(index, psnr_list, 'b-', label='PSNR')
+    plt.plot(index, ssim_list, 'r-', label='SSIM')
+    
+    plt.legend()
+    plt.xticks(np.arange(min(np.min(index) - 1,  0), max(np.max(index) + 1, 12), 1))
+    plt.xlabel('Task Steps')
+    plt.ylabel('Scores')
+    plt.savefig(f'{static_out_dir}/planner-score-curve.jpg')
+    
+    csv_writer(f'{static_out_dir}/psnr-dict-task.csv', psnr_dict)
+    csv_writer(f'{static_out_dir}/ssim-dict-task.csv', ssim_dict)
 
 
 
@@ -368,15 +405,17 @@ def Validate_on_Ip2p_Dataset(test_num):
     psnr_score = PSNR_compute(img_before_list, img_after_list)
     ssim_score = SSIM_compute(img_before_list, img_after_list)
 
-    writing_string = write_valuation_results(os.path.join(dataset_path, 'test-on-ipwp-dataset.txt'),
+    writing_string = write_valuation_results(os.path.join(dataset_path, 'test-on-ip2p-dataset.txt'),
                                              typer='Multi Task planning', psnr_score=psnr_score, ssim_score=ssim_score)
     logging.info(writing_string)
+    
+    
 
-
+    
 
     
     
     
 
 if __name__ == '__main__':
-    Validate_planner(200)
+    Validate_planner()
