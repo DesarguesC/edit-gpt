@@ -195,12 +195,13 @@ def write_instruction(path, caption_before, caption_after, caption_edit):
     with open(path, 'w') as f:
         f.write(f'{caption_before}\n{caption_after}\n{caption_edit}')
 
-def write_valuation_results(path, typer='', clip_score=None, clip_directional_similarity=None, psnr_score=None, ssim_score=None, fid_score=None, extra_string=None):
+def write_valuation_results(path, typer='', clip_score='not cal', clip_directional_similarity='not cal', psnr_score='not cal', ssim_score='not cal', fid_score='not cal', extra_string=None):
     string = (f'Exp For: {typer}\nClip Score: {clip_score}\nClip Directional Similarity: {clip_directional_similarity}\n'
               f'PSNR: {psnr_score}\nSSIM: {ssim_score}\nFID: {fid_score}') + (f"\n{extra_string}" if extra_string is not None else "")
     with open(path, 'w') as f:
         f.write(string)
     print(string)
+    return string
 
 def cal_metrics_write(
         image_before_list, image_after_list, image_ip2p_list,

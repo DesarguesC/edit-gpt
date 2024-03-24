@@ -223,7 +223,7 @@ def Validate_planner():
 
             planning_folder = os.path.join(opt.out_dir, 'plans')
             if not os.path.exists(planning_folder): os.mkdir(planning_folder)
-            img_file = pre_read_coco_dict[str(int(img_list[i].strip('.jpg')))]
+            img_file = pre_read_coco_dict[str(int(img_list[i].strip('.jpg')))] # ends with '.jpg'
             opt.in_dir = os.path.join(coco_base_path, img_file)
             img_pil_before = get_reshaped_img(opt, img_pil=None)
             # cap1 = captions_dict[img_file.strip('.jpg')]
@@ -278,8 +278,8 @@ def Validate_planner():
 
     ssim_score = SSIM_compute(img_before, img_after)
     psnr_score = PSNR_compute(img_before, img_after)
-    write_valuation_results(os.path.join(base_path, 'multi-test-result.txt'), typer='Multi Task planning', clip_score='not cal', clip_directional_similarity='not cal', psnr_score=psnr_score, ssim_score=ssim_score)
-
+    writing_string = write_valuation_results(os.path.join(base_path, 'multi-test-result.txt'), typer='Multi Task planning', psnr_score=psnr_score, ssim_score=ssim_score)
+    logging.info(writing_string)
 
 
 
