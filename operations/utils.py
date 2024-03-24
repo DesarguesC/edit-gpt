@@ -18,11 +18,14 @@ from lama.saicinpainting.evaluation.data import pad_tensor_to_modulo
 
 from paint.utils import load_img_to_array, save_array_to_img
 
-def get_reshaped_img(opt, img_pil=None):
+def get_reshaped_img(opt, img_pil=None, val=False, val_shape=(512,512)):
 
     img_pil = Image.open(opt.in_dir).convert('RGB') if img_pil is None else img_pil
     w, h = img_pil.size
-    opt.W, opt.H = ab64(w), ab64(h)
+    if val:
+        opt.W, opt.H = val_shape[0], val_shape[1]
+    else:
+        opt.W, opt.H = ab64(w), ab64(h)
     if opt.W != w or opt.H != h:
         img_pil = ImageOps.fit(img_pil, (opt.W, opt.H), method=Image.Resampling.LANCZOS)
     

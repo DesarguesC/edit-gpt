@@ -16,11 +16,11 @@ from functools import partial
 # validate multi task
 from operations.utils import get_reshaped_img
 from preload_utils import preload_all_models, preload_all_agents
-from task_planning import get_operation_menu
+from task_planning import get_operation_menu, get_planning_system_agent, get_planns_directly, get_plans
 from prompt.arguments import get_arguments
 
 from prompt.guide import get_response, get_bot, planning_system_prompt, planning_system_first_ask
-from task_planning import get_planns_directly
+
 
 
 def main_1():
@@ -163,18 +163,17 @@ def Validate_planner():
             if 'zip' not in gpt_i_folder and '.DS_Store' not in gpt_i_folder:
                 all_data_folder.append(os.path.join(folder, gpt_i_folder))
 
-    planning_agent = get_bot(engine=opt.engine, system_prompt=planning_system_prompt, api_key=opt.api_key, proxy=opt.net_proxy)
-    _ = get_response(planning_agent, planning_system_first_ask)
-
     score_list = []
     cur_dict = {}
 
     operation_menu = get_operation_menu()
     preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
     preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
+    planning_agent = get_planning_system_agent(opt)
 
     img_before, img_after, cap_before, cap_after = [], [], [], []
     cnt_global = 0
+
 
     for qwq in range(len(all_data_folder)): # xxxx/GPT-1/
         # print(folder)
@@ -196,63 +195,69 @@ def Validate_planner():
 
         # tot = 2 # TODO: For Test
         for i in range(tot):
-            opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
-            os.mkdir(opt.out_dir)
-            cnt_global += 1
-            length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
-            label_list = receive_from_csv(ground_csv_list[i], type='label')
-            plans = get_planns_directly(planning_agent, prompts) # key: "type" in use | [{"type":..., "command":...}]
-            plan_list = [x['type'].lower().strip() for x in plans]
+            try:
+                opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
+                os.mkdir(opt.out_dir)
+                cnt_global += 1
+                length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
+                label_list = receive_from_csv(ground_csv_list[i], type='label')
+                plans = get_planns_directly(planning_agent, prompts) # key: "type" in use | [{"type":..., "command":...}]
+                plan_list = [x['type'].lower().strip() for x in plans]
 
-            # Task Planner Validation Algorithm
-            j, p, q = 0, len(plan_list), len(label_list)
-            while j < min(p, q) and label_list[j] == plan_list[j]:
-                j = j + 1
-            if j == q - 1:
-                j = j - (p - q)
+                # Task Planner Validation Algorithm
+                j, p, q = 0, len(plan_list), len(label_list)
+                while j < min(p, q) and label_list[j] == plan_list[j]:
+                    j = j + 1
+                if j == q - 1:
+                    j = j - (p - q)
 
-            cur_score = j / min(p, q)
-            score_list.append(cur_score)
-            if str(length) in cur_dict.keys():
-                cur_dict[str(length)].append(cur_score)
-            else:
-                cur_dict[str(length)] = [cur_score]
+                cur_score = j / min(p, q)
+                score_list.append(cur_score)
+                if str(length) in cur_dict.keys():
+                    cur_dict[str(length)].append(cur_score)
+                else:
+                    cur_dict[str(length)] = [cur_score]
 
-            score_string = f'Validate Step [{(i+1):0{3}}|{tot:0{3}}]|[{(qwq+1):0{2}}|{(len(all_data_folder)+1):0{2}}] †† current score: {cur_score}, average score: {np.mean(score_list)}'
-            print(score_string)
-            logging.info(score_string)
+                score_string = f'Validate Step [{(i+1):0{3}}|{tot:0{3}}]|[{(qwq+1):0{2}}|{(len(all_data_folder)+1):0{2}}] †† current score: {cur_score}, average score: {np.mean(score_list)}'
+                print(score_string)
+                logging.info(score_string)
 
-            planning_folder = os.path.join(opt.out_dir, 'plans')
-            if not os.path.exists(planning_folder): os.mkdir(planning_folder)
-            print(pre_read_coco_dict)
-            img_file = list(pre_read_coco_dict[str(raw_img_list[i].strip('.jpg'))])[0] # ends with '.jpg'
-            opt.in_dir = os.path.join(coco_base_path, img_file)
-            opt, img_pil_before = get_reshaped_img(opt, img_pil=None) # opt return, obtain (W, H)
-            # cap1 = captions_dict[img_file.strip('.jpg')]
-            # cap2 = f'{cap1}, edited by {cap}'
-            
-            plan_step, tot_step = 1, len(plans)
+                planning_folder = os.path.join(opt.out_dir, 'plans')
+                if not os.path.exists(planning_folder): os.mkdir(planning_folder)
+                print(pre_read_coco_dict)
+                img_file = list(pre_read_coco_dict[str(raw_img_list[i].strip('.jpg'))])[0] # ends with '.jpg'
+                opt.in_dir = os.path.join(coco_base_path, img_file)
+                opt, img_pil_before = get_reshaped_img(opt, img_pil=None, val=True) # opt return, obtain (W, H)
+                # cap1 = captions_dict[img_file.strip('.jpg')]
+                # cap2 = f'{cap1}, edited by {cap}'
 
-            for plan_item in plans:
-                plan_type = plan_item['type']
-                edit_tool = operation_menu[plan_type]
-                opt.edit_txt = plan_item['command']
+                plan_step, tot_step = 1, len(plans)
 
-                img_pil_after, _ = edit_tool(
-                        opt,
-                        current_step = plan_step,
-                        tot_step = tot_step,
-                        input_pil = img_pil_before,
-                        preloaded_model = preloaded_models,
-                        preloaded_agent = preloaded_agents
-                    )
-                img_pil_before = img_pil_after
-                
-                img_pil_after.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
-                plan_step += 1
+                for plan_item in plans:
+                    plan_type = plan_item['type']
+                    edit_tool = operation_menu[plan_type]
+                    opt.edit_txt = plan_item['command']
 
-            img_before.append(img_pil_before)
-            img_after.append(img_pil_after)
+                    img_pil_after, _ = edit_tool(
+                            opt,
+                            current_step = plan_step,
+                            tot_step = tot_step,
+                            input_pil = img_pil_before,
+                            preloaded_model = preloaded_models,
+                            preloaded_agent = preloaded_agents
+                        )
+                    img_pil_before = img_pil_after
+
+                    img_pil_after.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
+                    plan_step += 1
+
+                img_before.append(img_pil_before)
+                img_after.append(img_pil_after)
+
+            except Exception as err:
+                string = f'Error occurred: {err}'
+                print(string)
+                logging.info(string)
 
             # Token limitation: Fail to calculate CLIP related score
             # cap_before.append()
@@ -262,8 +267,6 @@ def Validate_planner():
 
     tot_score = np.mean(score_list)
     print(f'Test Planner: Average score-ratio on {len(score_list)} pieces data: {tot_score}')
-
-
 
     from raw_gen import csv_writer
     from matplotlib import pyplot as plt
@@ -291,18 +294,89 @@ def Validate_planner():
 
     ssim_score = SSIM_compute(img_before, img_after)
     psnr_score = PSNR_compute(img_before, img_after)
+    extra_string = f'tot task planning accuracy = {tot_score}'
     writing_string = write_valuation_results(os.path.join(base_path, 'multi-test-result.txt'), typer='Multi Task planning', psnr_score=psnr_score, ssim_score=ssim_score)
     logging.info(writing_string)
 
 
 
 
-def Validate_on_Ip2p_Dataset():
+
+def Validate_on_Ip2p_Dataset(test_num):
+    opt = get_arguments()
+    if not hasattr(opt, 'test_num'): setattr(opt, 'test_num', test_num)
+    preloaded_models = preload_all_models(opt)
+    preloaded_agents = preload_all_agents(opt)
     # draw figure: y[clip score, clip directional similarity, PSNR, SSIM] ~ x[number of plans]
-    
+    dataset_path = '../autodl-tmp/clip-filtered/shard-00'
+    folders = os.listdir(dataset_path)
+    operation_menu = get_operation_menu()
+
+    img_before_list, img_after_list = [], []
+    cap_before_list, cap_after_list = [], []
+    cnt = 0
+    static_out_dir = opt.out_dir
+    if os.path.exists(static_out_dir): os.system(f'rm -rf {static_out_dir}')
+    os.mkdir(static_out_dir)
+
+    planning_agent = get_planning_system_agent(opt)
+
+    for folder in folders:
+
+        file_list = os.listdir(os.path.join(dataset_path, folder))
+        data = json.load(os.path.join(dataset_path, folder, 'prompt.json'))
+        opt.edit_txt = data['edit']
+        task_plannings = get_plans(opt, planning_agent)
+
+        img_name_list = list(set([x.split('_')[0] for x in file_list if x.endswith('.jpg')]))
+
+        for img_name in img_name_list:
+            cnt = cnt + 1
+            opt.out_dir = os.path.join(static_out_dir, f'{cnt:0{3}}')
+            os.mkdir(opt.out_dir)
+            planning_folder = os.path.join(opt.out_dir, 'plans')
+            if not os.path.exists(planning_folder): os.mkdir(planning_folder)
+            plan_step, tot_step = 1, len(task_plannings)
+
+            opt.in_dir = os.path.join(dataset_path, folder, f'{img_name}_0.jpg')
+            opt, img_pil = get_reshaped_img(opt)
+            img_before = img_pil
+
+            for plan_item in task_plannings:
+                plan_type = plan_item['type']
+                edit_tool = operation_menu[plan_type]
+                opt.edit_txt = plan_item['command']
+
+                img_pil, _ = edit_tool(
+                        opt,
+                        current_step = plan_step,
+                        tot_step = tot_step,
+                        input_pil = img_pil,
+                        preloaded_model = preloaded_models,
+                        preloaded_agent = preloaded_agents
+                    )
+                img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
+                plan_step += 1
+
+            img_before_list.append(img_before)
+            img_after_list.append(img_pil)
+            cap_before_list.append(data['input'])
+            cap_after_list.append(data['output'])
+
+        if cnt > opt.test_num: break
+
+    psnr_score = PSNR_compute(img_before_list, img_after_list)
+    ssim_score = SSIM_compute(img_before_list, img_after_list)
+
+    writing_string = write_valuation_results(os.path.join(dataset_path, 'test-on-ipwp-dataset.txt'),
+                                             typer='Multi Task planning', psnr_score=psnr_score, ssim_score=ssim_score)
+    logging.info(writing_string)
+
+
+
     
     
     
 
 if __name__ == '__main__':
-    Validate_planner()
+    Validate_planner(200)
