@@ -233,6 +233,7 @@ def preload_all_models(opt):
         preloaded_model['preloaded_refiner'] = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0", torch_dtype=torch.float16, variant="fp16", use_safetensors=True
             ).to(opt.device)
+    return preloaded_model
 
 
 def preload_all_agents(opt):
