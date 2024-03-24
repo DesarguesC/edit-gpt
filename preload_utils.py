@@ -229,7 +229,7 @@ def preload_all_models(opt):
         'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
         'preloaded_lama_remover': preload_lama_remover(opt) # 10446 MiB
     }
-    if opt.exmaple_type != 'XL':
+    if opt.example_type != 'XL':
         preloaded_model['preloaded_refiner'] = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 f"{opt.XL_base_path}/stabilityai/stable-diffusion-xl-refiner-1.0", torch_dtype=torch.float16, variant="fp16", use_safetensors=True
             ).to(opt.device)

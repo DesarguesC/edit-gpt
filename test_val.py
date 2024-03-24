@@ -194,7 +194,7 @@ def Validate_planner():
         assert len(raw_csv_list) == len(ground_csv_list), f'len(raw_csv_list) = {len(raw_csv_list)}, len(ground_csv_list) = {len(ground_csv_list)}'
         tot = len(raw_csv_list)
 
-        tot = 1 # TODO: For Test
+        # tot = 2 # TODO: For Test
         for i in range(tot):
             opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
             os.mkdir(opt.out_dir)
@@ -230,6 +230,8 @@ def Validate_planner():
             opt, img_pil_before = get_reshaped_img(opt, img_pil=None) # opt return, obtain (W, H)
             # cap1 = captions_dict[img_file.strip('.jpg')]
             # cap2 = f'{cap1}, edited by {cap}'
+            
+            plan_step, tot_step = 1, len(plans)
 
             for plan_item in plans:
                 plan_type = plan_item['type']
@@ -238,13 +240,16 @@ def Validate_planner():
 
                 img_pil_after, _ = edit_tool(
                         opt,
-                        current_step = 0,
-                        tot_step = 0,
+                        current_step = plan_step,
+                        tot_step = tot_step,
                         input_pil = img_pil_before,
                         preloaded_model = preloaded_models,
                         preloaded_agent = preloaded_agents
                     )
                 img_pil_before = img_pil_after
+                
+                img_pil_after.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
+                plan_step += 1
 
             img_before.append(img_pil_before)
             img_after.append(img_pil_after)
@@ -253,7 +258,7 @@ def Validate_planner():
             # cap_before.append()
             # cap_after.append()
 
-        break # TODO: For Test
+        # break # TODO: For Test
 
     tot_score = np.mean(score_list)
     print(f'Test Planner: Average score-ratio on {len(score_list)} pieces data: {tot_score}')
@@ -263,7 +268,7 @@ def Validate_planner():
     from raw_gen import csv_writer
     from matplotlib import pyplot as plt
     csv_writer(f'{static_out_dir}/dict-task-planning.csv', cur_dict)
-    print(cur_dict)
+    # print(cur_dict)
     x, y = [], []
     for (k,v) in cur_dict.items():
         x.append(int(float(k)))
@@ -279,6 +284,10 @@ def Validate_planner():
     plt.savefig(f'{static_out_dir}/planner-curve.jpg')
 
     del preloaded_agents, preloaded_models
+    
+    for i in range(len(img_before)):
+        img_before[i] = np.array(img_before[i])
+        img_after[i] = np.array(img_after[i])
 
     ssim_score = SSIM_compute(img_before, img_after)
     psnr_score = PSNR_compute(img_before, img_after)
@@ -288,10 +297,12 @@ def Validate_planner():
 
 
 
-def Figure_Multi_Plans():
+def Validate_on_Ip2p_Dataset():
     # draw figure: y[clip score, clip directional similarity, PSNR, SSIM] ~ x[number of plans]
-
-    pass
+    
+    
+    
+    
 
 if __name__ == '__main__':
     Validate_planner()
