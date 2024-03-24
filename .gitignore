@@ -17,8 +17,8 @@ memory_test.txt
 
 models/*.txt
 
-key.csv
-# *.txt
+*.csv
+planner-curve.jpg
 *.docx
 *.pptx
 *.ppt
