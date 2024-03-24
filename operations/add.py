@@ -119,7 +119,7 @@ def Add_Object(
             try:
                 x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]), float(box_ans[4])
             except Exception as err:
-                print(f'err: box_ans = {box_ans}')
+                print(f'err: box_ans = {box_ans}\bError: {err}')
                 fixed_box = (0,0,0,0)
                 continue
             fixed_box = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))

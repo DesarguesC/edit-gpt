@@ -127,7 +127,12 @@ def create_location(
             try_time += 1
             continue
         print(f'box_ans[0](i.e. target) = {box_ans[0]}')
-        x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]), float(box_ans[4])
+        try:
+            x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]), float(box_ans[4])
+        except Exception as err:
+            print(f'err: box_ans = {box_ans}\nError: {err}')
+            box_0 = (0, 0, 0, 0)
+            continue
         box_0 = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
         print(f'box_0 before fixed: {box_0}')
         box_0 = fix_box(box_0, (opt.W,opt.H,3))

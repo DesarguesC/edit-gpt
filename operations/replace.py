@@ -165,7 +165,13 @@ def replace_target(
             print('WARNING: string return')
             try_time += 1
             continue
-        new_noun, x, y, w, h = box_0[0], float(box_0[1]), float(box_0[2]), float(box_0[3]), float(box_0[4])
+        bew_noun = box_0[0]
+        try:
+            x, y, w, h = float(box_0[1]), float(box_0[2]), float(box_0[3]), float(box_0[4])
+        except Exception as err:
+            print(f'err: box_0 = {box_0}\nError: {err}')
+            box_0 = (0, 0, 0, 0)
+            continue
 
         print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
         box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
