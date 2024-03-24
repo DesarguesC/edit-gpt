@@ -25,6 +25,7 @@ def create_parse_args():
     parser = get_base_argument_parser(parser)
 
     parser.add_argument('--engine', default='gpt-3.5-turbo', choices=ENGINES, help='choose your gpt')
+    parser.add_argument('--box_engine', default='gpt-3.5-turbo', choices=ENGINES, help='for bounding box generation')
     
     parser.add_argument('--conf_files', default="configs/seem/focall_unicl_lang_demo.yaml", help='path to config file', )
     # set as default

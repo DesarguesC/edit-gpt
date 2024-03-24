@@ -400,11 +400,11 @@ def get_bot(engine, api_key, system_prompt, proxy):
         print('Done')
         return agent
 
-def get_response(chatbot, asks):
+def get_response(chatbot, asks, mute_print=False):
     iteration = 0
     while True:
         iteration += 1
-        print(f"talking {iteration}...... ", end='')
+        if not mute_print: print(f"talking {iteration}...... ", end='')
         try:
             answer = chatbot.ask(asks)
         except Exception as err:
@@ -416,13 +416,15 @@ def get_response(chatbot, asks):
             time.sleep(50 if 'too many' in string.lower() else 10)
             if iteration % 5 == 4: print('')
             continue
-        print('Finish')
+        if not mute_print: print('Finish')
         return answer
 
 def Use_Agent(opt, TODO=None, print_first_answer=False):
+    # bounding box has its own engine
     if hasattr(opt, 'print_first_answer'): print_first_answer = opt.print_first_answer
     TODO = TODO.lower()
     engine, api_key, net_proxy = opt.engine, opt.api_key, opt.net_proxy
+    box_engine = opt.box_engine if hasattr(opt, 'box_engine') else opt.engine
     if TODO == 'find target to be removed':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)
         first_ans = get_response(agent, remove_first_ask)
@@ -431,16 +433,16 @@ def Use_Agent(opt, TODO=None, print_first_answer=False):
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy)
         first_ans = get_response(agent, replace_first_ask)
         if print_first_answer: print(first_ans)
-    elif TODO == 'rescale bbox for me':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
+    elif TODO == 'rescale bbox for me': # Special Engine
+        agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
         first_ans = get_response(agent, rescale_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'expand diffusion prompts for me':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
         first_ans = get_response(agent, first_ask_expand)
         if print_first_answer: print(first_ans)
-    elif TODO == 'arrange a new bbox for me':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
+    elif TODO == 'arrange a new bbox for me': # Special Engine
+        agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
         first_ans = get_response(agent, locate_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'find target to be moved':
@@ -451,12 +453,12 @@ def Use_Agent(opt, TODO=None, print_first_answer=False):
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addHelp, proxy=net_proxy)
         first_ans = get_response(agent, addHelp_first_ask)
         if print_first_answer: print(first_ans)
-    elif TODO == 'generate a new bbox for me':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
+    elif TODO == 'generate a new bbox for me': # Special Engine
+        agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
         first_ans = get_response(agent, add_first_ask)
         if print_first_answer: print(first_ans)
-    elif TODO == 'adjust bbox for me':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy)
+    elif TODO == 'adjust bbox for me': # Special Engine
+        agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy)
         first_ans = get_response(agent, addArrange_first_ask)
         if print_first_answer: print(first_ans)
     # elif TODO == 'use gpt-4v':
