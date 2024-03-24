@@ -100,14 +100,14 @@ def Add_Object(
 
         while fixed_box == (0,0,0,0) or fixed_box[2] == 0 or fixed_box[3] == 0:
             if try_time > 0:
-                if try_time > 6:
+                if try_time > 4:
                     fixed_box = (50,50,50,50)
                     break
                 print(f'Trying to fix... - Iter: {try_time}')
                 print(f'QUESTION: \n{question}')
             box_ans = [x.strip() for x in re.split(r'[\[\],()]', 
                         gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
-                        else get_response(edit_agent, question if try_time < 3 else (question + notes))
+                        else get_response(edit_agent, question if try_time < 2 else (question + notes))
                     ) if x not in ['', ' ']]
             # deal with the answer, procedure is the same as in replace.py
             print(f'box_ans = {box_ans}')
@@ -116,7 +116,12 @@ def Add_Object(
                 try_time += 1
                 continue
             print(f'box_ans[0](i.e. target) = {box_ans[0]}')
-            x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]), float(box_ans[4])
+            try:
+                x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]), float(box_ans[4])
+            except Exception as err:
+                print(f'err: box_ans = {box_ans}')
+                fixed_box = (0,0,0,0)
+                continue
             fixed_box = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
             print(f'box_0 before fixed: {fixed_box}')
             fixed_box = fix_box(fixed_box, (opt.W,opt.H,3))

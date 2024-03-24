@@ -163,7 +163,7 @@ def Validate_planner():
             if 'zip' not in gpt_i_folder and '.DS_Store' not in gpt_i_folder:
                 all_data_folder.append(os.path.join(folder, gpt_i_folder))
 
-    planning_agent = get_bot(engine=opt.engine, system_prompt=planning_system_prompt, api_key=opt.api_key, proxy=opt.proxy)
+    planning_agent = get_bot(engine=opt.engine, system_prompt=planning_system_prompt, api_key=opt.api_key, proxy=opt.net_proxy)
     _ = get_response(planning_agent, planning_system_first_ask)
 
     score_list = []
@@ -171,7 +171,7 @@ def Validate_planner():
 
     operation_menu = get_operation_menu()
     preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
-    preloaded_agents = preload_all_agents(opt) if opt.prelaod_all_agents else None
+    preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
 
     img_before, img_after, cap_before, cap_after = [], [], [], []
     cnt_global = 0
@@ -188,12 +188,13 @@ def Validate_planner():
 
         raw_csv_list = [os.path.join(raw_path, csv_) for csv_ in os.listdir(raw_path) if csv_.endswith('.csv')]
         ground_csv_list = [os.path.join(ground_path, csv_) for csv_ in os.listdir(ground_path) if csv_.endswith('.csv')]
-        img_list = [os.path.join(image_path, img_) for img_ in os.listdir(image_path) if img_.endswith('.jpg')]
+        raw_img_list = [img_ for img_ in os.listdir(image_path) if img_.endswith('.jpg')]
+        # img_list = [os.path.join(image_path, img_) for img_ in raw_img_list]
 
         assert len(raw_csv_list) == len(ground_csv_list), f'len(raw_csv_list) = {len(raw_csv_list)}, len(ground_csv_list) = {len(ground_csv_list)}'
         tot = len(raw_csv_list)
 
-        tot = 1
+        tot = 1 # TODO: For Test
         for i in range(tot):
             opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
             os.mkdir(opt.out_dir)
@@ -217,15 +218,16 @@ def Validate_planner():
             else:
                 cur_dict[str(length)] = [cur_score]
 
-            score_string = f'Validate Step [{(i+1):0{3}}|{tot:0{3}}|{qwq:0{2}}]: current score: {cur_score}, average score: {np.mean(score_list)}'
+            score_string = f'Validate Step [{(i+1):0{3}}|{tot:0{3}}]|[{(qwq+1):0{2}}|{(len(all_data_folder)+1):0{2}}] †† current score: {cur_score}, average score: {np.mean(score_list)}'
             print(score_string)
             logging.info(score_string)
 
             planning_folder = os.path.join(opt.out_dir, 'plans')
             if not os.path.exists(planning_folder): os.mkdir(planning_folder)
-            img_file = pre_read_coco_dict[str(int(img_list[i].strip('.jpg')))] # ends with '.jpg'
+            print(pre_read_coco_dict)
+            img_file = list(pre_read_coco_dict[str(raw_img_list[i].strip('.jpg'))])[0] # ends with '.jpg'
             opt.in_dir = os.path.join(coco_base_path, img_file)
-            img_pil_before = get_reshaped_img(opt, img_pil=None)
+            opt, img_pil_before = get_reshaped_img(opt, img_pil=None) # opt return, obtain (W, H)
             # cap1 = captions_dict[img_file.strip('.jpg')]
             # cap2 = f'{cap1}, edited by {cap}'
 
@@ -250,6 +252,8 @@ def Validate_planner():
             # Token limitation: Fail to calculate CLIP related score
             # cap_before.append()
             # cap_after.append()
+
+        break # TODO: For Test
 
     tot_score = np.mean(score_list)
     print(f'Test Planner: Average score-ratio on {len(score_list)} pieces data: {tot_score}')
