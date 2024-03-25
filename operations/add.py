@@ -121,6 +121,7 @@ def Add_Object(
             except Exception as err:
                 print(f'err: box_ans = {box_ans}\bError: {err}')
                 fixed_box = (0,0,0,0)
+                try_time += 1
                 continue
             fixed_box = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
             print(f'box_0 before fixed: {fixed_box}')

@@ -171,6 +171,7 @@ def replace_target(
         except Exception as err:
             print(f'err: box_0 = {box_0}\nError: {err}')
             box_0 = (0, 0, 0, 0)
+            try_time += 1
             continue
 
         print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')

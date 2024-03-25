@@ -132,6 +132,7 @@ def create_location(
         except Exception as err:
             print(f'err: box_ans = {box_ans}\nError: {err}')
             box_0 = (0, 0, 0, 0)
+            try_time += 1
             continue
         box_0 = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
         print(f'box_0 before fixed: {box_0}')
