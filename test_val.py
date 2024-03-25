@@ -177,11 +177,13 @@ def Validate_planner():
     img_before, img_after, cap_before, cap_after = [], [], [], []
     img_dict = {} # cap_before_dict, cap_after_dict = {}, {}, {}, {}
     print(f'len(os.listdir(static_out_dir)) = {len(os.listdir(static_out_dir))}')
+
     cnt_global = len([x for x in os.listdir(static_out_dir) if not (os.path.isfile(x) or x in ['.', '..', '.ipynb_checkpoints'])])
+
     print(f'\nAll Data Folder amount: {len(all_data_folder)}\nGlobal cnt = {cnt_global}')
 
     for qwq in range(len(all_data_folder)): # xxxx/GPT-1/
-        qwq = 0
+        qwq = 3
         # TODO: Only a folder one time !
         folder = all_data_folder[qwq]
 
@@ -201,85 +203,88 @@ def Validate_planner():
 
         for i in range(tot):
             # if i > randint(1,3): break
-            try:
-                opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
-                os.mkdir(opt.out_dir)
-                cnt_global += 1
-                length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
-                label_list = receive_from_csv(ground_csv_list[i], type='label')
-                plans = get_planns_directly(planning_agent, prompts) # key: "type" in use | [{"type":..., "command":...}]
-                plan_list = [x['type'].lower().strip() for x in plans]
+            # try:
+            opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
+            os.mkdir(opt.out_dir)
+            cnt_global += 1
+            length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
+            label_list = receive_from_csv(ground_csv_list[i], type='label')
+            plans = get_planns_directly(planning_agent, prompts) # key: "type" in use | [{"type":..., "command":...}]
+            plan_list = [x['type'].lower().strip() for x in plans]
 
-                # Task Planner Validation Algorithm
-                j, p, q = 0, len(plan_list), len(label_list)
-                while j < min(p, q) and label_list[j] == plan_list[j]:
-                    j = j + 1
-                if j == q - 1:
-                    j = j - (p - q)
+            # Task Planner Validation Algorithm
+            j, p, q = 0, len(plan_list), len(label_list)
+            while j < min(p, q) and label_list[j] == plan_list[j]:
+                j = j + 1
+            if j == q - 1:
+                j = j - (p - q)
 
-                cur_score = j / min(p, q)
-                score_list.append(cur_score)
-                if str(length) in cur_dict.keys():
-                    cur_dict[str(length)].append(cur_score)
-                else:
-                    cur_dict[str(length)] = [cur_score]
+            cur_score = j / min(p, q)
+            score_list.append(cur_score)
+            if str(length) in cur_dict.keys():
+                cur_dict[str(length)].append(cur_score)
+            else:
+                cur_dict[str(length)] = [cur_score]
 
-                score_string = f'\n\tValidate Step [{(i+1):0{3}}|{tot:0{3}}]|[{(qwq+1):0{2}}|{(len(all_data_folder)+1):0{2}}] †† current score: {cur_score}, average score: {np.mean(score_list)}\n'
-                print(score_string)
-                logging.info(score_string)
-
-                planning_folder = os.path.join(opt.out_dir, 'plans')
-                if not os.path.exists(planning_folder): os.mkdir(planning_folder)
-                # print(pre_read_coco_dict)
-                img_file = list(pre_read_coco_dict[str(raw_img_list[i].strip('.jpg'))])[0] # ends with '.jpg'
-                opt.in_dir = os.path.join(coco_base_path, img_file)
-                opt, img_pil_before = get_reshaped_img(opt, img_pil=None, val=True) # opt return, obtain (W, H)
-                io_path = os.path.join(opt.out_dir, 'Input-Output')
-                if not os.path.exists(io_path): os.mkdir(io_path)
-
-                img_pil_before.save(f'{io_path}/input.jpg')
-                print(f'img_file (id) = {img_file}')
-                # print(f'captions_dict.keys() = {captions_dict.keys()}')
-                cap1 = captions_dict[img_file.strip('.jpg').lstrip('0')]
-                cap2 = f'{cap1}, edited by \'{prompts}\''
-                with open(os.path.join(io_path, 'caption.txt'), 'w') as f:
-                    f.write(f'{cap1}\n\n{cap2}\n\n{prompts}')
+            score_string = f'\n\tValidate Step [{(i+1):0{3}}|{tot:0{3}}]|[{(qwq+1):0{2}}|{(len(all_data_folder)+1):0{2}}] †† current score: {cur_score}, average score: {np.mean(score_list)}\n'
+            print(score_string)
+            logging.info(score_string)
 
 
-                plan_step, tot_step = 1, len(plans)
+            # Starts Editing Images according to Plans
+            planning_folder = os.path.join(opt.out_dir, 'plans')
+            if not os.path.exists(planning_folder): os.mkdir(planning_folder)
+            # print(pre_read_coco_dict)
+            img_file = list(pre_read_coco_dict[str(raw_img_list[i].strip('.jpg'))])[0] # ends with '.jpg'
+            opt.in_dir = os.path.join(coco_base_path, img_file)
+            opt, img_pil_before = get_reshaped_img(opt, img_pil=None, val=True) # opt return, obtain (W, H)
+            io_path = os.path.join(opt.out_dir, 'Input-Output')
+            if not os.path.exists(io_path): os.mkdir(io_path)
 
-                for plan_item in plans:
-                    plan_type = plan_item['type']
-                    edit_tool = operation_menu[plan_type]
-                    opt.edit_txt = plan_item['command']
+            img_pil_before.save(f'{io_path}/input.jpg')
+            print(f'img_file (id) = {img_file}')
+            # print(f'captions_dict.keys() = {captions_dict.keys()}')
+            cap1 = captions_dict[img_file.strip('.jpg').lstrip('0')]
+            cap2 = f'{cap1}, edited by \'{prompts}\''
+            with open(os.path.join(io_path, 'caption.txt'), 'w') as f:
+                f.write(f'{cap1}\n\n{cap2}\n\n{prompts}')
 
-                    img_pil_after, _ = edit_tool(
-                            opt,
-                            current_step = plan_step,
-                            tot_step = tot_step,
-                            input_pil = img_pil_before,
-                            preloaded_model = preloaded_models,
-                            preloaded_agent = preloaded_agents
-                        )
-                    img_pil_before = img_pil_after
 
-                    img_pil_after.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
-                    plan_step += 1
+            plan_step, tot_step = 1, len(plans)
 
-                img_before.append(img_pil_before)
-                img_after.append(img_pil_after)
-                
-                if str(length) in img_dict.keys():
-                    img_dict[str(length)][0].append(img_pil_before)
-                    img_dict[str(length)][1].append(img_pil_after)
-                else:
-                    img_dict[str(length)] = [[img_pil_before], [img_pil_after]]
-                    
+            for plan_item in plans:
+                plan_type = plan_item['type']
+                edit_tool = operation_menu[plan_type]
+                opt.edit_txt = plan_item['command']
 
-            except Exception as err:
-                string = f'Error occurred: {err}'
-                print(string)
-                logging.info(string)
+                img_pil_after, _ = edit_tool(
+                        opt,
+                        current_step = plan_step,
+                        tot_step = tot_step,
+                        input_pil = img_pil_before,
+                        preloaded_model = preloaded_models,
+                        preloaded_agent = preloaded_agents
+                    )
+                img_pil_before = img_pil_after
+
+                img_pil_after.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
+                plan_step += 1
+            
+            img_before.append(img_pil_before)
+            img_after.append(img_pil_after)
+            img_pil_before.save(f'{io_path}/output.jpg')
+
+            if str(length) in img_dict.keys():
+                img_dict[str(length)][0].append(img_pil_before)
+                img_dict[str(length)][1].append(img_pil_after)
+            else:
+                img_dict[str(length)] = [[img_pil_before], [img_pil_after]]
+
+
+            # except Exception as err:
+            #     string = f'Error occurred: {err}'
+            #     print(string)
+            #     logging.info(string)
 
             # Token limitation: Fail to calculate CLIP related score
             # cap_before.append()

@@ -222,14 +222,14 @@ def get_plans(opt, planning_system_agent):
 
 def get_planns_directly(agent, prompt):
     response = [x.strip() for x in re.split(r"[;]", get_response(agent, prompt, mute_print=True)) if x != " " and x != ""]
-    # print(f'response = {response}')
+    print(f'response = {response}')
     for i in range(len(response)):
         task_str = re.split(r"[(),]", response[i])
         task_str = [x.strip().strip(',') for x in task_str if x != " " and x != ""]
         # assert len(task_str) == 2, f'len(task_str) != 2, task_str: {task_str}'
         if len(task_str) > 2:
             for i in range(2, len(task_str)):
-                task_str[1] = task_str + f', {task_str[i]}'
+                task_str[1] = task_str[1] + f', {task_str[i]}'
         response[i] = {"type": task_str[0].lower(), "command": task_str[1]}
     return response
 

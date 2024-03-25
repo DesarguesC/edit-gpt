@@ -138,7 +138,9 @@ def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_m
     ])
     bbox = sam_list[box_idx][0]
     del pointer[box_idx]
-    return bbox
+    x, y, w, h = bbox
+    
+    return (int(x), int(y), int(w), int(h))
 
 
 def refactor_mask(box_1, mask_1, box_2, type='remove', use_max_min=False):
