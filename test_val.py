@@ -1,3 +1,5 @@
+import os.path
+
 from prompt.util import Cal_ClipDirectionalSimilarity as cal_similarity
 from prompt.util import Cal_FIDScore as cal_fid
 from prompt.util import cal_metrics_write, PSNR_compute, SSIM_compute
@@ -132,9 +134,10 @@ def receive_from_csv(input_csv, type='raw'):
 def Validate_planner():
     opt = get_arguments()
     static_out_dir = opt.out_dir
-    if os.path.exists(static_out_dir): os.system(f'rm -rf {static_out_dir}')
-    os.mkdir(static_out_dir)
+    if not os.path.exists(static_out_dir):
+        os.mkdir(static_out_dir) # os.system(f'rm -rf {static_out_dir}')
 
+    if os.path.isfile(os.path.join(static_out_dir, 'multi-task-valuation.log')): os.system('rm multi-task-valuation.log')
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s : %(levelname)s : %(message)s',
@@ -173,13 +176,15 @@ def Validate_planner():
 
     img_before, img_after, cap_before, cap_after = [], [], [], []
     img_dict = {} # cap_before_dict, cap_after_dict = {}, {}, {}, {}
-    cnt_global = 0
-
+    print(f'len(os.listdir(static_out_dir)) = {len(os.listdir(static_out_dir))}')
+    cnt_global = len([x for x in os.listdir(static_out_dir) if not (os.path.isfile(x) or x in ['.', '..', '.ipynb_checkpoints'])])
+    print(f'\nAll Data Folder amount: {len(all_data_folder)}\nGlobal cnt = {cnt_global}')
 
     for qwq in range(len(all_data_folder)): # xxxx/GPT-1/
-        # print(folder)
-        # img_mapping = pd.read_csv(os.path.join(folder, 'data.csv'))
+        qwq = 0
+        # TODO: Only a folder one time !
         folder = all_data_folder[qwq]
+
         raw_path = os.path.join(folder, 'GPT_gen_raw')
         ground_path = os.path.join(folder, 'GPT_gen_label')
         image_path = os.path.join(folder, 'GPT_img')
@@ -194,8 +199,8 @@ def Validate_planner():
         assert len(raw_csv_list) == len(ground_csv_list), f'len(raw_csv_list) = {len(raw_csv_list)}, len(ground_csv_list) = {len(ground_csv_list)}'
         tot = len(raw_csv_list)
 
-        tot = 10 # TODO: For Test
         for i in range(tot):
+            # if i > randint(1,3): break
             try:
                 opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
                 os.mkdir(opt.out_dir)
@@ -229,8 +234,17 @@ def Validate_planner():
                 img_file = list(pre_read_coco_dict[str(raw_img_list[i].strip('.jpg'))])[0] # ends with '.jpg'
                 opt.in_dir = os.path.join(coco_base_path, img_file)
                 opt, img_pil_before = get_reshaped_img(opt, img_pil=None, val=True) # opt return, obtain (W, H)
-                # cap1 = captions_dict[img_file.strip('.jpg')]
-                # cap2 = f'{cap1}, edited by {cap}'
+                io_path = os.path.join(opt.out_dir, 'Input-Output')
+                if not os.path.exists(io_path): os.mkdir(io_path)
+
+                img_pil_before.save(f'{io_path}/input.jpg')
+                print(f'img_file (id) = {img_file}')
+                # print(f'captions_dict.keys() = {captions_dict.keys()}')
+                cap1 = captions_dict[img_file.strip('.jpg').lstrip('0')]
+                cap2 = f'{cap1}, edited by \'{prompts}\''
+                with open(os.path.join(io_path, 'caption.txt'), 'w') as f:
+                    f.write(f'{cap1}\n\n{cap2}\n\n{prompts}')
+
 
                 plan_step, tot_step = 1, len(plans)
 
@@ -270,8 +284,10 @@ def Validate_planner():
             # Token limitation: Fail to calculate CLIP related score
             # cap_before.append()
             # cap_after.append()
+        with open(os.path.join(static_out_dir, f'score-dict-{qwq}.txt'), 'w') as f:
+            f.write(str(cur_dict))
 
-        # break # TODO: For Test
+        break # TODO: Only a folder at one time.
 
     tot_score = np.mean(score_list)
     print(f'Test Planner: Average score-ratio on {len(score_list)} pieces data: {tot_score}')
@@ -334,8 +350,8 @@ def Validate_planner():
     plt.ylabel('Scores')
     plt.savefig(f'{static_out_dir}/planner-score-curve.jpg')
     
-    csv_writer(f'{static_out_dir}/psnr-dict-task.csv', psnr_dict)
-    csv_writer(f'{static_out_dir}/ssim-dict-task.csv', ssim_dict)
+    csv_writer(f'{static_out_dir}/psnr-dict-task-{qwq}.csv', psnr_dict)
+    csv_writer(f'{static_out_dir}/ssim-dict-task-{qwq}.csv', ssim_dict)
 
 
 
@@ -353,8 +369,7 @@ def Validate_on_Ip2p_Dataset(test_num):
     cap_before_list, cap_after_list = [], []
     cnt = 0
     static_out_dir = opt.out_dir
-    if os.path.exists(static_out_dir): os.system(f'rm -rf {static_out_dir}')
-    os.mkdir(static_out_dir)
+    if not os.path.exists(static_out_dir): os.mkdir(static_out_dir)
 
     planning_agent = get_planning_system_agent(opt)
 
