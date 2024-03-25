@@ -42,8 +42,8 @@ def use_exp_agent(opt, system_prompt):
 
 def Val_Add_Method(opt):
     seed_everything(opt.seed)
-    val_folder = '../autodl-tmp/COCO/train2017'
-    with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
+    val_folder = '../autodl-tmp/COCO/val2017'
+    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
         data_val = json.load(f)    
     # query caption via image_id
     selected_list = []
@@ -57,7 +57,7 @@ def Val_Add_Method(opt):
     preloaded_agent = preload_all_agents(opt) if opt.preload_all_models else None
     model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)
 
-    with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
         captions = json.load(f)    
     
     captions_dict = {}
@@ -71,6 +71,7 @@ def Val_Add_Method(opt):
     
     label_metadata = {}
     for x in data_val['categories']:
+        print(x)
         label_metadata[str(x['id'])] = x['name']
             
     acc_num_add, acc_num_ip2p = 0, 0
@@ -186,8 +187,8 @@ def Val_Add_Method(opt):
 
 def Val_Remove_Method(opt):
     seed_everything(opt.seed)
-    val_folder = '../autodl-tmp/COCO/train2017'
-    with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
+    val_folder = '../autodl-tmp/COCO/val2017'
+    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
         data_val = json.load(f)
         # query caption via image_id
     selected_list = []
@@ -203,7 +204,7 @@ def Val_Remove_Method(opt):
     if not os.path.exists(f'{opt.out_dir}/Inputs-Add/'):
         os.mkdir(f'{opt.out_dir}/Inputs-Add/')
 
-    with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
         captions = json.load(f)
 
     captions_dict = {}
@@ -215,6 +216,7 @@ def Val_Remove_Method(opt):
             captions_dict[image_id] = x['caption']
     label_metadata = {}
     for x in data_val['categories']:
+        print(x)
         label_metadata[str(x['id'])] = x['name']
 
     acc_num_remove, acc_num_ip2p = 0, 0
@@ -364,8 +366,8 @@ if __name__ == '__main__':
     start_time = time.time()
     from Exp_replace_move import main1
     print('\nnFirst: Replace & Move \n\n')
-    main1(test_group_num=50)
+    main1(test_group_num=75)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(test_group_num=50)
+    main2(test_group_num=75)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

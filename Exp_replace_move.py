@@ -54,10 +54,11 @@ def read_original_prompt(path_to_json):
 def Val_Replace_Method(opt):
     seed_everything(opt.seed)
     # agent = use_exp_agent(opt, system_prompt_edit_sort)
-    val_folder = '../autodl-tmp/COCO/train2017'
-    with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
-        data_val = json.load(f)['annotations']
+    val_folder = '../autodl-tmp/COCO/val2017'
+    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
+        data_ = json.load(f)
         # query caption via image_id
+    data_val = data_['annotations']
     length = len(data_val)
     folders = os.listdir(val_folder)
     length = len(folders)
@@ -68,7 +69,7 @@ def Val_Replace_Method(opt):
     preloaded_agent = preload_all_agents(opt) if opt.preload_all_agents else None
     model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)
 
-    with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
         captions = json.load(f)
 
     captions_dict = {}
@@ -80,7 +81,8 @@ def Val_Replace_Method(opt):
             captions_dict[image_id] = x['caption']
     
     label_metadata = {}
-    for x in data_val['categories']:
+    for x in data_['categories']:
+        print(x)
         label_metadata[str(x['id'])] = x['name']
 
     image_before_list,  image_after_list,  image_ip2p_list = [], [], []
@@ -102,12 +104,13 @@ def Val_Replace_Method(opt):
 
         try:
             instance = data_val[idx]
-            label_id = int(float(instance['category_id']))
+            label_id = int(instance['category_id'])
             label_new_id = randint(1, 81)
             while label_new_id == label_id:
                 label_new_id = randint(1, 81)
             label_ori = label_metadata[str(label_id)]
             label_new = label_metadata[str(label_new_id)]
+            print(f'(label_id, label_ori) = {(label_id, label_ori)}, (label_new_id, label_new) = {(label_new_id, label_new)}')
 
             img_id = instance['image_id']
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
@@ -187,10 +190,10 @@ def Val_Replace_Method(opt):
 
 def Val_Move_Method(opt):
     seed_everything(opt.seed)
-    val_folder = '../autodl-tmp/COCO/train2017/'
+    val_folder = '../autodl-tmp/COCO/val2017/'
     agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
     # for validation after
-    with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
         caption = json.load(f)    
     # query caption via image_id
     captions_dict = {}
@@ -207,10 +210,11 @@ def Val_Move_Method(opt):
         else:
             captions_dict[image_id] = x['caption']
 
-    with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
         data = json.load(f)
     label_metadata = {}
     for x in data['categories']:
+        print(x)
         label_metadata[str(x['id'])] = x['name']
     
     length = len(data['annotations'])
@@ -241,7 +245,7 @@ def Val_Move_Method(opt):
             x, y, w, h = int(x), int(y), int(w), int(h)
             img_id, label_id = annotation['image_id'], annotation['category_id']
             caption = captions_dict[str(img_id)]
-            label = label_metadata[str(int(float(label_id)))]
+            label = label_metadata[str(label_id)]
 
             place = [x for x in get_response(agent, f'{opt.edit_txt}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
             assert len(place) == 2, f'place = {place}'
