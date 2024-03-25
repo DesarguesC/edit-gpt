@@ -9,7 +9,6 @@ from prompt.arguments import get_arguments
 from prompt.util import Cal_ClipDirectionalSimilarity as cal_similarity
 from prompt.util import Cal_FIDScore as cal_fid
 from prompt.util import calculate_clip_score, PSNR_compute, SSIM_compute, write_instruction, write_valuation_results, cal_metrics_write
-from detectron2.data import MetadataCatalog
 from preload_utils import *
 
 from operations.vqa_utils import preload_vqa_model, Val_add_amount, IsRemoved
@@ -44,7 +43,6 @@ def use_exp_agent(opt, system_prompt):
 def Val_Add_Method(opt):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/train2017'
-    metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data_val = json.load(f)    
     # query caption via image_id
@@ -63,13 +61,18 @@ def Val_Add_Method(opt):
         captions = json.load(f)    
     
     captions_dict = {}
+    
     for x in captions['annotations']:
         image_id = str(x['image_id'])
         if image_id in captions_dict:
             captions_dict[image_id] = captions_dict[image_id] + '; ' + x['caption']
         else:
             captions_dict[image_id] = x['caption']
-
+    
+    label_metadata = {}
+    for x in data_val['categories']:
+        label_metadata[str(x['id'])] = x['name']
+            
     acc_num_add, acc_num_ip2p = 0, 0
     static_out_dir = opt.out_dir
     if not os.path.exists(opt.out_dir):
@@ -98,7 +101,7 @@ def Val_Add_Method(opt):
             while add_label_id == category_id:
                 add_label_id = randint(1,81)
 
-            add_label = metadata.stuff_classes[add_label_id]
+            add_label = label_metadata[str(add_label_id)]
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
             ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
 
@@ -184,7 +187,6 @@ def Val_Add_Method(opt):
 def Val_Remove_Method(opt):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/train2017'
-    metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data_val = json.load(f)
         # query caption via image_id
@@ -211,6 +213,9 @@ def Val_Remove_Method(opt):
             captions_dict[image_id] = captions_dict[image_id] + '; ' + x['caption']
         else:
             captions_dict[image_id] = x['caption']
+    label_metadata = {}
+    for x in data_val['categories']:
+        label_metadata[str(x['id'])] = x['name']
 
     acc_num_remove, acc_num_ip2p = 0, 0
     static_out_dir = opt.out_dir
@@ -238,7 +243,7 @@ def Val_Remove_Method(opt):
             while add_label_id == category_id:
                 add_label_id = randint(1, 81)
 
-            ori_label = metadata.stuff_classes[category_id]
+            ori_label = label_metadata[str(category_id)]
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
             ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 

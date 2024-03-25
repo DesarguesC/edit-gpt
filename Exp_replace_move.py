@@ -5,7 +5,6 @@ from basicsr.utils import tensor2img, img2tensor
 from random import randint
 from PIL import Image, ImageOps
 import numpy as np
-from detectron2.data import MetadataCatalog
 from task_planning import Replace_Method, Move_Method, Transfer_Method
 from prompt.arguments import get_arguments
 from prompt.util import Cal_ClipDirectionalSimilarity as cal_similarity
@@ -56,7 +55,6 @@ def Val_Replace_Method(opt):
     seed_everything(opt.seed)
     # agent = use_exp_agent(opt, system_prompt_edit_sort)
     val_folder = '../autodl-tmp/COCO/train2017'
-    metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data_val = json.load(f)['annotations']
         # query caption via image_id
@@ -80,6 +78,10 @@ def Val_Replace_Method(opt):
             captions_dict[image_id] = captions_dict[image_id] + '; ' + x['caption']
         else:
             captions_dict[image_id] = x['caption']
+    
+    label_metadata = {}
+    for x in data_val['categories']:
+        label_metadata[str(x['id'])] = x['name']
 
     image_before_list,  image_after_list,  image_ip2p_list = [], [], []
     caption_before_list, caption_after_list = [], []
@@ -104,8 +106,8 @@ def Val_Replace_Method(opt):
             label_new_id = randint(1, 81)
             while label_new_id == label_id:
                 label_new_id = randint(1, 81)
-            label_ori = metadata.stuff_classes[label_id]
-            label_new = metadata.stuff_classes[label_new_id]
+            label_ori = label_metadata[str(label_id)]
+            label_new = label_metadata[str(label_new_id)]
 
             img_id = instance['image_id']
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
@@ -186,7 +188,6 @@ def Val_Replace_Method(opt):
 def Val_Move_Method(opt):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/train2017/'
-    metadata = MetadataCatalog.get('coco_2017_train_panoptic')
     agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
     # for validation after
     with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
@@ -208,6 +209,9 @@ def Val_Move_Method(opt):
 
     with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data = json.load(f)
+    label_metadata = {}
+    for x in data['categories']:
+        label_metadata[str(x['id'])] = x['name']
     
     length = len(data['annotations'])
     selected_list = []
@@ -237,7 +241,7 @@ def Val_Move_Method(opt):
             x, y, w, h = int(x), int(y), int(w), int(h)
             img_id, label_id = annotation['image_id'], annotation['category_id']
             caption = captions_dict[str(img_id)]
-            label = metadata.stuff_classes[int(float(label_id))]
+            label = label_metadata[str(int(float(label_id)))]
 
             place = [x for x in get_response(agent, f'{opt.edit_txt}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
             assert len(place) == 2, f'place = {place}'
