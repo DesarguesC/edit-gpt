@@ -99,7 +99,7 @@ def Val_Add_Method(opt):
             img_id = instance['image_id']
             caption1 = captions_dict[str(img_id)]
             add_label_id = category_id
-            while (add_label_id == category_id) or (str(label_new_id) not in label_metadata.keys()):
+            while (add_label_id == category_id) or (str(add_label_id) not in label_metadata.keys()):
                 add_label_id = randint(1,81)
 
             add_label = label_metadata[str(add_label_id)]
@@ -242,7 +242,7 @@ def Val_Remove_Method(opt):
             img_id = instance['image_id']
             caption1 = captions_dict[str(img_id)]
             add_label_id = category_id
-            while (add_label_id == category_id) or (str(label_new_id) not in label_metadata.keys()):
+            while (add_label_id == category_id) or (str(add_label_id) not in label_metadata.keys()):
                 add_label_id = randint(1, 81)
 
             ori_label = label_metadata[str(category_id)]
