@@ -106,7 +106,7 @@ def Val_Replace_Method(opt):
             instance = data_val[idx]
             label_id = int(instance['category_id'])
             label_new_id = randint(1, 81)
-            while label_new_id == label_id:
+            while (label_new_id == label_id) or (str(label_new_id) not in label_metadata.keys()):
                 label_new_id = randint(1, 81)
             label_ori = label_metadata[str(label_id)]
             label_new = label_metadata[str(label_new_id)]
