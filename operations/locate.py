@@ -119,7 +119,6 @@ def create_location(
                     gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
                     else get_response(edit_agent, question if try_time < 3 else (question + notes))
                 ) if x not in ['', ' ']]
-
         # deal with the answer, procedure is the same as in replace.py
         print(f'box_ans = {box_ans}')
         if len(box_ans) < 4:
@@ -138,7 +137,6 @@ def create_location(
         print(f'box_0 before fixed: {box_0}')
         box_0 = fix_box(box_0, (opt.W,opt.H,3))
         print(f'box_0 after fixed = {box_0}')
-        
         try_time += 1
 
     print(f'BEFORE: box_0={box_0}')

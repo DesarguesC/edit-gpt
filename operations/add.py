@@ -127,7 +127,6 @@ def Add_Object(
             print(f'box_0 before fixed: {fixed_box}')
             fixed_box = fix_box(fixed_box, (opt.W,opt.H,3))
             print(f'box_0 after fixed = {fixed_box}')
-
             try_time += 1
         
         print(f'ans_box = {fixed_box}')

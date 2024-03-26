@@ -155,7 +155,7 @@ def replace_target(
                 break
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
-        # re.compile('[^\w\s]+')
+        # TODO: Consider [1024,1024,-1025,-1025] return, stuck on this loop.
         box_0 = [x.strip() for x in re.split(r"[\[\](),]", 
                     gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
                     else get_response(edit_agent, (question if try_time < 3 else f'{question}\n{notes}')).strip()
@@ -173,11 +173,11 @@ def replace_target(
             box_0 = (0, 0, 0, 0)
             try_time += 1
             continue
-
         print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
         box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
         box_0 = fix_box(box_0, (opt.H,opt.W,3))
         print(f'fixed box: (x,y,w,h) = {box_0}')
+        try_time += 1
 
     target_mask = refactor_mask(box_2, mask_2, box_0, type='replace', use_max_min=opt.use_max_min)
     # mask2: Shape[1 * h * w], target_mask: Shape[1 * h * w]
