@@ -191,9 +191,15 @@ def fix_box(gpt_box, img_shape):
     if h < 0: 
         h = -h
         print('?')
+    if h == 0 or w == 0:
+        return fixed_box
+    
     H_, W_, _ = img_shape # [h, w, 3]
     flag = 0
     while x + w >= W_ or y + h >= H_:
+        flag += 1
+        if flag > 4:
+            return fixed_box
         if x < W_ and y < H_:
             print(f'1-Fixing: with (W,H) = {(W_, H_)}')
             w //= 2
@@ -202,8 +208,4 @@ def fix_box(gpt_box, img_shape):
             print(f'2-Fixing: with (x,y) = {(x, y)}')
             x //= 2
             y //= 2
-        flag += 1
-        if flag > 4:
-            return fixed_box
-            
     return (x,y,w,h)
