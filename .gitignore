@@ -14,7 +14,7 @@ checkpoints/
 # static-inpaint/ 
 # static/
 memory_test.txt
-
+*.ipynb
 models/*.txt
 
 *.csv
