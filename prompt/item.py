@@ -28,11 +28,10 @@ class Label():
         out = out + "\\}$"
         return out
 
-    def get_str_location(self, box_mame_list, edit_txt, size: tuple):
+    def get_str_location(self, box_mame_list, edit_txt, size: tuple, ratio_mode=False):
         # box_name_list[-1] used as a hint for GPT
-        out = ""
         assert len(box_mame_list) >= 1, f'abnormal length of the box_name_list, box_name_list: {box_mame_list}'
-        size_ = f"Size: ({size[0]},{size[1]})"
+        size_ = f"Size: ({size[0]},{size[1]})" if not ratio_mode else ''
         list_ = "Objects: " + self.get_str_part(box_mame_list) # box_name_list[0:-1] -> box_name_list
         target_ = "Target: " + box_mame_list[-1]['name']
         edit_ = "Edit-Text: " + edit_txt
@@ -60,16 +59,16 @@ class Label():
         Objects = self.get_str_part(panoptic_dict)
         return f'Objects: {Objects}\nOld: {old_noun}\nNew: {new_noun}'
 
-    def get_str_add_panoptic(self, panoptic_dict: list[dict], name: str, size: tuple):
+    def get_str_add_panoptic(self, panoptic_dict: list[dict], name: str, size: tuple, ratio_mode=False):
         # place not specified
-        Size = f'({size[0]},{size[1]})' # (W,H)
+        Size = f'Size: ({size[0]},{size[1]})' if not ratio_mode else '' # (W,H)
         Objects = self.get_str_part(panoptic_dict)
-        return f'Size: {Size}\nObjects: {Objects}\nTarget: {name}'
+        return f'{Size}\nObjects: {Objects}\nTarget: {name}'
 
-    def get_str_add_place(self, place, name, size: tuple, place_box: Optional[tuple]):
-        Size = f'({size[0]},{size[1]})'
+    def get_str_add_place(self, place, name, size: tuple, place_box: Optional[tuple], ratio_mode=False):
+        Size = f'Size: ({size[0]},{size[1]})' if not ratio_mode else ''
         Place = f'[{place}, ({place_box[0]},{place_box[1]}), ({place_box[2]},{place_box[3]})]'
-        return f'Size: {Size}\nPlace: {Place}\nTarget: {name}'
+        return f'{Size}\nPlace: {Place}\nTarget: {name}'
 
     def __str__(self):
         out = "$\\{"

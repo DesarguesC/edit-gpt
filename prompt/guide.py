@@ -63,38 +63,50 @@ replace_first_ask =     'You need to output both the replaced object $A$ and the
     Target: Name
     Edit-Text: ...
 """
-system_prompt_locate =     'You are a text detector, expert at generating a new bounding box for a specific object. '\
+system_prompt_locate = 'You are a text detector, expert at generating a new bounding box for a specific object. '\
+                       'Inputs are in the form of the bellow: \n'\
+                       'Size: $(W_{img},H{img})$\n'\
+                       'Objects: ${[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],..., '\
+                       '[Name_n, (X_n,Y_n), (W_n,H_n))]}$\nTarget: Name_n\nEdit-Text: <text prompt>. \n'\
+                       'As inputs from shown above, $(W_{img},H_{img})$ represents the size of original image input.'\
+                       'And for the i-th item $[Name_i, (X_i,Y_i), (W_i,H_i)]$ in the field \"Objects\", '\
+                       'Name_i labels its name (i.e. object class, such as cat, dog, apple and etc.), '\
+                       'and $(X_i,Y_i), (W_i,H_i)$ represent the location and size respectively in an image(or a photo). '\
+                       'Additianally, $(X_i,Y_i), (W_i,H_i)$ is in form of the bounding box, '\
+                       'where $(X_i,Y_i)$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
+                       'And $(W_i,H_i)$ represents the width and height of a rectangular box that including the i-th object. '\
+                       '"Target" indicates a target to be edited, and we enssure '\
+                       'that Name in \"Target\" field is equivalent to $Name_n$ in \"Objects\" field. '\
+                       'Finally, in \"Edit-Text\" field, you will get the edit prompt. '\
+                       'Your task is to arrange a proper place and size, in form of bounding box, '\
+                       'For your task, you should output your generation of the target bounding box in the form of '\
+                        '$[Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]$. $Name_n$ represents the name of the target '\
+                        '(it stays the same!) and $[Name, (0,0), (0,0)]$ is strictly forbidden is your output. '\
+                        'And your output mustn\'t contain any other character. '
+
+# TODO: need to amend the label.str etc. method
+system_prompt_locate_ratio = 'You are a text detector, expert at generating a new bounding box for a specific object. '\
                            'Inputs are in the form of the bellow: \n'\
                            'Size: $(W_{img},H{img})$\n'\
                            'Objects: ${[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],..., '\
                            '[Name_n, (X_n,Y_n), (W_n,H_n))]}$\nTarget: Name_n\nEdit-Text: <text prompt>. \n'\
-                           'As inputs from shown above, $(W_{img},H_{img})$ represents the size of original image input.'\
-                           'And for the i-th item $[Name_i, (X_i,Y_i), (W_i,H_i)]$ in the field \"Objects\", '\
+                           'As inputs from shown above, the i-th item is represented as '\
+                           '$[Name_i, (X_i,Y_i), (W_i,H_i)]$ in the field \"Objects\", '\
                            'Name_i labels its name (i.e. object class, such as cat, dog, apple and etc.), '\
                            'and $(X_i,Y_i), (W_i,H_i)$ represent the location and size respectively in an image(or a photo). '\
                            'Additianally, $(X_i,Y_i), (W_i,H_i)$ is in form of the bounding box, '\
                            'where $(X_i,Y_i)$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
                            'And $(W_i,H_i)$ represents the width and height of a rectangular box that including the i-th object. '\
+                           'It is of vital importance that $(X_i,Y_i,W_i,H_i)$ are all ranged in $[0,1]$, float type.'\
                            '"Target" indicates a target to be edited, and we enssure '\
                            'that Name in \"Target\" field is equivalent to $Name_n$ in \"Objects\" field. '\
                            'Finally, in \"Edit-Text\" field, you will get the edit prompt. '\
                            'Your task is to arrange a proper place and size, in form of bounding box, '\
                            'For your task, you should output your generation of the target bounding box in the form of '\
                             '$[Name_n, (X_{new},Y_{new}), (W_{new}, H_{new})]$. $Name_n$ represents the name of the target '\
-                            '(it stays the same!) and $[Name, (0,0), (0,0)]$ is strictly forbidden is your output. '\
+                            '(it stays the same!) and $[Name, (0.0,0.0), (0.0,0.0)]$ is strictly forbidden is your output. '\
                             'And your output mustn\'t contain any other character. '
-                            
-                        #    'for "Target" among objects in "Objects" field. '\
-                        #    'For the coordinates designed in bounding box, we give relevant definitions. '\
-                        #    'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
-                        #    'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
-                        #    'The direction "down" is defined as the positive direction of the y axis, '\
-                        #    'and the direction "right" is defined as the positive direction of the x axis. '\
-                        #    'In addition, for the width and height (i.e. $w$ and $h$) in bounding box, the former corresponds to the X-axis direction '\
-                        #    'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple $((x,y), (w,h))$ '\
-                        #    'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
-                        #    '$(x,y), (x+w,y), (w,y+h), (x+w,y+h)$, respectively. From this point of view, the values of $x+w$ and $y+h$ generated '\
-                        #    'cannot exceed the size of the original image $(W_{img},H{img})$. Note that bounding boxes can overlap. '
+
           
 locate_first_ask =      'If you have fully understood your task, '\
                         'please answer "yes" in the round without any extra characters. ' # replace the prompt befere
@@ -134,14 +146,36 @@ system_prompt_add = 'You are a text detection master and need to generate a new 
                     'Additianally, $(X_i,Y_i), (W_i,H_i)$ is in form of the bounding box, '\
                     'where $(X_i,Y_i)$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
                     'and $(W_i,H_i)$ represents the width and height of a rectangular box that including the i-th object. '\
+                    'The whole bounding box must be in the range of the image sized $(W_{img}, H_{img})$'\
                     'You need to give the position and size of the specified new object "Name" in bounding box format. '\
                     'Regarding the arrangement of its position, you need to consider relative size to '\
                     'arrange a place $(X,Y)$ and a size $(W,H)$ for "Name". Your out put should be in format: '\
                     '$[Name, (X,Y,W,H)]$.'
 # TODO: output Form ?
 
+# TODO: need to amend label.str etc method.
+system_prompt_add_ratio = 'You are a text detection master and need to generate a new bounding box for a specific object. '\
+                    'You are going to get a series texts input in the form of the bellow: \n'\
+                    'Objects: $\\{[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
+                    '[Name_n, (X_n,Y_n), (W_n,H_n))]\\}$\nTarget: Name\n'\
+                    'For the i-th item $[Name_i, (X_i,Y_i), (W_i,H_i)]$ in the field \"Objects\", '\
+                    '$Name_i$ represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
+                    'and $(X_i,Y_i), (W_i,H_i)$ represent the relative location and relative size respectively in an image(or a photo). '\
+                    'Additianally, $(X_i,Y_i), (W_i,H_i)$ is in form of the bounding box, '\
+                    'where $(X_i,Y_i)$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
+                    'and $(W_i,H_i)$ represents the width and height of a rectangular box that including the i-th object. '\
+                    'They are all ranged in $[0,1]$, as a relative location and relative size. '\
+                    'You need to give the position and size of the specified new object "Name" in bounding box format. '\
+                    'Regarding the arrangement of its position, you need to consider relative size to '\
+                    'arrange a place $(X,Y)$ and a size $(W,H)$ for "Name". Your out put should be in format: '\
+                    '$[Name, (X,Y,W,H)]$.'
+
 add_first_ask = 'If you have fully understand your task, please answer "yes" without any extra characters, and your output mustn\'t contain '\
-                '$(0,0,0,0)$ as bounding box. '
+                '$(0,0,0,0)$ as bounding box. Strictly forbid $(0,0,0,0)$ output.'
+
+add_first_ask_ratio = 'If you have fully understand your task, please answer "yes" without any extra characters, and your output mustn\'t contain '\
+                '$(0.0,0.0,0.0,0.0)$ as bounding box. Strictly forbid $(0.0,0.0,0.0,0.0) output.$'
+
 
 system_prompt_addHelp = 'You will receive an instruction for image editing, which aims at adding objects '\
                         'to the image. Your task is to extract: What objects are to be added and How many respectively . '\
@@ -158,68 +192,98 @@ addHelp_first_ask = 'For your task, in the output "name", note that you need to 
                     'white fur on the lawn," the output would be (" cats with black and white fur, "2," on the lawn "). '\
                     'In addition, your output must be of the form (name, num, place) and must not have any extra characters.'
 
-system_prompt_addArrange = 'You are a text detection master and need to generate a new bounding box for a specific object. '\
-                           'You should add an object to a specified place. '\
+system_prompt_addArrange = 'You are a text detection master and need to generate a new bounding box for a specific object, '\
+                           'namely adding an object to a specified place. '\
                            'You are going to get a series texts input in the form of the bellow: \n'\
-                           'Size: $(W_{img},H{img})$\n'\
-                           'Place: $[Name_p, (X_p,Y_p), (W_p,H_p)]$\nTarget: Name\n'\
+                           'Size: $(W_{img},H{img})$\nPlace: $[Name_p, (X_p,Y_p), (W_p,H_p)]$\nTarget: Name\n'\
                            'In the input shown above, $(W_{img},H_{img})$ in \"Size\" field represents the size of original image input. '\
-                           'And int \"Place\" field the name of a scenery is given by $Name_p$, so as its location and range. '\
-                           '\"Place\" is defined by $[Name_p, (X_p,Y_p), (W_p,H_p)]$ where $Name_p$ represents its name while '\
+                           'And in \"Place\" field $Name_p$ represents the name of scenery. '\
+                           '\"Place\" field is defined by $[Name_p, (X_p,Y_p), (W_p,H_p)]$ and $Name_p$ represents its name while '\
                            '$(X_p,Y_p)$ and $(W_p,H_p)$ represent its location and size in an image (or a photo). '\
-                           'WHAT YOU SHOULD DO IS: arrange(generate) a proper location and size for the object \"Name\" '\
+                           'What you should do is to arrange(generate) a proper location and size for the object \"Name\" '\
                            'with the constrain that the object \"Name\" represents is in the scope of \"Place\"'\
                            '$Name_p$ and $Name$ respectively represent a name (i.e. object class, such as \"cat\", \"dog\", \"apple\", etc.), '\
                            'and $(X_p,Y_p), (W_p,H_p)$ represent the location and size respectively in an image (or a photo) '\
                            'and a bounding box is uniquely identified by $(X_i,Y_i), (W_i,H_i)$ '\
                            'where $(X_p,Y_p)$ represents the coordinate of the point at the top left corner in the edge of bounding box, '\
                            'And $(W_p,H_p)$ represents the width and height of a rectangular box that including object. '\
-                           'For the coordinates designed in bounding box, we give relevant definitions. '\
-                           'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
+                           'For the bounding box format $(X, Y, W, H)$, the upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
                            'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
                            'The direction "down" is defined as the positive direction of the y axis, '\
                            'and the direction "right" is defined as the positive direction of the x axis. '\
-                           'In addition, for the width and height (i.e. $w$ and $h$) in bounding box, the former corresponds to the X-axis direction '\
-                           'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple $((x,y), (w,h))$ '\
-                           'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
-                           '$(x,y), (x,y+h), (x+w,y), (x+w,y+h)$, respectively. From this point of view, the values of $x+w$ and $y+h$ generated '\
+                           'In addition, bounding box should strictly contains in the image sized $(W_{img}, H_{img})$ given in input. '\
+                           'That is to say, the coordinates of the four vertices $(x,y), (x,y+h), (x+w,y), (x+w,y+h)$ '\
+                           'are inside the image. From this point of view, the values of $x+w$ and $y+h$ generated '\
                            'cannot exceed the size of the original image $(W_{img},H{img})$. Note that bounding boxes can overlap. '
 
-addArrange_first_ask =  'For the coordinates designed in bounding box, further definition is: '\
-                        'The upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
-                        'Starting from the origin point, there are only two directions along the edge of the picture, "down" and "right". '\
-                        'The direction "down" is defined as the positive direction of the y axis, '\
-                        'and the direction "right" is defined as the positive direction of the x axis. '\
-                        'In addition, for the width and height (i.e. $w$ and $h$) in bounding box, the former corresponds to the X-axis direction '\
-                        'and the latter to the Y-axis direction. Therefore, given a bounding box quadtuple $((x,y), (w,h))$ '\
-                        'corresponding to a rectangular region in a picture, the coordinates of the four vertices are '\
-                        '$(x,y), (x+w,y), (x,y+h), (x+w,y+h)$, respectively. From this point of view, the values of $x+w$ and $y+h$ generated '\
-                        'cannot exceed the size of the original image (W_{img},H{img}).'\
-                        'Your task is to arrange the position and size of the target \"Name\" specified in the \"Target\" field ' \
-                        'on purpose of adding it to the \"Place\" field. '\
-                        'You should arrange a proper position and a proper size for the target. '\
-                        'In this way, your task is to generate the position and size according to the information '\
-                        'given and representing them in the form of bounding box. '\
-                        'You should output your generation of the target bounding box in the form '\
-                        '$[name_n, (X,Y), (W, H)]$ without any other character. $name_n$ represents the name of the target '\
+# TODO: amend label.str etc. method
+system_prompt_addArrange_ratio = 'You are a text detection master and need to generate a new bounding box for a specific object, '\
+                           'namely adding an object to a specified place. '\
+                           'You are going to get a series texts input in the form of the bellow: \n'\
+                           'Place: $[Name_p, (X_p,Y_p), (W_p,H_p)]$\nTarget: Name\n'\
+                           'In the input shown above, in \"Place\" field $Name_p$ represents the name of scenery. '\
+                           '\"Place\" field is defined by $[Name_p, (X_p,Y_p), (W_p,H_p)]$ where $Name_p$ represents its name while '\
+                           '$(X_p,Y_p)$ and $(W_p,H_p)$ represent its relative location and relative size in an image (or a photo), ranged in $[0,1]$. '\
+                           'What you should do is to arrange(generate) a proper relative location and size for the object \"Name\" '\
+                           'with the constrain that the object \"Name\" represents in the scope of \"Place\".'\
+                           '$Name_p$ represents a name (i.e. object class, such as \"cat\", \"dog\", \"apple\", etc.), '\
+                           'and $(X_p,Y_p), (W_p,H_p)$ represents the relative location and size respectively in an image (or a photo) '\
+                           '$(X_i,Y_i), (W_i,H_i)$ is in bounding box format, '\
+                           'where $(X_p,Y_p)$ represents the coordinate of the point at the top left corner in the edge of bounding box. '\
+                           'And $(W_p,H_p)$ represents the width and height of a rectangular box that including object. '\
+                           'Additionally, for a bounding box $(X, Y, W, H)$, the upper left corner of a picture in the sense of human vision is the origin of coordinates; '\
+                           'Starting from the origin, there are only two directions along the edge of the picture, "down" and "right". '\
+                           'The direction "down" is defined as the positive direction of the y axis, '\
+                           'and the direction "right" is defined as the positive direction of the x axis. '\
+                           'It is of vital importance that $X,Y,W,H$ in bounding box are all ranged in $[0,1]$. '\
+                           'Note that bounding boxes can overlap. '
+
+
+addArrange_first_ask =  'You should output your generation of the target bounding box in the form of'\
+                        '$[name_n, (X,Y), (W, H)]$ without any other character, where $name_n$ represents the name of the target '\
                         '(it stays the same!). And coordinates $(X,Y)$ is the coordinate of the point at the top left corner in '\
                         'the edge of the bounding box, while $(W,H)$ represents the width and height of a '\
-                        'rectangular box that including this object. Note that bounding boxes can overlap. '\
-                        'If you have understood your task, '\
-                        'please answer "yes" in the round without any extra characters, after which '\
-                        'I will give you input.'
+                        'rectangular box that including this object. '\
+                        'They are in bounding box format, contains inside the image sized $(W_{img}, H_{img})$. '\
+                        'Note that any other character if strictly forbidden in our output, as well as $(0,0,0,0)$ output as bounding box. '\
+                        'If you have fully understood the task, please answer \"yes\" without any other character. '
+
+addArrange_first_ask_ratio =  'You should output your generation of the target bounding box in the form of'\
+                        '$[name_n, (X,Y), (W, H)]$ without any other character, where $name_n$ represents the name of the target '\
+                        '(it stays the same!). And coordinates $(X,Y), (W,H)$ is in the form of bounding box, ranged in $[0,1]$. '\
+                        'Note that you mustn\'t output any other character. And bounding box$(0.0,0.0,0.0,0.0)$ output '\
+                        'is strictly forbidden in your output. '\
+                        'If you have fully understood the task, please answer \"yes\" without any other character. '
+
 
 # 对于更加复杂的编辑任务，增加一个agent将指令分解为上述编辑单元
 
-system_prompt_rescale =     'You are an object scaler, capable of generating a size and location for an object '\
-                            'after considering size and location information of objects comprehensively. '\
+system_prompt_rescale = 'You are an object scaler, capable of generating a size and location for an object '\
+                        'after considering size and location information of objects comprehensively. '\
+                        'You\'ll be told a series of input messages in the form of as follow:\n '\
+                        'Objects: $\\{[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , [Name_n, (X_n,Y_n), (W_n,H_n))]\\}$\n'\
+                        'Old: $Name_{old}$\nNew: $Name_{new}$\n'\
+                        'For the i-th item $[Name_i, (X_i,Y_i), (W_i,H_i)]$ in the field "Objects", '\
+                        '$Name_i$ represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
+                        'and $(X_i,Y_i), (W_i,H_i)$ represent the location and size respectively. '\
+                        'Additianally, $(X_i,Y_i), (W_i,H_i)$ is in form of the bounding box, '\
+                        'where $(X_i,Y_i)$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
+                        'and $(W_i,H_i)$ represents the width and height of a rectangular box that including the i-th object. '\
+                        'Then, in "Old" and "New" field , two nouns are given respectively, which indicates the $Name_{old}$ '\
+                        'should be replaced $Name_{new}$. '\
+                        'Based on the description above, your task is to generate a new position coordinates and sizes '\
+                        'for the replacement. The out put should be in the form of $[Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})]$. '\
+                        'Note that bounding boxes can overlap. '
+
+system_prompt_rescale_ratio = 'You are an object scaler, capable of generating a size and location for an object '\
+                            'after comprehensively considering size and location information of objects. '\
                             'You\'ll be told a series of input messages in the form of as follow:\n '\
                             'Objects: $\\{[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , [Name_n, (X_n,Y_n), (W_n,H_n))]\\}$\n'\
                             'Old: $Name_{old}$\nNew: $Name_{new}$\n'\
                             'For the i-th item $[Name_i, (X_i,Y_i), (W_i,H_i)]$ in the field "Objects", '\
                             '$Name_i$ represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
-                            'and $(X_i,Y_i), (W_i,H_i)$ represent the location and size respectively. '\
-                            'Additianally, $(X_i,Y_i), (W_i,H_i)$ is in form of the bounding box, '\
+                            'and $(X_i,Y_i), (W_i,H_i)$ represent the relative location and relative size respectively, in the range $[0,1]$ '\
+                            'Additianally, $(X_i,Y_i), (W_i,H_i)$ is in form of the bounding box, ranged in $[0,1]$, '\
                             'where $(X_i,Y_i)$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
                             'and $(W_i,H_i)$ represents the width and height of a rectangular box that including the i-th object. '\
                             'Then, in "Old" and "New" field , two nouns are given respectively, which indicates the $Name_{old}$ '\
@@ -249,6 +313,32 @@ rescale_first_ask =     'For your task, for details, you should generation modif
                         '$[Name_{new}, (X_{new},Y_{new}), (W_{new}, H_{new})]$ and mustn\'t output any extra words. '\
                         'Now if you have fully understood your task, please answer "yes" and mustn\'t output any extra '\
                         'characters, after which I will give you input. '\
+
+rescale_first_ask_ratio = 'For your task, for details, you should generation modified bounding-box following the bellow rules. \n'\
+                        '1. LOGIC. After the replacement is done, the objects must be placed logically. '\
+                        'For example, if you need to replace a dog with a cat, usually the cat will be smaller than the '\
+                        'dog (so the bounding box will be smaller), and if you keep the coordinates $(X_{old},Y_{old})$ '\
+                        'unchanged, and $(W_{old},H_{old})$ decreases, then the cat\'s bounding box may be suspended in '\
+                        'the air. So in this case, we need to take into account the input "Objects" field and combine '\
+                        'the positions of the other objects, so that the generated bounding box of the cat is connected '\
+                        'to the ground (or something else), ensuring that it will not be suspended in the air '\
+                        '(which is illogical). \n'\
+                        '2. STABILITY. As mentioned in the previous point, the position of the object needs to be '\
+                        'modified after the replacement, but we still need to maintain the stability of its position, '\
+                        'the modification needs to be integrated into the input of the "Objects" field in the position '\
+                        'of each object in and overlay, size. In the case of guaranteeing requirement 1., '\
+                        'if we can satisfy the logic stated in 1. without changing $X_{old}$ or $Y_{old}$, '\
+                        'there\'s no necessity to change it. \n'\
+                        'After the above two rules taken into consideration , '\
+                        'you should output the result in the form of $[Name_{new}, (X_{new},Y_{new}), (W_{new},H_{new})]$ '\
+                        'without any other character. '\
+                        'Note that each $(X_{new},Y_{new},W_{new},H_{new})$ mustn\'t ve $(0,0,0,0)$ and is all ranged in $[0,1]$'\
+                        'For each term I ask, you should only output the result in form of '\
+                        '$[Name_{new}, (X_{new},Y_{new}), (W_{new}, H_{new})]$ and mustn\'t output any extra words. '\
+                        'If you have fully understood your task, please answer "yes" and mustn\'t output any extra characters.'
+
+
+
 
 system_prompt_edit = 'You are an textual editor who is able to edit images with the given text input. '\
                      'But unlike traditional textual editors, you only need to edit the positions of some objects, '\
@@ -419,7 +509,7 @@ def get_response(chatbot, asks, mute_print=False):
         if not mute_print: print('Finish')
         return answer
 
-def Use_Agent(opt, TODO=None, print_first_answer=False):
+def Use_Agent(opt, TODO=None, print_first_answer=False, ratio_mode=False):
     # bounding box has its own engine
     if hasattr(opt, 'print_first_answer'): print_first_answer = opt.print_first_answer
     TODO = TODO.lower()
@@ -434,16 +524,24 @@ def Use_Agent(opt, TODO=None, print_first_answer=False):
         first_ans = get_response(agent, replace_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'rescale bbox for me': # Special Engine
-        agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
-        first_ans = get_response(agent, rescale_first_ask)
+        if ratio_mode:
+            agent =agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale_ratio, proxy=net_proxy)
+            first_ans = get_response(agent, rescale_first_ask_ratio)
+        else:
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
+            first_ans = get_response(agent, rescale_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'expand diffusion prompts for me':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
         first_ans = get_response(agent, first_ask_expand)
         if print_first_answer: print(first_ans)
     elif TODO == 'arrange a new bbox for me': # Special Engine
-        agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
-        first_ans = get_response(agent, locate_first_ask)
+        if ratio_mode:
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_locate_ratio, proxy=net_proxy)
+            first_ans = get_response(agent, locate_first_ask) # just for "yes" response
+        else:
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
+            first_ans = get_response(agent, locate_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'find target to be moved':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_noun, proxy=net_proxy)
@@ -454,12 +552,20 @@ def Use_Agent(opt, TODO=None, print_first_answer=False):
         first_ans = get_response(agent, addHelp_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'generate a new bbox for me': # Special Engine
-        agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
-        first_ans = get_response(agent, add_first_ask)
+        if ratio_mode:
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_add_ratio, proxy=net_proxy)
+            first_ans = get_response(agent, add_first_ask_ratio)
+        else:
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
+            first_ans = get_response(agent, add_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'adjust bbox for me': # Special Engine
-        agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy)
-        first_ans = get_response(agent, addArrange_first_ask)
+        if ratio_mode:
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_addArrange_ratio, proxy=net_proxy)
+            first_ans = get_response(agent, addArrange_first_ask_ratio)
+        else:
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy)
+            first_ans = get_response(agent, addArrange_first_ask)
         if print_first_answer: print(first_ans)
     # elif TODO == 'use gpt-4v':
     #     agent = get_bot(engine=engine, api_key=api_key, system_prompt=gpt4_v_get_box, proxy=net_proxy)
