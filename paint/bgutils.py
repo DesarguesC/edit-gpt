@@ -132,11 +132,14 @@ def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_m
     if use_dilation:
         mask = mask.unsqueeze(0) if len(mask.shape) == 2 else mask.squeeze(0) if len(mask.shape) == 4 else mask
         # convert to [1, h, w]
-        if np.max(mask) == 255 or np.max(mask) == 255: mask = mask / 255
+        if isinstance(mask, torch.Tensor): mask = mask.detach().cpu().numpy()
+        # print(f'[Before Dilation] mask.shape = {mask.shape} | np.max(mask) = {np.max(mask)}')  # [1, h, w]
+        if np.max(mask) <= 1.: mask = mask * 255
         # use opencv dilation instead of SAM/max_min
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (dilation, dilation))
-        _, binary = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-        return max_min_box(cv2.erode(binary, kernel, iterations=dilation_iter))
+        eroded = cv2.erode(np.uint8(mask), kernel, iterations=dilation_iter)
+        # _, binary = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        return max_min_box(eroded)
     elif use_max_min:
         return max_min_box(mask)    # use max & min coordinates for bounding box generating
 

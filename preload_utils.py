@@ -239,15 +239,15 @@ def preload_all_models(opt):
 def preload_all_agents(opt):
     # task planning agent need to be added outside
     return {
-        A: Use_Agent(opt, TODO = A),
-        B: Use_Agent(opt, TODO = B),
-        C: Use_Agent(opt, TODO = C),
-        D: Use_Agent(opt, TODO = D),
-        E: Use_Agent(opt, TODO = E),
-        F: Use_Agent(opt, TODO = F),
-        G: Use_Agent(opt, TODO = G),
-        H: Use_Agent(opt, TODO = H),
-        I: Use_Agent(opt, TODO = I),
+        A: Use_Agent(opt, TODO = A, ratio_mode=opt.use_ratio),
+        B: Use_Agent(opt, TODO = B, ratio_mode=opt.use_ratio),
+        C: Use_Agent(opt, TODO = C, ratio_mode=opt.use_ratio),
+        D: Use_Agent(opt, TODO = D, ratio_mode=opt.use_ratio),
+        E: Use_Agent(opt, TODO = E, ratio_mode=opt.use_ratio),
+        F: Use_Agent(opt, TODO = F, ratio_mode=opt.use_ratio),
+        G: Use_Agent(opt, TODO = G, ratio_mode=opt.use_ratio),
+        H: Use_Agent(opt, TODO = H, ratio_mode=opt.use_ratio),
+        I: Use_Agent(opt, TODO = I, ratio_mode=opt.use_ratio),
     }
 
 

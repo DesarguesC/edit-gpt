@@ -166,7 +166,7 @@ def Add_Object(
             sam_seg_list = None
 
         # input: normal. output: normal | bounding box has been recovered from ratio space
-        box_example = match_sam_box(mask_example, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0),dilation=opt.use_dilation, dilation_iter=opt.dilation_iter)  # only mask input -> extract max-min coordinates as bounding box
+        box_example = match_sam_box(mask_example, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.dilation_iter)  # only mask input -> extract max-min coordinates as bounding box
         target_mask = refactor_mask(box_example, mask_example, fixed_box)
 
         # TODO: save target_mask

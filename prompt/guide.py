@@ -503,7 +503,7 @@ def get_response(chatbot, asks, mute_print=False):
             print('Request Timed Out')
             if iteration > 2:
                 os.system("bash ../clash/restart-clash.sh")
-            time.sleep(50 if 'too many' in string.lower() else 10)
+            time.sleep(21 if 'too many' in string.lower() else 5)
             if iteration % 5 == 4: print('')
             continue
         if not mute_print: print('Finish')
@@ -525,7 +525,7 @@ def Use_Agent(opt, TODO=None, print_first_answer=False, ratio_mode=False):
         if print_first_answer: print(first_ans)
     elif TODO == 'rescale bbox for me': # Special Engine
         if ratio_mode:
-            agent =agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale_ratio, proxy=net_proxy)
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale_ratio, proxy=net_proxy)
             first_ans = get_response(agent, rescale_first_ask_ratio)
         else:
             agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
