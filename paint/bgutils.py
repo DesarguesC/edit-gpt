@@ -126,16 +126,18 @@ def max_min_box(mask0):
     return (min_x, min_y, max_x-min_x, max_y-min_y)
 
 @torch.no_grad()
-def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_min=False, use_dilation=False, delation=1, dilation_iter=4):
+def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_min=False, use_dilation=False, dilation=1, dilation_iter=4):
+    # not deal with ratio mode yet, return normal integer box elements
     assert mask is not None, f'mask is None'
     if use_dilation:
         mask = mask.unsqueeze(0) if len(mask.shape) == 2 else mask.squeeze(0) if len(mask.shape) == 4 else mask
+        # convert to [1, h, w]
         if np.max(mask) == 255 or np.max(mask) == 255: mask = mask / 255
         # use opencv dilation instead of SAM/max_min
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (delation, delation))
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (dilation, dilation))
         _, binary = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         return max_min_box(cv2.erode(binary, kernel, iterations=dilation_iter))
-    elif use_max_min or sam_list is None:
+    elif use_max_min:
         return max_min_box(mask)    # use max & min coordinates for bounding box generating
 
     pointer = sam_list
@@ -151,7 +153,7 @@ def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_m
     return (int(x), int(y), int(w), int(h))
 
 
-def refactor_mask(box_1, mask_1, box_2, type='remove', keep_rate=False):
+def refactor_mask(box_1, mask_1, box_2, type='remove'):
     """
         box_1 is in mask_1
         reshape mask_1[box_1] to box_2, and add it to the zero matrix mask_2

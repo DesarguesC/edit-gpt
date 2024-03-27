@@ -283,10 +283,10 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        '--keep_box_rate',
+        '--use_ratio',
         type=str2bool,
         default=False,
-        help='For SAM ablation, whether to use max-min method to create mask or <SAM,SEEM>',
+        help='Demand GPT to deal with ratio bounding box',
     )
 
     parser.add_argument(

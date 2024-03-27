@@ -58,9 +58,11 @@ def Add_Object(
     else:
         mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
 
-    mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
-    sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
-
+    if opt.use_dilation or opt.use_max_min:
+        mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
+        sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
+    else:
+        sam_seg_list = None
 
     if '<NULL>' in place:
         # system_prompt_add -> panoptic
@@ -73,11 +75,16 @@ def Add_Object(
         panoptic_list = []
         
         for i in range(len(panoptic_dict)):
-            panoptic_list.append({
+            temp_item = {
                 'name': panoptic_dict[i]['name'],
                 'bbox': match_sam_box(place_mask_list[i], sam_seg_list) if not opt.use_max_min else match_sam_box(mask=place_mask_list[i]) # only mask input -> extract max-min coordinates as bounding box
-            })
-        question = Label().get_str_add_panoptic(panoptic_list, name, (opt.W,opt.H))
+            }
+            if opt.use_ratio:
+                temp_item['bbox'][0], temp_item['bbox'][1] = temp_item['bbox'][0] / opt.W, temp_item['bbox'][1] / opt.H
+                temp_item['bbox'][2], temp_item['bbox'][3] = temp_item['bbox'][2] / opt.W, temp_item['bbox'][3] / opt.H
+            panoptic_dict.append(temp_item)
+
+        question = Label().get_str_add_panoptic(panoptic_list, name, (opt.W,opt.H), ratio_mode=opt.use_ratio)
         # remained to be debug
     else:
         # system_prompt_addArrange -> name2place
@@ -86,11 +93,13 @@ def Add_Object(
                                     preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                                 )
         # old mask
-        place_box = match_sam_box(place_mask, sam_seg_list) if not opt.use_max_min else match_sam_box(mask=place_mask) # only mask input -> extract max-min coordinates as bounding box
+        place_box = match_sam_box(place_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.dilation_iter) # only mask input -> extract max-min coordinates as bounding box
+        if opt.use_ratio:
+            place_box[0], place_box[1], place_box[2], place_box[3] = place_box[0]/opt.W, place_box[1]/opt.H, place_box[2]/opt.W, place_box[3]/opt.H
         print(f'place_box = {place_box}')
-        question = Label().get_str_add_place(place, name, (opt.W,opt.H), place_box)
+        question = Label().get_str_add_place(place, name, (opt.W,opt.H), place_box, ratio_mode=opt.use_ratio)
 
-    print(f'question: \n{question}\n num = {num}')
+    print(f'question: \n{question}\n num = {num}\n(Using Ratio = {opt.use_ratio})')
     
     for i in range(num):
 
@@ -101,7 +110,7 @@ def Add_Object(
         while fixed_box == (0,0,0,0) or fixed_box[2] == 0 or fixed_box[3] == 0:
             if try_time > 0:
                 if try_time > 4:
-                    fixed_box = (50,50,50,50)
+                    fixed_box = (0.25,0.25,0.1,0.1) if opt.use_ratio else (50,50,50,50)
                     break
                 print(f'Trying to fix... - Iter: {try_time}')
                 print(f'QUESTION: \n{question}')
@@ -123,13 +132,17 @@ def Add_Object(
                 fixed_box = (0,0,0,0)
                 try_time += 1
                 continue
+
+            if opt.use_ratio:
+                x, y, w, h = x * opt.W, y * opt.H, w * opt.W, h * opt.H
+
             fixed_box = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
             print(f'box_0 before fixed: {fixed_box}')
             fixed_box = fix_box(fixed_box, (opt.W,opt.H,3))
             print(f'box_0 after fixed = {fixed_box}')
             try_time += 1
         
-        print(f'ans_box = {fixed_box}')
+        print(f'ans_box = {fixed_box}') # recovered from ratio
         # generate example
         diffusion_pil = generate_example(
                             opt, name, expand_agent = expand_agent, ori_img = img_pil, 
@@ -144,13 +157,17 @@ def Add_Object(
         print(f'diffusion_pil.size = {diffusion_pil.size}, mask_example.shape = {mask_example.shape}')
 
         assert mask_example.shape[-2:] == (opt.H, opt.W), f'mask_example.shape = {mask_example.shape}, opt(H, W) = {(opt.H, opt.W)}'
-        box_example = match_sam_box(mask_example, [
-            (u['bbox'], u['segmentation'], u['area']) for u in \
-                    sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), \
-                                           key=(lambda x: x['area']), reverse=True)
-                    ]) if not opt.use_max_min else match_sam_box(mask=mask_example) # only mask input -> extract max-min coordinates as bounding box
 
-        target_mask = refactor_mask(box_example, mask_example, fixed_box, use_max_min=opt.use_max_min)
+
+        if opt.use_dilation or opt.use_max_min:
+            mask_sam_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
+            sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_sam_list]
+        else:
+            sam_seg_list = None
+
+        # input: normal. output: normal | bounding box has been recovered from ratio space
+        box_example = match_sam_box(mask_example, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0),dilation=opt.use_dilation, dilation_iter=opt.dilation_iter)  # only mask input -> extract max-min coordinates as bounding box
+        target_mask = refactor_mask(box_example, mask_example, fixed_box)
 
         # TODO: save target_mask
         print(f'In \'add\': target_mask.shape = {target_mask.shape}, mask_example.shape = {mask_example.shape}')

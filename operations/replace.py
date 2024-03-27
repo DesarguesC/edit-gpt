@@ -123,24 +123,31 @@ def replace_target(
                                                                 key=(lambda x: x['area']), reverse=True)
     # print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
     sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list] if not opt.use_max_min else None
-    box_1 = match_sam_box(mask_1, sam_seg_list)
-    bbox_list = [match_sam_box(x['mask'], sam_seg_list) for x in panoptic_dict]
+    box_1 = match_sam_box(mask_1, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.dilation, dilation_iter=opt.dilation_iter)
+    bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.dilation, dilation_iter=opt.dilation_iter) for x in panoptic_dict]
     # only mask input -> extract max-min coordinates as bounding box)
     print(f'box_1 = {box_1}')
     print(f'bbox_list = {bbox_list}')
-       
+
     box_name_list = [{
-        'name': panoptic_dict[i]['name'],
-        'bbox': bbox_list[i]
-    } for i in range(len(bbox_list))]
+            'name': panoptic_dict[i]['name'],
+            'bbox': bbox_list[i] if not opt.use_ratio else \
+                (bbox_list[i][0]/opt.W, bbox_list[i][1]/opt.H, bbox_list[i][2]/opt.W, bbox_list[i][3]/opt.H)
+        } for i in range(len(panoptic_dict))]
+
     box_name_list.append({
         'name': old_noun,
-        'bbox': box_1
+        'bbox': box_1 if not opt.use_ratio else \
+                (box_1[0]/opt.W, box_1[1]/opt.H, box_1[2]/opt.W, box_1[3]/opt.H)
     })
-    
-    diffusion_mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), \
-                                                                         key=(lambda x: x['area']), reverse=True)
-    box_2 = match_sam_box(mask_2, ([(u['bbox'], u['segmentation'], u['area'])  for u in diffusion_mask_box_list] if not opt.use_max_min else None))
+    if opt.use_max_min or opt.dilation:
+        diffusion_mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), \
+                                                                             key=(lambda x: x['area']), reverse=True)
+        sam_mask_list = ([(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list] if not opt.use_max_min else None)
+    else:
+        sam_mask_list = None
+
+    box_2 = match_sam_box(mask_2, sam_mask_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.dilation, dilation_iter=opt.dilation_iter)
     question = Label().get_str_rescale(old_noun, new_noun, box_name_list)
     print(f'Question: \n{question}')
 
@@ -151,7 +158,7 @@ def replace_target(
     while box_0 == (0,0,0,0) or box_0[2] == 0 or box_0[3] == 0:
         if try_time > 0:
             if try_time > 6:
-                box_0 = (50, 50, 50, 50)
+                box_0 = (0.25,0.25,0.1,0.1) if opt.use_ratio else (50,50,50,50)
                 break
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
@@ -165,7 +172,7 @@ def replace_target(
             print('WARNING: string return')
             try_time += 1
             continue
-        bew_noun = box_0[0]
+        new_noun = box_0[0]
         try:
             x, y, w, h = float(box_0[1]), float(box_0[2]), float(box_0[3]), float(box_0[4])
         except Exception as err:
@@ -173,13 +180,16 @@ def replace_target(
             box_0 = (0, 0, 0, 0)
             try_time += 1
             continue
+        if opt.use_ratio:
+            x, y, w, h = x * opt.W, y * opt.H, w * opt.W, h * opt.H
+
         print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
         box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
         box_0 = fix_box(box_0, (opt.H,opt.W,3))
         print(f'fixed box: (x,y,w,h) = {box_0}')
         try_time += 1
 
-    target_mask = refactor_mask(box_2, mask_2, box_0, type='replace', use_max_min=opt.use_max_min)
+    target_mask = refactor_mask(box_2, mask_2, box_0, type='replace')
     # mask2: Shape[1 * h * w], target_mask: Shape[1 * h * w]
     target_mask[target_mask >= 0.5] = 0.95 if opt.mask_ablation else 1.
     target_mask[target_mask < 0.5] = 0.05 if opt.mask_ablation else 0.

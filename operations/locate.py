@@ -66,9 +66,11 @@ def create_location(
     else:
         mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
     # prepare SAM, matched via SEEM
-    mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), \
-                           key=(lambda x: x['area']), reverse=True)
-    sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list] if not opt.use_max_min else None
+    if not opt.use_dilation:
+        mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
+        sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list] if not opt.use_max_min else None
+    else:
+        sam_seg_list = None
 
     # remove the target, get the mask (for bbox searching via SAM)
     rm_img, target_mask, _ = Remove_Me_lama(
@@ -85,21 +87,23 @@ def create_location(
                             preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         )  # key: name, mask
     # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
-    target_box = match_sam_box(target_mask, sam_seg_list)  # target box
-    bbox_list = [match_sam_box(x['mask'], sam_seg_list) for x in panoptic_dict]
+    target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_ming, use_dilation=(opt.use_dilation>0), delation=opt.use_dilation, dilation_iter=opt.dilation_iter)  # target box
+    bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.dilation, dilation_iter=opt.dilation_iter) for x in panoptic_dict]
     print(target_box)
     print(f'bbox_list: {bbox_list}')
 
     box_name_list = [{
         'name': panoptic_dict[i]['name'],
-        'bbox': bbox_list[i]
+        'bbox': bbox_list[i] if not opt.use_ratio else \
+                (bbox_list[i][0]/opt.W, bbox_list[i][1]/opt.H, bbox_list[i][2]/opt.W, bbox_list[i][3]/opt.H)
     } for i in range(len(bbox_list))]
     box_name_list.append({
         'name': target,
-        'bbox': target_box
+        'bbox': target_box if not opt.use_ratio else \
+                (target_box[0]/opt.W, target_box[1]/opt.H, target_box[2]/opt.W, target_box[3]/opt.H)
     }) # as a hint
 
-    question = Label().get_str_location(box_name_list, opt.edit_txt, (opt.W,opt.H)) # => [name, (x,y), (w,h)]
+    question = Label().get_str_location(box_name_list, opt.edit_txt, (opt.W,opt.H), ratio_mode=opt.use_ratio) # => [name, (x,y), (w,h)]
     # question = f'Size: ({opt.W},{opt.H})\n' + question
     print(f'Question: \n{question}')
 
@@ -110,7 +114,7 @@ def create_location(
     while box_0 == (0,0,0,0) or box_0[2] == 0 or box_0[3] == 0:
         if try_time > 0:
             if try_time > 6:
-                box_0 = (50,50,50,50)
+                box_0 = (0.25,0.25,0.1,0.1) if opt.use_ratio else (50,50,50,50)
                 break
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
@@ -133,6 +137,10 @@ def create_location(
             box_0 = (0, 0, 0, 0)
             try_time += 1
             continue
+
+        if opt.use_ratio: # recover
+            x, y, w, h = x * opt.W, y * opt.H, w * opt.W, h * opt.H
+
         box_0 = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
         print(f'box_0 before fixed: {box_0}')
         box_0 = fix_box(box_0, (opt.W,opt.H,3))
@@ -142,7 +150,7 @@ def create_location(
     print(f'BEFORE: box_0={box_0}')
     print(f'{target_box} -> {box_0}')
     
-    destination_mask = refactor_mask(target_box, target_mask, box_0, use_max_min=opt.use_max_min)
+    destination_mask = refactor_mask(target_box, target_mask, box_0)
     target_mask, destination_mask = re_mask(target_mask), re_mask(destination_mask)
     if torch.max(target_mask) <= 1.:
         target_mask[target_mask > 0.5] = 0.9 if opt.mask_ablation else 1.
