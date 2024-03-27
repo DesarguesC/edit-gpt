@@ -83,9 +83,9 @@ def Val_Add_Method(opt):
 
         start_time = time.time()
 
-        idx = randint(0, length)
+        idx = randint(0, length-1)
         while idx in selected_list:
-            idx = randint(0, length)
+            idx = randint(0, length-1)
         selected_list.append(idx)
 
         opt.out_dir = os.path.join(static_out_dir, f'{len(selected_list):0{6}}')
@@ -100,7 +100,7 @@ def Val_Add_Method(opt):
             caption1 = captions_dict[str(img_id)]
             add_label_id = category_id
             while (add_label_id == category_id) or (str(add_label_id) not in label_metadata.keys()):
-                add_label_id = randint(1,81)
+                add_label_id = randint(1,80)
 
             add_label = label_metadata[str(add_label_id)]
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
@@ -226,9 +226,9 @@ def Val_Remove_Method(opt):
 
         start_time = time.time()
 
-        idx = randint(0, length)
+        idx = randint(0, length-1)
         while idx in selected_list:
-            idx = randint(0, length)
+            idx = randint(0, length-1)
         selected_list.append(idx)
 
         opt.out_dir = os.path.join(static_out_dir, f'{len(selected_list):0{6}}')
@@ -243,7 +243,7 @@ def Val_Remove_Method(opt):
             caption1 = captions_dict[str(img_id)]
             add_label_id = category_id
             while (add_label_id == category_id) or (str(add_label_id) not in label_metadata.keys()):
-                add_label_id = randint(1, 81)
+                add_label_id = randint(1, 80)
 
             ori_label = label_metadata[str(category_id)]
             img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')

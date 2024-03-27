@@ -270,6 +270,26 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        '--use_dilation',
+        type=int,
+        default=-1,
+        help='whether to use opencv dilation algorithm; positive -> dilation kernel, negative -> do not use'
+    )
+    parser.add_argument(
+        '--dilation_iter',
+        type=int,
+        default=4,
+        help='if use dilation, the iteration number of dilation_iter'
+    )
+
+    parser.add_argument(
+        '--keep_box_rate',
+        type=str2bool,
+        default=False,
+        help='For SAM ablation, whether to use max-min method to create mask or <SAM,SEEM>',
+    )
+
+    parser.add_argument(
         '--model_type',
         type=str,
         default='Ip2p',

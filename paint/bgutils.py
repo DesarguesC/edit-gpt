@@ -9,6 +9,7 @@ import importlib
 from ldm.util import instantiate_from_config
 from torch.nn import functional as F
 from einops import repeat, rearrange
+from random import randint
 from paint.control import *
 
 to_tensor = ToTensor()
@@ -125,9 +126,16 @@ def max_min_box(mask0):
     return (min_x, min_y, max_x-min_x, max_y-min_y)
 
 @torch.no_grad()
-def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_min=False):
+def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_min=False, use_dilation=False, delation=1, dilation_iter=4):
     assert mask is not None, f'mask is None'
-    if use_max_min or sam_list is None:
+    if use_dilation:
+        mask = mask.unsqueeze(0) if len(mask.shape) == 2 else mask.squeeze(0) if len(mask.shape) == 4 else mask
+        if np.max(mask) == 255 or np.max(mask) == 255: mask = mask / 255
+        # use opencv dilation instead of SAM/max_min
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (delation, delation))
+        _, binary = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        return max_min_box(cv2.erode(binary, kernel, iterations=dilation_iter))
+    elif use_max_min or sam_list is None:
         return max_min_box(mask)    # use max & min coordinates for bounding box generating
 
     pointer = sam_list
@@ -143,9 +151,10 @@ def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_m
     return (int(x), int(y), int(w), int(h))
 
 
-def refactor_mask(box_1, mask_1, box_2, type='remove', use_max_min=False):
+def refactor_mask(box_1, mask_1, box_2, type='remove', keep_rate=False):
     """
-        mask_1 is in box_1
+        box_1 is in mask_1
+        reshape mask_1[box_1] to box_2, and add it to the zero matrix mask_2
         reshape mask_1 into box_2, as mask_2, return
         TODO: refactor mask_1 into box_2 (tend to get smaller ?)
     """
@@ -157,6 +166,13 @@ def refactor_mask(box_1, mask_1, box_2, type='remove', use_max_min=False):
     x1, y1, w1, h1 = box_1
     x2, y2, w2, h2 = box_2
     x1, x2, y1, y2, w1, w2, h1, h2 = int(x1), int(x2), int(y1), int(y2), int(w1), int(w2), int(h1), int(h2)
+    if randint(0,1) == 1:
+        print('-'*6 + 'Fix W' + '-'*6)
+        h2 = int(w2 / w1 * h1)
+    else:
+        print('-'*6 + 'Fix H' + '-'*6)
+        w2 = int(h2 / h1 * w1)
+
     print(f'x1 = {x1}, y1 = {y1}, w1 = {w1}, h1 = {h1}')
     print(f'x2 = {x2}, y2 = {y2}, w2 = {w2}, h2 = {h2}')
     valid_mask = mask_1.unsqueeze(0)[:, y1:y1+h1,x1:x1+w1]

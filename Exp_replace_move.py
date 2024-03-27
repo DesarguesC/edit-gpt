@@ -93,9 +93,9 @@ def Val_Replace_Method(opt):
     # 4-6 images in a folder
     while len(selected_list) < opt.test_group_num:
         start_time = time.time()
-        idx = randint(0,length)
+        idx = randint(0,length-1)
         while idx in selected_list:
-            idx = randint(0, length)
+            idx = randint(0, length-1)
         selected_list.append(idx)
         opt.out_dir = os.path.join(static_out_dir, f'{len(selected_list):0{6}}')
         if not os.path.exists(opt.out_dir):
@@ -105,9 +105,9 @@ def Val_Replace_Method(opt):
         try:
             instance = data_val[idx]
             label_id = int(instance['category_id'])
-            label_new_id = randint(1, 81)
+            label_new_id = randint(1, 80)
             while (label_new_id == label_id) or (str(label_new_id) not in label_metadata.keys()):
-                label_new_id = randint(1, 81)
+                label_new_id = randint(1, 80)
             label_ori = label_metadata[str(label_id)]
             label_new = label_metadata[str(label_new_id)]
             print(f'(label_id, label_ori) = {(label_id, label_ori)}, (label_new_id, label_new) = {(label_new_id, label_new)}')
@@ -227,9 +227,9 @@ def Val_Move_Method(opt):
     while len(selected_list) < opt.test_group_num:
         start_time = time.time()
 
-        idx = randint(0, length)    
+        idx = randint(0, length-1)
         while idx in selected_list:
-            idx = randint(0, length)    
+            idx = randint(0, length-1)
         selected_list.append(idx)
 
         opt.out_dir = os.path.join(static_out_dir, f'{len(selected_list):0{6}}')
