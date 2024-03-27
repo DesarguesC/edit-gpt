@@ -77,7 +77,7 @@ def Add_Object(
         for i in range(len(panoptic_dict)):
             temp_item = {
                 'name': panoptic_dict[i]['name'],
-                'bbox': match_sam_box(place_mask_list[i], sam_seg_list) if not opt.use_max_min else match_sam_box(mask=place_mask_list[i]) # only mask input -> extract max-min coordinates as bounding box
+                'bbox': match_sam_box(place_mask_list[i], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.dilation_iter) # only mask input -> extract max-min coordinates as bounding box
             }
             if opt.use_ratio:
                 temp_item['bbox'][0], temp_item['bbox'][1] = temp_item['bbox'][0] / opt.W, temp_item['bbox'][1] / opt.H
