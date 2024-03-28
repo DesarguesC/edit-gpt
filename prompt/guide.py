@@ -1,4 +1,5 @@
 from revChatGPT.V3 import Chatbot
+from .anthropic_util import Claude
 import time, os
 """
     Remove, Replace 作为两个单独的状态，后面一个包括位置移动、大小修改、对象内容修改（ip2p）  【对象修改是否需要？还是我就做好位置、大小这些】
@@ -471,13 +472,16 @@ first_ask_expand = 'If you have fully understand your task, please answer \'yes\
     Experiment Result: No more than two sentences! (for the insufficient token)
 """
 
-def get_bot(engine, api_key, system_prompt, proxy):
+def get_bot(engine, api_key, system_prompt, proxy, type='claude'):
     iteration = 0
     while True:
         iteration += 1
         print(f"talking {iteration}......", end='')
         try:
-            agent = Chatbot(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
+            if type == 'gpt':
+                agent = Chatbot(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
+            else:
+                agent = Claude(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
         except Exception as err:
             print('Error Msg: ', err)
             print('Apply Agent Timed Out')
@@ -509,11 +513,12 @@ def get_response(chatbot, asks, mute_print=False):
         if not mute_print: print('Finish')
         return answer
 
-def Use_Agent(opt, TODO=None, print_first_answer=False, ratio_mode=False):
+def Use_Agent(opt, TODO=None, print_first_answer=False, ratio_mode=False, type='claude'):
     # bounding box has its own engine
     if hasattr(opt, 'print_first_answer'): print_first_answer = opt.print_first_answer
     TODO = TODO.lower()
     engine, api_key, net_proxy = opt.engine, opt.api_key, opt.net_proxy
+    engine = 'claude-3-opus-20240229'
     box_engine = opt.box_engine if hasattr(opt, 'box_engine') else opt.engine
     if TODO == 'find target to be removed':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)

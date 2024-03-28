@@ -125,19 +125,24 @@ def max_min_box(mask0):
                 max_y, min_y = max(i, max_y), min(i, min_y)
     return (min_x, min_y, max_x-min_x, max_y-min_y)
 
-@torch.no_grad()
+
 def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_min=False, use_dilation=False, dilation=1, dilation_iter=4):
     # not deal with ratio mode yet, return normal integer box elements
     assert mask is not None, f'mask is None'
     if use_dilation:
-        mask = mask.unsqueeze(0) if len(mask.shape) == 2 else mask.squeeze(0) if len(mask.shape) == 4 else mask
+        # mask = np.expand_dims(mask, axis=0) if len(mask.shape) == 2 else np.squeeze(mask , axis=0) if len(mask.shape) == 4 else mask
+        while len(mask.shape) > 2:
+            mask = np.squeeze(mask, axis=0) # ?
         # convert to [1, h, w]
         if isinstance(mask, torch.Tensor): mask = mask.detach().cpu().numpy()
-        # print(f'[Before Dilation] mask.shape = {mask.shape} | np.max(mask) = {np.max(mask)}')  # [1, h, w]
         if np.max(mask) <= 1.: mask = mask * 255
+        mask = np.uint8(mask)
+        print(f'[Before Dilation] mask.shape = {mask.shape} | np.max(mask) = {np.max(mask)}')  # [1, h, w]
         # use opencv dilation instead of SAM/max_min
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (dilation, dilation))
-        eroded = cv2.erode(np.uint8(mask), kernel, iterations=dilation_iter)
+        # kernel = np.ones((dilation, dilation), np.uint8)
+        eroded = cv2.erode(np.squeeze(mask, axis=0), kernel, iterations=dilation_iter)
+        print(f'eroded.shape = {eroded.shape}')
         # _, binary = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         return max_min_box(eroded)
     elif use_max_min:

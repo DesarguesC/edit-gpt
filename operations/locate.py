@@ -87,6 +87,7 @@ def create_location(
                             preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         )  # key: name, mask
     # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
+    print(f'target_mask.shape = {target_mask.shape}')
     target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.dilation_iter)  # target box
     bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.dilation_iter) for x in panoptic_dict]
     print(target_box)
