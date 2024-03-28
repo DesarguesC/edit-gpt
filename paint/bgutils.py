@@ -155,6 +155,23 @@ def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_m
     
     return (int(x), int(y), int(w), int(h))
 
+def move_ref2base(box, ref_img, ori_img, mask = None):
+    """
+        put ref_img, multiplied by mask, put to ref to the ori_img[box2]
+    """
+    if mask is not None:
+        ref_img = ref_img * mask
+    if isinstance(ref_img, Image):
+        ref_img = np.array(ref_img) # [h w 3]
+    x, y, h, w = box
+    ref_img = cv2.resize(ref_img, (h,w))
+    if isinstance(ori_img, Image):
+        ori_img = np.array(ori_img)
+    ori_img[y:y+h, x:x+w, :] = ref_img[y:y+h, x:x+w, :] # directional replacement
+    return Image.fromarray(ori_img, mode='RGB')
+
+
+
 
 def refactor_mask(box_1, mask_1, box_2, type='remove'):
     """

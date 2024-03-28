@@ -10,7 +10,7 @@ from operations.utils import get_reshaped_img
 from seem.masks import middleware
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 from paint.example import paint_by_example
-from paint.bgutils import match_sam_box, refactor_mask, fix_box
+from paint.bgutils import match_sam_box, refactor_mask, fix_box, move_ref2base
 from detectron2.data import MetadataCatalog as mt
 
 from prompt.item import Label
@@ -185,8 +185,19 @@ def create_location(
     print(f'img_np.shape = {img_np.shape}, Ref_Image.shape = {Ref_Image.shape}')
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (opt.use_dilation, opt.use_dilation))
+
+    dilated_mask = cv2.dilate(np.uint8(destination_mask * 255), kernel, iterations=opt.dilation_iter)
+    eroded_mask = cv2.erode(np.uint8(destination_mask * 255), kernel, iterations=opt.dilation_iter)
+    example_area = re_mask(dilated_mask / 255. * (1. - eroded_mask / 255.)) #[h w 3]
+    ref = Image.fromarray(np.uint8(Ref_Image))
+    exampled_img = move_ref2base(box_0, ref, rm_img)
+    ref_example = Image.fromarray(np.uint8(Ref_Image) * example_area)
+    example_area = rearrange(example_area[:,:,0:1], 'h w c -> c h w').unsqueeze(0) # [1 1 h w]
+
     op_output, x_sample_ddim = paint_by_example(
-                                    opt, destination_mask, Image.fromarray(np.uint8(Ref_Image)), rm_img, 
+                                    opt, example_area, ref_example, exampled_img, # i.e. img base
                                     preloaded_example_painter = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None
                                 )
     print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
