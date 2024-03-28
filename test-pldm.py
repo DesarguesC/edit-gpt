@@ -25,6 +25,7 @@ from pytorch_lightning import seed_everything
 from torch import autocast
 from contextlib import contextmanager, nullcontext
 import torchvision
+from paint.bgutils import refactor_mask, max_min_box
 from pldm.util import instantiate_from_config, load_model_from_config
 from pldm.models.diffusion.ddim import DDIMSampler
 from pldm.models.diffusion.plms import PLMSSampler
@@ -58,79 +59,6 @@ seem_ckpt = '../autodl-tmp/seem_focall_v0.pt'
 pldm_cfg = './configs/v1.yaml'
 pldm_ckpt = '../autodl-tmp/model.ckpt'
 
-def query_middleware(
-            image: Image, 
-            reftxt: str, 
-            preloaded_seem_detector = None
-        ):
-    """
-        only query mask&box for single target-noun
-        
-        image: removed pil image
-        reftxt: query target text
-    """
-    if preloaded_seem_detector is None:
-        cfg = load_opt_from_config_files([seem_cfg])
-        cfg['device'] = 'cuda'
-        seem_model = BaseModel(cfg, build_model(cfg)).from_pretrained(seem_ckpt).eval().cuda()
-    else:
-        cfg = preloaded_seem_detector['cfg']
-        seem_model = preloaded_seem_detector['seem_model']
-
-    with torch.no_grad():
-        seem_model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"],
-                                                                                 is_eval=True)
-    # get text-image mask
-    width, height = image.size
-    image_ori = np.asarray(image)
-    images = torch.from_numpy(image_ori.copy()).permute(2, 0, 1).cuda()
-    data = {"image": images, "height": height, "width": width}
-    visual = Visualizer(image_ori, metadata=metadata)
-
-    seem_model.model.task_switch['spatial'] = False
-    seem_model.model.task_switch['visual'] = False
-    seem_model.model.task_switch['grounding'] = False
-    seem_model.model.task_switch['audio'] = False
-    seem_model.model.task_switch['grounding'] = True
-
-    data['text'] = [reftxt]
-    batch_inputs = [data]
-
-    results, image_size, extra = seem_model.model.evaluate_demo(batch_inputs)
-    # print(f'extra.keys() = {extra.keys()}')
-    # print(f'results.keys() = {results.keys()}')
-
-    pred_masks = results['pred_masks'][0]
-    v_emb = results['pred_captions'][0]
-    t_emb = extra['grounding_class']
-
-    t_emb = t_emb / (t_emb.norm(dim=-1, keepdim=True) + 1e-7)
-    v_emb = v_emb / (v_emb.norm(dim=-1, keepdim=True) + 1e-7)
-
-    temperature = seem_model.model.sem_seg_head.predictor.lang_encoder.logit_scale
-    out_prob = vl_similarity(v_emb, t_emb, temperature=temperature)
-
-    matched_id = out_prob.max(0)[1]
-    pred_masks_pos = pred_masks[matched_id,:,:]
-    pred_masks_pos = (F.interpolate(pred_masks_pos[None,], image_size[-2:], mode='bilinear')[0,:,:data['height'],:data['width']] > 0.0).float().cpu().numpy()
-    # mask queried from text
-    pred_box_pos = None
-    demo = visual.draw_binary_mask(pred_masks_pos.squeeze(), text=reftxt)  # rgb Image
-    res = demo.get_image()
-
-    # TODO: save
-    sam_output_dir = os.path.join('../Semantic')
-    if not os.path.exists(sam_output_dir): os.mkdir(sam_output_dir)
-    name_ = f'./{sam_output_dir}/panoptic'
-    t = 0
-    while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
-    cv2.imwrite(f'{name_}-{t}.jpg', cv2.cvtColor(np.uint8(res), cv2.COLOR_RGB2BGR))
-    print(f'seg result image saved at \'{name_}-{t}.jpg\'')
-
-
-    return Image.fromarray(res), pred_masks_pos, pred_box_pos
-
-
 # dog = Image.open('../dog.jpg')
 # prompt = "a sad dog"
 
@@ -146,14 +74,23 @@ def query_middleware(
 # mask = Image.fromarray(np.uint8(mask)).convert('RGB').save('../dog-mask.jpg')
 from einops import rearrange, repeat
 
-base_img = Image.open('./assets/tie.jpg')
-ref = Image.open('../dog.jpg')
-mask = rearrange(torch.tensor(np.array(ImageOps.fit(Image.open('../dog-mask.jpg').convert('RGB'), (448//8, 576//8),method=Image.Resampling.LANCZOS))), 'h w c -> c h w')[0]
+base_img = Image.open('./assets/dog&chair.jpg')
+W, H = base_img.size
+from paint.crutils import ab64
+W, H = ab64(W), ab64(H)
 
-
-
-
+print(f'H = {H}, W = {W}')
+ref = Image.open('../test/ref-0.jpg')
+base_img = ImageOps.fit(base_img, (W,H),method=Image.Resampling.LANCZOS)
+mask = rearrange(torch.tensor(np.array(ImageOps.fit(Image.open('../test/mask-0.jpg').convert('RGB'), (W,H),method=Image.Resampling.LANCZOS))), 'h w c -> c h w')[0]
+# h, w = mask.shape
+# h //= 8
+# w //= 8
 mask = mask.unsqueeze(0).unsqueeze(0)
+
+cfg = 3.
+name = 'dog&house'
+
 print(f'mask.shape = {mask.shape}')
 
 def get_tensor(normalize=True, toTensor=True):
@@ -164,7 +101,6 @@ def get_tensor(normalize=True, toTensor=True):
         transform_list += [torchvision.transforms.Normalize((0.5, 0.5, 0.5),
                                                             (0.5, 0.5, 0.5))]
     return torchvision.transforms.Compose(transform_list)
-
 
 def get_tensor_clip(normalize=True, toTensor=True):
     transform_list = []
@@ -180,6 +116,7 @@ def paint_by_example(
         ref_img: Image = None,
         base_img: Image = None,
         preloaded_example_painter=None,
+        H=512, W = 512, cfg=7.5, name="",
         **kwargs
 ):
     # mask: [1, 1, h, w] is required
@@ -200,7 +137,7 @@ def paint_by_example(
         model = preloaded_example_painter['model']
         sampler = preloaded_example_painter['sampler']
 
-    op_output = '../dog-out.jpg'
+    op_output = f'../out-{name}-{cfg}.jpg'
     with torch.no_grad():
         with autocast("cuda"):
             with model.ema_scope():
@@ -228,11 +165,13 @@ def paint_by_example(
                     test_model_kwargs['inpaint_mask'])
 
                 uc = None
+                if cfg != 1.0:
+                    uc = model.learnable_vector
                 c = model.get_learned_conditioning(ref_tensor.to(torch.float16))
                 c = model.proj_out(c)
 
                 # shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
-                shape = [4, 576 // 8, 448 // 8]
+                shape = [4, H // 8, W // 8]
 
                 samples_ddim, _ = sampler.sample(
                     S=50,
@@ -240,7 +179,7 @@ def paint_by_example(
                     batch_size=1,
                     shape=shape,
                     verbose=False,
-                    unconditional_guidance_scale=7.5,
+                    unconditional_guidance_scale=cfg,
                     unconditional_conditioning=uc,
                     x_T=None,
                     adpater_features=None,
@@ -254,6 +193,6 @@ def paint_by_example(
     return op_output, x_samples_ddim
 
 
-path, x_sample = paint_by_example(mask, ref, base_img)
+path, x_sample = paint_by_example(mask, ref, base_img, W=W, H=H, cfg=cfg, name=name)
 
 Image.fromarray(cv2.cvtColor(np.uint8(tensor2img(x_sample)), cv2.COLOR_RGB2BGR)).save(path)
