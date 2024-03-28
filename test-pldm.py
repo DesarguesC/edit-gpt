@@ -46,9 +46,6 @@ def fix_mask(mask):
         dest = dest.unsqueeze(0).unsqueeze(0)
     return dest
 
-metadata = MetadataCatalog.get('coco_2017_train_panoptic')
-all_classes = [name.replace('-other','').replace('-merged','') for name in COCO_PANOPTIC_CLASSES] + ["others"]
-colors_list = [(np.array(color['color'])/255).tolist() for color in COCO_CATEGORIES] + [[1, 1, 1]]
 
 from seem.utils.arguments import load_opt_from_config_files
 from seem.modeling.BaseModel import BaseModel
