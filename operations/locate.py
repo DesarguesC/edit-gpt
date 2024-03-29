@@ -55,7 +55,7 @@ def create_location(
             preloaded_seem_detector
             preloaded_example_painter
     """
-    assert edit_agent != None, 'no edit agent'
+    # assert edit_agent != None, 'no edit agent'
     # move the target to the destination, editing via GPT (tell the bounding box)
     opt, img_pil = get_reshaped_img(opt, input_pil)
     # resize and prepare the original image
@@ -98,17 +98,18 @@ def create_location(
         'bbox': bbox_list[i] if not opt.use_ratio else \
                 (bbox_list[i][0]/opt.W, bbox_list[i][1]/opt.H, bbox_list[i][2]/opt.W, bbox_list[i][3]/opt.H)
     } for i in range(len(bbox_list))]
+    target_box = target_box if not opt.use_ratio else \
+        (target_box[0] / opt.W, target_box[1] / opt.H, target_box[2] / opt.W, target_box[3] / opt.H)
     box_name_list.append({
         'name': target,
-        'bbox': target_box if not opt.use_ratio else \
-                (target_box[0]/opt.W, target_box[1]/opt.H, target_box[2]/opt.W, target_box[3]/opt.H)
+        'bbox': target_box
     }) # as a hint
 
     question = Label().get_str_location(box_name_list, opt.edit_txt, (opt.W,opt.H), ratio_mode=opt.use_ratio) # => [name, (x,y), (w,h)]
     # question = f'Size: ({opt.W},{opt.H})\n' + question
     print(f'Question: \n{question}')
 
-    box_0 = (0,0,0,0)
+    box_0 = (0.2, 0.5, 0.4, 0.27)
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
 
@@ -131,32 +132,35 @@ def create_location(
             try_time += 1
             continue
         print(f'box_ans[0](i.e. target) = {box_ans[0]}')
+        # box_ans[0]: target
         try:
-            x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]), float(box_ans[4])
+            box_0 = (float(box_ans[1]), float(box_ans[2]), float(box_ans[3]) * opt.expand_scale, float(box_ans[4])) * opt.expand_scale
         except Exception as err:
             print(f'err: box_ans = {box_ans}\nError: {err}')
             box_0 = (0, 0, 0, 0)
             try_time += 1
             continue
 
-        if opt.use_ratio: # recover
-            x, y, w, h = x * opt.W, y * opt.H, w * opt.W, h * opt.H
-
-        box_0 = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
         print(f'box_0 before fixed: {box_0}')
-        box_0 = fix_box(box_0, (opt.W,opt.H,3))
+        box_0 = fix_box(box_0, (1., 1., 3) if opt.use_ratio else (opt.W, opt.H, 3), target_box)
         print(f'box_0 after fixed = {box_0}')
         try_time += 1
 
-    print(f'BEFORE: box_0={box_0}')
-    print(f'{target_box} -> {box_0}')
-    
+
+    if opt.use_ratio:
+        target_box = (int(target_box[0] * opt.W), int(target_box[1] * opt.H), int(target_box[2] * opt.W), int(target_box[3] * opt.H))
+        box_0 = (int(box_0[0] * opt.W), int(box_0[1] * opt.H), int(box_0[2] * opt.W), int(box_0[3] * opt.H))
+
+    # will be converted to int in 'refactor_mask'
     destination_mask = refactor_mask(target_box, target_mask, box_0)
     target_mask, destination_mask = re_mask(target_mask), re_mask(destination_mask)
+
+    print(f'BEFORE: box_0={box_0}')
+    print(f'{target_box} -> {box_0}')
+
     if torch.max(target_mask) <= 1.:
         target_mask[target_mask > 0.5] = 0.9 if opt.mask_ablation else 1.
         target_mask[target_mask <= 0.5] = 0.1 if opt.mask_ablation else 0.
-    
     if not os.path.exists(opt.mask_dir): os.mkdir(opt.mask_dir)
     print(f'target_mask.shape = {target_mask.shape}, destination_mask.shape = {destination_mask.shape}')
     # target_mask: [1, h, w], destination_mask: [1, 3, h, w]

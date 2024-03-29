@@ -147,17 +147,17 @@ def Move_Method(
     ):
     opt = gpt_mkdir(opt, Type='move')
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
-    move_agent = Use_Agent(opt, TODO='arrange a new bbox for me') if preloaded_agent is None\
-                            else preloaded_agent['arrange a new bbox for me']
-    noun_agent = Use_Agent(opt, TODO='find target to be moved') if preloaded_agent is None\
-                            else preloaded_agent['find target to be moved']
-    target_noun = get_response(noun_agent, opt.edit_txt)
+    # move_agent = Use_Agent(opt, TODO='arrange a new bbox for me') if preloaded_agent is None\
+    #                         else preloaded_agent['arrange a new bbox for me']
+    # noun_agent = Use_Agent(opt, TODO='find target to be moved') if preloaded_agent is None\
+    #                         else preloaded_agent['find target to be moved']
+    target_noun = "dog" # get_response(noun_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
 
     pil_return = create_location(
                         opt, target_noun, 
                         input_pil = input_pil, 
-                        edit_agent = move_agent,
+                        edit_agent = None,
                         preloaded_model = preloaded_model
                     )
 
@@ -253,8 +253,8 @@ def main():
     preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
     preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
 
-    planning_agent = get_planning_system_agent(opt)
-    task_plannings = get_plans(opt, planning_agent) # [dict("type": ..., "command": ...)]
+    planning_agent = None # get_planning_system_agent(opt)
+    task_plannings = [{"type": "move", "command": "move the dog to the left"}]# get_plans(opt, planning_agent) # [dict("type": ..., "command": ...)]
 
     planning_folder = os.path.join(opt.out_dir, 'plans')
     if not os.path.exists(planning_folder): os.mkdir(planning_folder)

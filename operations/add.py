@@ -50,15 +50,14 @@ def Add_Object(
     add_path = os.path.join(opt.base_dir, 'added')
     if not os.path.exists(add_path): os.mkdir(add_path)
 
-    if preloaded_model is None:
-        # load SAM
-        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
-        sam.to(device=opt.device)
-        mask_generator = SamAutomaticMaskGenerator(sam)
-    else:
-        mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
-
-    if opt.use_dilation or opt.use_max_min:
+    if not (opt.use_dilation or opt.use_max_min):
+        if preloaded_model:
+            # load SAM
+            sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+            sam.to(device=opt.device)
+            mask_generator = SamAutomaticMaskGenerator(sam)
+        else:
+            mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
         mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
         sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
     else:
@@ -126,24 +125,22 @@ def Add_Object(
                 continue
             print(f'box_ans[0](i.e. target) = {box_ans[0]}')
             try:
-                x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]), float(box_ans[4])
+                x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]) * opt.expand_scale, float(box_ans[4]) * opt.expand_scale
             except Exception as err:
                 print(f'err: box_ans = {box_ans}\bError: {err}')
                 fixed_box = (0,0,0,0)
                 try_time += 1
                 continue
 
-            fixed_box = (x, y, w * opt.expand_scale, h * opt.expand_scale)
+            fixed_box = (x, y, w, h)
             print(f'box_0 before fixed: {fixed_box}')
             fixed_box = fix_box(fixed_box, (1., 1., 3) if opt.use_ratio else (opt.W, opt.H, 3))
             print(f'box_0 after fixed = {fixed_box}')
             try_time += 1
 
-        if opt.use_ratio:
-            fixed_box = (fixed_box[0]*opt.W, fixed_box[1]*opt.H, fixed_box[2]*opt.W, fixed_box[3]*opt.H)
+        # fixed_box will be converted to integer before 'refactor_mask'
 
-        
-        print(f'ans_box = {fixed_box}') # recovered from ratio
+
         # generate example
         diffusion_pil = generate_example(
                             opt, name, expand_agent = expand_agent, ori_img = img_pil, 
@@ -160,7 +157,7 @@ def Add_Object(
         assert mask_example.shape[-2:] == (opt.H, opt.W), f'mask_example.shape = {mask_example.shape}, opt(H, W) = {(opt.H, opt.W)}'
 
 
-        if opt.use_dilation or opt.use_max_min:
+        if not (opt.use_dilation or opt.use_max_min):
             mask_sam_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
             sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_sam_list]
         else:
@@ -168,6 +165,13 @@ def Add_Object(
 
         # input: normal. output: normal | bounding box has been recovered from ratio space
         box_example = match_sam_box(mask_example, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.dilation_iter)  # only mask input -> extract max-min coordinates as bounding box
+
+        if opt.use_ratio:
+            box_example = (int(box_example[0] * opt.W), int(box_example[1] * opt.H), int(box_example[2] * opt.W), int(box_example[3] * opt.H))
+            fixed_box = (int(fixed_box[0] * opt.W), int(fixed_box[1] * opt.H), int(fixed_box[2] * opt.W), int(fixed_box[3] * opt.H))
+        # will be converted to int in 'refactor_mask'
+        print(f'ans_box = {fixed_box}') # recovered from ratio
+
         target_mask = refactor_mask(box_example, mask_example, fixed_box)
 
         # TODO: save target_mask

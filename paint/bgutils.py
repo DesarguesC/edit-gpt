@@ -168,11 +168,11 @@ def move_ref2base(box, ref_img, ori_img, mask = None):
     """
     if mask is not None:
         ref_img = ref_img * mask
-    if isinstance(ref_img, Image):
+    if isinstance(ref_img, Image.Image):
         ref_img = np.array(ref_img) # [h w 3]
-    x, y, h, w = box
+    x, y, w, h = box
     ref_img = cv2.resize(ref_img, (h,w))
-    if isinstance(ori_img, Image):
+    if isinstance(ori_img, Image.Image):
         ori_img = np.array(ori_img)
     ori_img[y:y+h, x:x+w, :] = ref_img[y:y+h, x:x+w, :] # directional replacement
     return Image.fromarray(np.uint8(ori_img), mode='RGB')
@@ -182,29 +182,23 @@ def move_ref2base(box, ref_img, ori_img, mask = None):
 
 def refactor_mask(box_1, mask_1, box_2, type='remove'):
     """
+        mask_1: [1, h, w]
         box_1 is in mask_1
         reshape mask_1[box_1] to box_2, and add it to the zero matrix mask_2
         reshape mask_1 into box_2, as mask_2, return
-        TODO: refactor mask_1 into box_2 (tend to get smaller ?)
     """
     # for ablation study, calculate box_1 (corresponding to mask_1)  via max-min coordinates
 
     mask_1 = torch.tensor(mask_1.squeeze(), dtype=torch.float32) # h * w
     mask_2 = torch.zeros_like(mask_1.unsqueeze(0)) # 1 * h * w
-    print(f'box_1 = {box_1}, mask_1.shape = {mask_1.shape}, box_2 = {box_2}, mask_2.shape = {mask_2.shape}')
+
     x1, y1, w1, h1 = box_1
     x2, y2, w2, h2 = box_2
     x1, x2, y1, y2, w1, w2, h1, h2 = int(x1), int(x2), int(y1), int(y2), int(w1), int(w2), int(h1), int(h2)
-    if randint(0,1) == 1:
-        print('-'*6 + 'Fix W' + '-'*6)
-        h2 = int(w2 / w1 * h1)
-    else:
-        print('-'*6 + 'Fix H' + '-'*6)
-        w2 = int(h2 / h1 * w1)
-
+    print(f'mask_1.shape = {mask_1.shape}, mask_2.shape = {mask_2.shape}')
     print(f'x1 = {x1}, y1 = {y1}, w1 = {w1}, h1 = {h1}')
     print(f'x2 = {x2}, y2 = {y2}, w2 = {w2}, h2 = {h2}')
-    valid_mask = mask_1.unsqueeze(0)[:, y1:y1+h1,x1:x1+w1]
+    valid_mask = mask_1[y1:y1+h1,x1:x1+w1].unsqueeze(0) # [1, h1, w1]
     valid_mask = rearrange(valid_mask, 'c h w -> 1 c h w')
     # print(f'valid_mask.shape = {valid_mask.shape}')
     resized_valid_mask = F.interpolate(
@@ -212,21 +206,21 @@ def refactor_mask(box_1, mask_1, box_2, type='remove'):
         size=(h2, w2),
         mode='bilinear',
         align_corners=False
-    ).squeeze()
+    ) # [1, 1, h2, w2]
     # resized_valid_mask = rearrange(repeat(rearrange(resized_valid_mask, 'h w -> 1 h w'), '1 h w -> c h w', c=3), 'c h w -> 1 c h w')
-    resized_valid_mask = resized_valid_mask.unsqueeze(0)
+    # resized_valid_mask = resized_valid_mask.unsqueeze(0)
     resized_valid_mask[resized_valid_mask > 0.5] = 1.
     resized_valid_mask[resized_valid_mask <= 0.5] = 0.
     # print(f'resized_valid_mask.shape = {resized_valid_mask.shape}') # 1 * h * w
     # print(f'part: mask_2[:, y2:y2+h2, x2:x2+w2].shape = {mask_2[:, y2:y2+h2, x2:x2+w2].shape}') # 1 * w * h
-    mask_2[:,y2:y2+h2,x2:x2+w2] = resized_valid_mask
+    mask_2[:,y2:y2+h2,x2:x2+w2] = resized_valid_mask[0,:,:,:]
     assert mask_2.squeeze().shape == mask_1.squeeze().shape, f'mask_1.shape = {mask_1.shape}, mask_2.shape = {mask_2.shape}'
     return repeat(mask_2, '1 h w -> c h w', c = 3).unsqueeze(0) if type == 'remove' else mask_2
     # 1 * 3 * h * w
 
 # TODO: implement 'refact_target'
 
-def fix_box(gpt_box, img_shape):
+def fix_box(gpt_box, img_shape, ori_box=None):
     assert len(gpt_box) == 4 and len(img_shape) == 3
     x, y, w, h = gpt_box
     fixed_box = (0,0,0,0)
@@ -253,4 +247,14 @@ def fix_box(gpt_box, img_shape):
             print(f'2-Fixing: with (x,y) = {(x, y)}')
             x //= 2
             y //= 2
-    return (x,y,w,h)
+    if ori_box is not None:
+        h2, w2 = ori_box[2], ori_box[3]
+        if randint(0,1) == 1:
+            print('-'*6 + 'Fix W' + '-'*6)
+            h = w/w2 * h2
+        else:
+            print('-'*6 + 'Fix H' + '-'*6)
+            w = h/h2 * w2
+        return (x, y, w, h)
+    else:
+        return (x, y, w, h)

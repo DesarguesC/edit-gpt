@@ -135,12 +135,13 @@ def replace_target(
                 (bbox_list[i][0]/opt.W, bbox_list[i][1]/opt.H, bbox_list[i][2]/opt.W, bbox_list[i][3]/opt.H)
         } for i in range(len(panoptic_dict))]
 
+    box_1 = box_1 if not opt.use_ratio else \
+        (box_1[0] / opt.W, box_1[1] / opt.H, box_1[2] / opt.W, box_1[3] / opt.H)
     box_name_list.append({
         'name': old_noun,
-        'bbox': box_1 if not opt.use_ratio else \
-                (box_1[0]/opt.W, box_1[1]/opt.H, box_1[2]/opt.W, box_1[3]/opt.H)
+        'bbox': box_1
     })
-    if opt.use_max_min or opt.use_dilation:
+    if not (opt.use_max_min or opt.use_dilation):
         diffusion_mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), \
                                                                              key=(lambda x: x['area']), reverse=True)
         sam_mask_list = ([(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list] if not opt.use_max_min else None)
@@ -174,20 +175,23 @@ def replace_target(
             continue
         new_noun = box_0[0]
         try:
-            x, y, w, h = float(box_0[1]), float(box_0[2]), float(box_0[3]), float(box_0[4])
+            x, y, w, h = float(box_0[1]), float(box_0[2]), float(box_0[3]) * opt.expand_scale, float(box_0[4]) * opt.expand_scale
         except Exception as err:
             print(f'err: box_0 = {box_0}\nError: {err}')
             box_0 = (0, 0, 0, 0)
             try_time += 1
             continue
-        if opt.use_ratio:
-            x, y, w, h = x * opt.W, y * opt.H, w * opt.W, h * opt.H
 
         print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
-        box_0 = (int(x), int(y), int(int(w) * opt.expand_scale), int(int(h) * opt.expand_scale))
-        box_0 = fix_box(box_0, (opt.H,opt.W,3))
+        box_0 = (x, y, w, h)
+        box_0 = fix_box(box_0, (1., 1., 3) if opt.use_ratio else (opt.H,opt.W,3))
         print(f'fixed box: (x,y,w,h) = {box_0}')
         try_time += 1
+
+    if opt.use_ration:
+        box_2 = (int(box_2[0] * opt.W), int(box_2[1] * opt.H), int(box_2[2] * opt.W), int(box_2[3] * opt.H))
+        box_0 = (int(box_0[0] * opt.W), int(box_0[1] * opt.H), int(box_0[2] * opt.W), int(box_0[3] * opt.H))
+    # will be converted to int in 'refactor_mask'
 
     target_mask = refactor_mask(box_2, mask_2, box_0, type='replace')
     # mask2: Shape[1 * h * w], target_mask: Shape[1 * h * w]
@@ -196,7 +200,7 @@ def replace_target(
     if len(target_mask.shape) > 3:
         target_mask = target_mask.unsqueeze(0)
     print('target_mask.shape = ', target_mask.shape)
-    if torch.max(target_mask) <= 1. + 1e-5:
+    if torch.max(target_mask) <= 1.:
         target_mask = 255. * target_mask
         # print('plus')
     print('target_mask.shape = ', target_mask.shape)
