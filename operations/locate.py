@@ -109,14 +109,15 @@ def create_location(
     # question = f'Size: ({opt.W},{opt.H})\n' + question
     print(f'Question: \n{question}')
 
-    box_0 = target_box
+    # box_0 = target_box
+    box_0 = (0, 0, 0, 0)
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
 
     while box_0 == (0,0,0,0) or box_0[2] == 0 or box_0[3] == 0:
         if try_time > 0:
             if try_time > 6:
-                box_0 = (0.25,0.25,0.1,0.1) if opt.use_ratio else (50,50,50,50)
+                box_0 = (0.1,0.2,0.5,0.7) if opt.use_ratio else (50,50,50,50)
                 break
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
