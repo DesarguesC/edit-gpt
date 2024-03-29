@@ -3,7 +3,7 @@ import cv2, torch, time, clip
 import numpy as np
 from basicsr.utils import tensor2img
 from omegaconf import OmegaConf
-from PIL import Image
+from PIL import Image, ImageOps
 from tqdm import tqdm, trange
 from imwatermark import WatermarkEncoder
 from itertools import islice
@@ -90,7 +90,7 @@ def generate_example(
     if not os.path.exists(ref_dir): os.mkdir(ref_dir)
     ad_output = os.path.join(ref_dir, 'ad_cond.jpg')
 
-    prompts = f'a photo of ONLY a/an {new_noun}, {PROMPT_BASE}'
+    prompts = f'a photo of ONLY a/an {new_noun}, only one UNOBSTRUCTED object, {PROMPT_BASE}'
     prompts = f'{prompts}. Simultaneously, {get_response(expand_agent, new_noun)}' if expand_agent != None else prompts
     print(f'prompt: \n {prompts}\n')
     """
@@ -180,7 +180,7 @@ def generate_example(
         gen_images = pipe(
             prompt=prompts,
             negative_prompt=DEFAULT_NEGATIVE_PROMPT,
-            height=opt.H, width=opt.W,
+            height=576, width=576,
             num_inference_steps=opt.steps,
             guidance_scale=7.5,
             output_type='latent',

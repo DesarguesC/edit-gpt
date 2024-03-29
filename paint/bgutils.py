@@ -120,7 +120,7 @@ def max_min_box(mask0):
 
     for i in range(H):
         for j in range(W):
-            if (len(mask0.shape) == 2 and mask0[i][j].item() == 1) or (len(mask0.shape) == 3 and mask0[0][i][j].item() == 1):
+            if (len(mask0.shape) == 2 and mask0[i][j].item() == 1) or (len(mask0.shape) == 3 and mask0[0][i][j].item() == 1) or (len(mask0.shape) == 4 and mask0[0][0][i][j].item() == 1):
                 max_x, min_x = max(j, max_x), min(j, min_x)
                 max_y, min_y = max(i, max_y), min(i, min_y)
     return (min_x, min_y, max_x-min_x, max_y-min_y)
@@ -129,28 +129,30 @@ def max_min_box(mask0):
 def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_min=False, use_dilation=False, dilation=1, dilation_iter=4):
     # not deal with ratio mode yet, return normal integer box elements
     assert mask is not None, f'mask is None'
+    if isinstance(mask, torch.Tensor):
+        mask = mask.cpu().detach().numpy()
     if use_dilation:
-        # mask = np.expand_dims(mask, axis=0) if len(mask.shape) == 2 else np.squeeze(mask , axis=0) if len(mask.shape) == 4 else mask
-        while len(mask.shape) > 2:
+        print(f'[Before Dilation] mask.shape = {mask.shape} | np.max(mask) = {np.max(mask)}')
+        # Add: [h, w], Move: [1, h, w] ?
+        while len(mask.shape) > 2 and mask.shape[0] == 1:
             mask = np.squeeze(mask, axis=0) # ?
-        # convert to [1, h, w]
+        # convert to [h, w]
         if isinstance(mask, torch.Tensor): mask = mask.detach().cpu().numpy()
         if np.max(mask) <= 1.: mask = mask * 255
         mask = np.uint8(mask)
-        print(f'[Before Dilation] mask.shape = {mask.shape} | np.max(mask) = {np.max(mask)}')  # [1, h, w]
+
         # use opencv dilation instead of SAM/max_min
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (dilation, dilation))
-        # kernel = np.ones((dilation, dilation), np.uint8)
-        eroded = cv2.erode(np.squeeze(mask, axis=0), kernel, iterations=dilation_iter)
+        eroded = cv2.erode(mask, kernel, iterations=dilation_iter)
+        """
+            not using np.squeeze: msak [1 h w] seems to lead to an error ?
+        """
         print(f'eroded.shape = {eroded.shape}')
-        # _, binary = cv2.threshold(mask, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         return max_min_box(eroded)
     elif use_max_min:
         return max_min_box(mask)    # use max & min coordinates for bounding box generating
 
     pointer = sam_list
-    if isinstance(mask, torch.Tensor):
-        mask = mask.cpu().detach().numpy()
     box_idx = np.argmax([
         np.sum(mask.squeeze() * sam_[1].squeeze()) / np.sum(mask) for sam_ in pointer
     ])
@@ -173,7 +175,7 @@ def move_ref2base(box, ref_img, ori_img, mask = None):
     if isinstance(ori_img, Image):
         ori_img = np.array(ori_img)
     ori_img[y:y+h, x:x+w, :] = ref_img[y:y+h, x:x+w, :] # directional replacement
-    return Image.fromarray(ori_img, mode='RGB')
+    return Image.fromarray(np.uint8(ori_img), mode='RGB')
 
 
 

@@ -472,7 +472,7 @@ first_ask_expand = 'If you have fully understand your task, please answer \'yes\
     Experiment Result: No more than two sentences! (for the insufficient token)
 """
 
-def get_bot(engine, api_key, system_prompt, proxy, type='claude'):
+def get_bot(engine, api_key, system_prompt, proxy, type='gpt'):
     iteration = 0
     while True:
         iteration += 1
@@ -518,7 +518,7 @@ def Use_Agent(opt, TODO=None, print_first_answer=False, ratio_mode=False, type='
     if hasattr(opt, 'print_first_answer'): print_first_answer = opt.print_first_answer
     TODO = TODO.lower()
     engine, api_key, net_proxy = opt.engine, opt.api_key, opt.net_proxy
-    engine = 'claude-3-opus-20240229'
+    # engine = 'claude-3-opus-20240229'
     box_engine = opt.box_engine if hasattr(opt, 'box_engine') else opt.engine
     if TODO == 'find target to be removed':
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)

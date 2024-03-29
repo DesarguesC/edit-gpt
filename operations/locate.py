@@ -187,15 +187,17 @@ def create_location(
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (opt.use_dilation, opt.use_dilation))
+    destination_mask = destination_mask[0, 0, :, :]
+    # [1, 3, h, w] -> [h, w]
 
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (opt.use_dilation, opt.use_dilation))
     dilated_mask = cv2.dilate(np.uint8(destination_mask * 255), kernel, iterations=opt.dilation_iter)
     eroded_mask = cv2.erode(np.uint8(destination_mask * 255), kernel, iterations=opt.dilation_iter)
     example_area = re_mask(dilated_mask / 255. * (1. - eroded_mask / 255.)) #[h w 3]
     ref = Image.fromarray(np.uint8(Ref_Image))
     exampled_img = move_ref2base(box_0, ref, rm_img)
-    ref_example = Image.fromarray(np.uint8(Ref_Image) * example_area)
-    example_area = rearrange(example_area[:,:,0:1], 'h w c -> c h w').unsqueeze(0) # [1 1 h w]
+    ref_example = Image.fromarray(np.uint8(Ref_Image * example_area), mode='RGB')
+    example_area = rearrange(torch.tensor(example_area)[:,:,0:1], 'h w c -> c h w').unsqueeze(0) # [1 1 h w]
 
     op_output, x_sample_ddim = paint_by_example(
                                     opt, example_area, ref_example, exampled_img, # i.e. img base

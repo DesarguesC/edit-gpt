@@ -95,7 +95,7 @@ def Add_Object(
         # old mask
         place_box = match_sam_box(place_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.dilation_iter) # only mask input -> extract max-min coordinates as bounding box
         if opt.use_ratio:
-            place_box[0], place_box[1], place_box[2], place_box[3] = place_box[0]/opt.W, place_box[1]/opt.H, place_box[2]/opt.W, place_box[3]/opt.H
+            place_box = (place_box[0]/opt.W, place_box[1]/opt.H, place_box[2]/opt.W, place_box[3]/opt.H)
         print(f'place_box = {place_box}')
         question = Label().get_str_add_place(place, name, (opt.W,opt.H), place_box, ratio_mode=opt.use_ratio)
 
@@ -133,14 +133,15 @@ def Add_Object(
                 try_time += 1
                 continue
 
-            if opt.use_ratio:
-                x, y, w, h = x * opt.W, y * opt.H, w * opt.W, h * opt.H
-
-            fixed_box = (int(x), int(y), int(w * opt.expand_scale), int(h * opt.expand_scale))
+            fixed_box = (x, y, w * opt.expand_scale, h * opt.expand_scale)
             print(f'box_0 before fixed: {fixed_box}')
-            fixed_box = fix_box(fixed_box, (opt.W,opt.H,3))
+            fixed_box = fix_box(fixed_box, (1., 1., 3) if opt.use_ratio else (opt.W, opt.H, 3))
             print(f'box_0 after fixed = {fixed_box}')
             try_time += 1
+
+        if opt.use_ratio:
+            fixed_box = (fixed_box[0]*opt.W, fixed_box[1]*opt.H, fixed_box[2]*opt.W, fixed_box[3]*opt.H)
+
         
         print(f'ans_box = {fixed_box}') # recovered from ratio
         # generate example

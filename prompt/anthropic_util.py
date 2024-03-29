@@ -7,7 +7,7 @@ class Claude():
         self.system_prompt = system_prompt
         self.proxy = proxy
         self.max_tokens = max_tokens
-        self.client = anthropic.Anthropic(
+        self.client = anthropic.Client(
             api_key = self.api_key
         )
         self.messages = []
