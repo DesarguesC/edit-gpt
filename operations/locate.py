@@ -10,7 +10,7 @@ from operations.utils import get_reshaped_img
 from seem.masks import middleware
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 from paint.example import paint_by_example
-from paint.bgutils import match_sam_box, refactor_mask, fix_box, move_ref2base
+from paint.bgutils import match_sam_box, refactor_mask, fix_box, move_ref2base, mask_inside_box
 from detectron2.data import MetadataCatalog as mt
 
 from prompt.item import Label
@@ -88,8 +88,8 @@ def create_location(
                         )  # key: name, mask
     # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
     print(f'target_mask.shape = {target_mask.shape}')
-    target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.dilation_iter)  # target box
-    bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.dilation_iter) for x in panoptic_dict]
+    target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.iteration_num)  # target box
+    bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.iteration_num) for x in panoptic_dict]
     print(target_box)
     print(f'bbox_list: {bbox_list}')
 
@@ -109,7 +109,7 @@ def create_location(
     # question = f'Size: ({opt.W},{opt.H})\n' + question
     print(f'Question: \n{question}')
 
-    box_0 = (0.2, 0.5, 0.4, 0.27)
+    box_0 = target_box
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
 
@@ -120,11 +120,11 @@ def create_location(
                 break
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
-
-        box_ans = [x.strip() for x in re.split(r'[\[\],()]', 
-                    gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
-                    else get_response(edit_agent, question if try_time < 3 else (question + notes))
-                ) if x not in ['', ' ']]
+        box_ans = ['dog', 0.2, 0.4, 0.3, 0.27]
+        # box_ans = [x.strip() for x in re.split(r'[\[\],()]',
+        #             gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
+        #             else get_response(edit_agent, question if try_time < 3 else (question + notes))
+        #         ) if x not in ['', ' ']]
         # deal with the answer, procedure is the same as in replace.py
         print(f'box_ans = {box_ans}')
         if len(box_ans) < 4:
@@ -191,20 +191,24 @@ def create_location(
     # SAVE_TEST
     print(f'Ref_Image.shape = {Ref_Image.shape}, target_mask.shape = {target_mask.shape}')
 
-    destination_mask = destination_mask[0, 0, :, :]
+    destination_mask_sq = destination_mask[0, 0, :, :]
     # [1, 3, h, w] -> [h, w]
 
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (opt.use_dilation, opt.use_dilation))
-    dilated_mask = cv2.dilate(np.uint8(destination_mask * 255), kernel, iterations=opt.dilation_iter)
-    eroded_mask = cv2.erode(np.uint8(destination_mask * 255), kernel, iterations=opt.dilation_iter)
-    example_area = re_mask(dilated_mask / 255. * (1. - eroded_mask / 255.)) #[h w 3]
+    dilated_mask = cv2.dilate(np.uint8(destination_mask_sq * 255), kernel, iterations=opt.iteration_num)
+    # dilated_mask = mask_inside_box(target_box, destination_mask_sq, kernel, opt.iteration_num)  # create from target_box
+    eroded_mask = cv2.erode(np.uint8(destination_mask_sq * 255), kernel, iterations=opt.iteration_num)
+    example_area = re_mask(dilated_mask / 255. * (1. - eroded_mask / 255.)) # [h w]
+    example_area = repeat(example_area.unsqueeze(-1), 'h w 1 -> h w c', c=3) # [h w 3]
+    print(f'box_0 = {box_0}')
     ref = Image.fromarray(np.uint8(Ref_Image))
-    exampled_img = move_ref2base(box_0, ref, rm_img)
-    ref_example = Image.fromarray(np.uint8(Ref_Image * example_area), mode='RGB')
+    target_content = Image.fromarray(np.uint8(np.array(rm_img) * np.array(example_area)), mode='RGB')
+    moved_img = move_ref2base(box_0, ref, rm_img, mask=destination_mask)
+
     example_area = rearrange(torch.tensor(example_area)[:,:,0:1], 'h w c -> c h w').unsqueeze(0) # [1 1 h w]
 
     op_output, x_sample_ddim = paint_by_example(
-                                    opt, example_area, ref_example, exampled_img, # i.e. img base
+                                    opt, example_area, target_content, moved_img, # i.e. img base
                                     preloaded_example_painter = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None
                                 )
     print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')

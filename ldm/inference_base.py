@@ -276,7 +276,7 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         help='whether to use opencv dilation algorithm; positive -> dilation kernel, negative -> do not use'
     )
     parser.add_argument(
-        '--dilation_iter',
+        '--iteration_num',
         type=int,
         default=3,
         help='if use dilation, the iteration number of dilation_iter'

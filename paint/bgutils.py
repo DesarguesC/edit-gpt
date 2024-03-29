@@ -1,4 +1,6 @@
 from typing import Tuple
+
+import cv2
 from PIL import Image
 from torchvision.transforms import ToTensor
 import torch
@@ -162,19 +164,21 @@ def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_m
     
     return (int(x), int(y), int(w), int(h))
 
-def move_ref2base(box, ref_img, ori_img, mask = None):
+def move_ref2base(box, ref_img, ori_img, mask: torch.Tensor = None):
     """
         put ref_img, multiplied by mask, put to ref to the ori_img[box2]
     """
-    if mask is not None:
-        ref_img = ref_img * mask
+    # mask: [1, 3, h, w]
+    mask = np.array(rearrange(mask.squeeze(), 'c h w -> h w c'))
     if isinstance(ref_img, Image.Image):
         ref_img = np.array(ref_img) # [h w 3]
     x, y, w, h = box
-    ref_img = cv2.resize(ref_img, (h,w))
+    ref_img = cv2.resize(ref_img, (w,h))
     if isinstance(ori_img, Image.Image):
         ori_img = np.array(ori_img)
-    ori_img[y:y+h, x:x+w, :] = ref_img[y:y+h, x:x+w, :] # directional replacement
+    need_ori = (1 - mask) * ori_img
+    ori_img[y:y+h, x:x+w, :] = ref_img # directional replacement
+    ori_img = mask * ori_img + need_ori
     return Image.fromarray(np.uint8(ori_img), mode='RGB')
 
 
@@ -220,6 +224,16 @@ def refactor_mask(box_1, mask_1, box_2, type='remove'):
 
 # TODO: implement 'refact_target'
 
+def mask_inside_box(target_box, mask, erode_kernel, erode_iteration):
+    # mask: [1, 3, w, h]
+    mask_out = torch.zeros_like(mask, dtype=torch.uint8)
+    x, y, w, h = target_box
+    for i in range(x, x+w):
+        for j in range(y, y+h):
+            mask_out[i,j] = 255
+    mask_out = cv2.erode(np.uint8(mask_out), erode_kernel, iterations=erode_iteration)
+    return mask_out
+
 def fix_box(gpt_box, img_shape, ori_box=None):
     assert len(gpt_box) == 4 and len(img_shape) == 3
     x, y, w, h = gpt_box
@@ -250,11 +264,11 @@ def fix_box(gpt_box, img_shape, ori_box=None):
     if ori_box is not None:
         h2, w2 = ori_box[2], ori_box[3]
         if randint(0,1) == 1:
-            print('-'*6 + 'Fix W' + '-'*6)
-            h = w/w2 * h2
+            print('-'*6 + ' Froze: W ' + '-'*6)
+            h = h2/w2 * w
         else:
-            print('-'*6 + 'Fix H' + '-'*6)
-            w = h/h2 * w2
+            print('-'*6 + ' Froze: H ' + '-'*6)
+            w = w2/h2 * h
         return (x, y, w, h)
     else:
         return (x, y, w, h)
