@@ -135,7 +135,6 @@ def create_location(
         #             else get_response(edit_agent, question if try_time < 3 else (question + notes))
         #         ) if x not in ['', ' ']]
         # deal with the answer, procedure is the same as in replace.py
-        
         """
         print(f'box_ans = {box_ans}')
         if len(box_ans) < 4:
@@ -163,7 +162,7 @@ def create_location(
         box_0 = (int(box_0[0] * opt.W), int(box_0[1] * opt.H), int(box_0[2] * opt.W), int(box_0[3] * opt.H))
 
     # will be converted to int in 'refactor_mask'
-    destination_mask = refactor_mask(target_box, target_mask, box_0)
+    destination_mask = refactor_mask(target_box, target_mask, box_0) # torch.Tensor
     target_mask, destination_mask = re_mask(target_mask), re_mask(destination_mask)
 
     print(f'BEFORE: box_0={box_0}')
@@ -210,11 +209,11 @@ def create_location(
     # dilated_mask = mask_inside_box(target_box, destination_mask_sq, kernel, opt.iteration_num)  # create from target_box
     eroded_mask = cv2.erode(np.uint8(destination_mask_sq * 255), kernel, iterations=opt.iteration_num)
     example_area = re_mask(dilated_mask / 255. * (1. - eroded_mask / 255.)) # [h w]
-    example_area = repeat(example_area.unsqueeze(-1), 'h w 1 -> h w c', c=3) # [h w 3]
+    example_area = repeat(torch.tensor(cv2.erode(np.uint8(example_area*255), kernel, iterations=opt.iteration_num*2)).unsqueeze(-1), 'h w 1 -> h w c', c=3) # [h w 3]
     print(f'box_0 = {box_0}')
     ref = Image.fromarray(np.uint8(Ref_Image))
     target_content = Image.fromarray(np.uint8(np.array(rm_img) * np.array(example_area)), mode='RGB')
-    moved_img = move_ref2base(box_0, ref, rm_img, mask=destination_mask)
+    moved_img, moved_img_np, mask_temp = move_ref2base(box_0, ref, rm_img, mask=destination_mask)
 
     example_area = rearrange(torch.tensor(example_area)[:,:,0:1], 'h w c -> c h w').unsqueeze(0) # [1 1 h w]
 
@@ -225,7 +224,7 @@ def create_location(
     print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
 
     op_output = op_output if op_output.endswith('.jpg') else (op_output + '.jpg')
-    x_sample_ddim = tensor2img(x_sample_ddim)
+    x_sample_ddim = tensor2img(x_sample_ddim.detach().cpu() * destination_mask) + np.uint8(cv2.cvtColor(moved_img_np, cv2.COLOR_BGR2RGB) * (1 - mask_temp))
     cv2.imwrite(op_output, x_sample_ddim)
     print(f'locate result image saved at \'{op_output}\'')
     

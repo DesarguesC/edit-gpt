@@ -181,7 +181,7 @@ def move_ref2base(box, ref_img, ori_img, mask: torch.Tensor = None):
     need_ori = (1 - mask) * ori_img
     ori_img[y:y+h, x:x+w, :] = ref_img # directional replacement
     ori_img = mask * ori_img + need_ori
-    return Image.fromarray(np.uint8(ori_img), mode='RGB')
+    return Image.fromarray(np.uint8(ori_img), mode='RGB'), np.uint8(ori_img), mask
 
 
 
