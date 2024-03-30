@@ -143,21 +143,31 @@ def Move_Method(
         input_pil: Image = None,
         preloaded_model = None,
         preloaded_agent = None,
-        record_history = True
+        record_history = True,
     ):
     opt = gpt_mkdir(opt, Type='move')
-    # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
-    # move_agent = Use_Agent(opt, TODO='arrange a new bbox for me') if preloaded_agent is None\
-    #                         else preloaded_agent['arrange a new bbox for me']
-    # noun_agent = Use_Agent(opt, TODO='find target to be moved') if preloaded_agent is None\
-    #                         else preloaded_agent['find target to be moved']
-    target_noun = "dog" # get_response(noun_agent, opt.edit_txt)
+
+    """
+    
+    #####################
+    #####  Mute GPT #####
+    #####################
+    move_agent = Use_Agent(opt, TODO='arrange a new bbox for me') if preloaded_agent is None\
+                            else preloaded_agent['arrange a new bbox for me']
+    noun_agent = Use_Agent(opt, TODO='find target to be moved') if preloaded_agent is None\
+                            else preloaded_agent['find target to be moved']
+    target_noun = get_response(noun_agent, opt.edit_txt)
+    
+    """
+
+
+    target_noun = "dog"
     print(f'target_noun: {target_noun}')
 
     pil_return = create_location(
                         opt, target_noun, 
                         input_pil = input_pil, 
-                        edit_agent = None,
+                        edit_agent = None, # move_agent
                         preloaded_model = preloaded_model
                     )
 

@@ -109,7 +109,9 @@ def create_location(
     # question = f'Size: ({opt.W},{opt.H})\n' + question
     print(f'Question: \n{question}')
 
-    # box_0 = target_box
+    """
+    box_0 = target_box # Mute GPT 
+    """
     box_0 = (0, 0, 0, 0)
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
@@ -122,11 +124,15 @@ def create_location(
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
         box_ans = ['dog', 0.2, 0.4, 0.3, 0.27]
+        """
+        # Mute GPT
         # box_ans = [x.strip() for x in re.split(r'[\[\],()]',
         #             gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
         #             else get_response(edit_agent, question if try_time < 3 else (question + notes))
         #         ) if x not in ['', ' ']]
         # deal with the answer, procedure is the same as in replace.py
+        
+        """
         print(f'box_ans = {box_ans}')
         if len(box_ans) < 4:
             print('WARNING: string return')
