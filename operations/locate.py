@@ -55,7 +55,10 @@ def create_location(
             preloaded_seem_detector
             preloaded_example_painter
     """
+    """
+    Mute GPT
     # assert edit_agent != None, 'no edit agent'
+    """
     # move the target to the destination, editing via GPT (tell the bounding box)
     opt, img_pil = get_reshaped_img(opt, input_pil)
     # resize and prepare the original image
@@ -89,6 +92,7 @@ def create_location(
     # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
     print(f'target_mask.shape = {target_mask.shape}')
     target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.iteration_num)  # target box
+    print(f'Matched via max-min: target_box = {target_box}')
     bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.iteration_num) for x in panoptic_dict]
     print(target_box)
     print(f'bbox_list: {bbox_list}')
@@ -119,11 +123,11 @@ def create_location(
     while box_0 == (0,0,0,0) or box_0[2] == 0 or box_0[3] == 0:
         if try_time > 0:
             if try_time > 6:
-                box_0 = (0.1,0.2,0.5,0.7) if opt.use_ratio else (50,50,50,50)
+                box_0 = (0.1,0.2,0.5,0.6) if opt.use_ratio else (50,50,50,50)
                 break
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
-        box_ans = ['dog', 0.2, 0.4, 0.3, 0.27]
+        box_ans = [str(target), '0.2', '0.4', '0.3', '0.27']
         """
         # Mute GPT
         # box_ans = [x.strip() for x in re.split(r'[\[\],()]',
@@ -141,7 +145,7 @@ def create_location(
         print(f'box_ans[0](i.e. target) = {box_ans[0]}')
         # box_ans[0]: target
         try:
-            box_0 = (float(box_ans[1]), float(box_ans[2]), float(box_ans[3]) * opt.expand_scale, float(box_ans[4])) * opt.expand_scale
+            box_0 = (float(box_ans[1]), float(box_ans[2]), float(box_ans[3]) * opt.expand_scale, float(box_ans[4]) * opt.expand_scale)
         except Exception as err:
             print(f'err: box_ans = {box_ans}\nError: {err}')
             box_0 = (0, 0, 0, 0)

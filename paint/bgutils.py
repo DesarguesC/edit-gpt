@@ -111,18 +111,20 @@ def max_min_box(mask0):
     mask0[mask0>0.5] = 1
     mask0[mask0<=0.5] = 0
     # print(f'TEST-min-max: mask.shape = {mask0.shape}') # 1 * h * w
-    if len(mask0.shape) == 4:
-        *_, H, W = mask0.shape
-    elif len(mask0.shape) == 3:    
-        _, H, W = mask0.shape
-    else:
-        H, W = mask0.shape
-    max_x = max_y = -1
-    min_x = min_y = max(H,W) * 2
+    H, W = mask0.shape
+    # if len(mask0.shape) == 4:
+    #     *_, H, W = mask0.shape
+    # elif len(mask0.shape) == 3:
+    #     _, H, W = mask0.shape
+    # else:
+    #     H, W = mask0.shape
+    max_x, max_y = W - 1, H - 1
+    min_x, min_y = 0, 0
 
     for i in range(H):
         for j in range(W):
-            if (len(mask0.shape) == 2 and mask0[i][j].item() == 1) or (len(mask0.shape) == 3 and mask0[0][i][j].item() == 1) or (len(mask0.shape) == 4 and mask0[0][0][i][j].item() == 1):
+            if mask0[i][j].item() == 1:
+            # if (len(mask0.shape) == 2 and mask0[i][j].item() == 1) or (len(mask0.shape) == 3 and mask0[0][i][j].item() == 1) or (len(mask0.shape) == 4 and mask0[0][0][i][j].item() == 1):
                 max_x, min_x = max(j, max_x), min(j, min_x)
                 max_y, min_y = max(i, max_y), min(i, min_y)
     return (min_x, min_y, max_x-min_x, max_y-min_y)
@@ -134,7 +136,7 @@ def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_m
     if isinstance(mask, torch.Tensor):
         mask = mask.cpu().detach().numpy()
     if use_dilation:
-        print(f'[Before Dilation] mask.shape = {mask.shape} | np.max(mask) = {np.max(mask)}')
+        # print(f'[Before Dilation] mask.shape = {mask.shape} | np.max(mask) = {np.max(mask)}')
         # Add: [h, w], Move: [1, h, w] ?
         while len(mask.shape) > 2 and mask.shape[0] == 1:
             mask = np.squeeze(mask, axis=0) # ?
@@ -145,7 +147,7 @@ def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_m
 
         # use opencv dilation instead of SAM/max_min
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (dilation, dilation))
-        eroded = cv2.erode(mask, kernel, iterations=dilation_iter)
+        eroded = cv2.erode(mask, kernel, iterations=dilation_iter) # mask: [h, w]
         """
             not using np.squeeze: msak [1 h w] seems to lead to an error ?
         """

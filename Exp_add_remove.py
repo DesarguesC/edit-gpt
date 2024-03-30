@@ -71,7 +71,6 @@ def Val_Add_Method(opt):
     
     label_metadata = {}
     for x in data_val['categories']:
-        print(x)
         label_metadata[str(x['id'])] = x['name']
             
     acc_num_add, acc_num_ip2p = 0, 0
@@ -216,7 +215,6 @@ def Val_Remove_Method(opt):
             captions_dict[image_id] = x['caption']
     label_metadata = {}
     for x in data_val['categories']:
-        print(x)
         label_metadata[str(x['id'])] = x['name']
 
     acc_num_remove, acc_num_ip2p = 0, 0

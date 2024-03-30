@@ -82,7 +82,6 @@ def Val_Replace_Method(opt):
     
     label_metadata = {}
     for x in data_['categories']:
-        print(x)
         label_metadata[str(x['id'])] = x['name']
 
     image_before_list,  image_after_list,  image_ip2p_list = [], [], []
@@ -191,8 +190,12 @@ def Val_Replace_Method(opt):
 def Val_Move_Method(opt):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017/'
-    agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
-    # for validation after
+    """
+    Mute GPT
+        # agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
+    """
+
+
     with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
         caption = json.load(f)    
     # query caption via image_id
@@ -214,7 +217,6 @@ def Val_Move_Method(opt):
         data = json.load(f)
     label_metadata = {}
     for x in data['categories']:
-        print(x)
         label_metadata[str(x['id'])] = x['name']
     
     length = len(data['annotations'])
@@ -241,13 +243,18 @@ def Val_Move_Method(opt):
         annotation = data['annotations'][idx]
         start_time = time.time()
 
+        # be used in those Mute GOT modules
         x, y, w, h = annotation['bbox']
         x, y, w, h = int(x), int(y), int(w), int(h)
         img_id, label_id = annotation['image_id'], annotation['category_id']
         caption = captions_dict[str(img_id)]
         label = label_metadata[str(label_id)]
 
-        place = [x for x in get_response(agent, f'{opt.edit_txt}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
+        """
+            Mute GPT
+            place = [x for x in get_response(agent, f'{opt.edit_txt}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
+        """
+        place = ['on the right', 'on the left']
         assert len(place) == 2, f'place = {place}'
         ori_place, gen_place = place[0], place[1]
 
@@ -255,7 +262,7 @@ def Val_Move_Method(opt):
         img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
         img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512,512), method=Image.Resampling.LANCZOS)
 
-        out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False)
+        out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False, target=label)
         if out_pil.size != (512,512):
             out_pil = ImageOps.fit(out_pil, (512,512), method=Image.Resampling.LANCZOS)
         if opt.with_ip2p_val:
@@ -317,17 +324,17 @@ def main1(test_group_num=50):
         filename='Replace_Move.log'
     )
     
-    opt.out_dir = '../autodl-tmp/Exp_Replace'
-    if os.path.exists(opt.out_dir): 
-        os.system(f'rm {opt.out_dir}.zip')
-        os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
-        os.system(f'rm -rf {opt.out_dir}')
-    if not os.path.exists(opt.out_dir):
-        os.mkdir(opt.out_dir)
-    base_cnt = len(os.listdir(opt.out_dir))
-    setattr(opt, 'base_cnt', base_cnt)
-    print('Start to valuate Replace Method...')
-    Val_Replace_Method(opt)
+    # opt.out_dir = '../autodl-tmp/Exp_Replace'
+    # if os.path.exists(opt.out_dir):
+    #     os.system(f'rm {opt.out_dir}.zip')
+    #     os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
+    #     os.system(f'rm -rf {opt.out_dir}')
+    # if not os.path.exists(opt.out_dir):
+    #     os.mkdir(opt.out_dir)
+    # base_cnt = len(os.listdir(opt.out_dir))
+    # setattr(opt, 'base_cnt', base_cnt)
+    # print('Start to valuate Replace Method...')
+    # Val_Replace_Method(opt)
     
     opt.out_dir = '../autodl-tmp/Exp_Move'
     if os.path.exists(opt.out_dir): 

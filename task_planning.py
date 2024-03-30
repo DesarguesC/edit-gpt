@@ -144,6 +144,7 @@ def Move_Method(
         preloaded_model = None,
         preloaded_agent = None,
         record_history = True,
+        target: str = None
     ):
     opt = gpt_mkdir(opt, Type='move')
 
@@ -161,7 +162,7 @@ def Move_Method(
     """
 
 
-    target_noun = "dog"
+    target_noun = target # 'dog'
     print(f'target_noun: {target_noun}')
 
     pil_return = create_location(
