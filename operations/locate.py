@@ -91,9 +91,9 @@ def create_location(
                         )  # key: name, mask
     # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
     print(f'target_mask.shape = {target_mask.shape}')
-    target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.iteration_num)  # target box
+    target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=True, dilation=opt.mask_erosion, dilation_iter=3)  # target box
     print(f'Matched via max-min: target_box = {target_box}')
-    bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.use_dilation>0), dilation=opt.use_dilation, dilation_iter=opt.iteration_num) for x in panoptic_dict]
+    bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=True, dilation=opt.mask_erosion, dilation_iter=3) for x in panoptic_dict]
     print(target_box)
     print(f'bbox_list: {bbox_list}')
 

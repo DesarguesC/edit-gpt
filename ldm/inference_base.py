@@ -270,6 +270,14 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        '--mask_erosion',
+        type=int,
+        default=3,
+        help='the erosion of mask, for calculating the the bounding box'
+    )
+
+
+    parser.add_argument(
         '--use_dilation',
         type=int,
         default=4,
