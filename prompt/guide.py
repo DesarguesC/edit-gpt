@@ -671,7 +671,6 @@ system_prompt_gen_replace_instructions = "You are an instruction generator, and 
 planning_system_prompt = "You are an image editing system that can give editing solutions based on only 5 editing tools. "\
                             "You have and only have the following 5 types of tools for editing: 'Add', 'Remove', 'Replace', 'Move' and 'Transfer'. "\
                             "The commands are explained and their effects are described below. "\
-                            "'Add' can add objects, such as \"Add an apple\", \"Put two teddy bears on the table\"; "\
                             "\'Add\' can add objects, such as \"add an apple \",\" put two teddy bears on the table \"; "\
                             "\'Remove\' can be used to remove objects, e.g. \'Remove a pear from a table\'; "\
                             "\'A person has taken the broom away\'; \'Replace\' is used to replace an object, "\
@@ -680,10 +679,8 @@ planning_system_prompt = "You are an image editing system that can give editing 
                             "the computer to the right side\'; \'Transfer\' is used for style transfer, e.g. "\
                             "\'modernist style\', \'to Renaissance style\'. For the input instructions, "\
                             "you need to give the editing tool use plan according to the overall editing requirements of the image. "\
-                            "The tasks of each step are specified in order in the form of $(type, method)$item, "\
-                            "where \"type\" is one of the five editing tools (i.e. Add, Remove, Replace, Move, ransfer) and \"method\" "\
-                            "indicates the operation to be implemented. That is, the role of the editing tool, "\
-                            "pay attention to the items between the \";\" Separate. Here are two examples of input and output. \n"\
+                            "The tasks of each step are specified in order in the form of $(type, method)$item. "\
+                            "Pay attention to the items between the \";\" Separate. Here are two examples of input and output. \n"\
                             "INPUT: a women enters the livingroom and take the box on the desk, while a cuckoo flies into the house. \n"\
                             "OUTPUT: (Remove, \"remove the box on the desk\");  (Add, \"add a cukoo in the house\"). \n\n"\
                             "INPUT: \"The sun went down, the sky was suddenly dark, and the birds returned to their nests. \"\n"\
