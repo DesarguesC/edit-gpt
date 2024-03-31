@@ -268,23 +268,34 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         default=False,
         help='whether to valuate ip2p simultaneously'
     )
-
+    # Whether to use: x_iter_num > 0
     parser.add_argument(
-        '--mask_erosion',
+        '--erosion',
         type=int,
         default=3,
         help='the erosion of mask, for calculating the the bounding box'
     )
-
-
+    # mask_erosion
     parser.add_argument(
-        '--use_dilation',
+        '--erosion_iter_num',
+        type=int,
+        default=3,
+        help='the erosion of mask, for calculating the the bounding box'
+    )
+    # Erode: especially for function "match_sam_box"
+
+
+
+    # use_dilation
+    parser.add_argument(
+        '--dilation',
         type=int,
         default=4,
         help='whether to use opencv dilation algorithm; positive -> dilation kernel, negative -> do not use'
     )
+    # iteration_num
     parser.add_argument(
-        '--iteration_num',
+        '--dilation_iter_num',
         type=int,
         default=3,
         help='if use dilation, the iteration number of dilation_iter'

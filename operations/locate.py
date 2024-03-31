@@ -69,7 +69,7 @@ def create_location(
     else:
         mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
     # prepare SAM, matched via SEEM
-    if not opt.use_dilation:
+    if opt.dilation_iter_num <= 0:
         mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
         sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list] if not opt.use_max_min else None
     else:
@@ -79,7 +79,7 @@ def create_location(
     rm_img, target_mask, _ = Remove_Me_lama(
                                     opt, target, 
                                     input_pil = img_pil, 
-                                    dilate_kernel_size = opt.dilate_kernel_size, 
+                                    dilate_kernel_size = opt.dilate_kernel_size, # LaMa
                                     preloaded_model = preloaded_model
                                 ) if opt.use_lama \
                                 else Remove_Me(opt, target, remove_mask=True, replace_box=opt.replace_box)
@@ -91,9 +91,9 @@ def create_location(
                         )  # key: name, mask
     # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
     print(f'target_mask.shape = {target_mask.shape}')
-    target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=True, dilation=opt.mask_erosion, dilation_iter=3)  # target box
+    target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)  # target box
     print(f'Matched via max-min: target_box = {target_box}')
-    bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=True, dilation=opt.mask_erosion, dilation_iter=3) for x in panoptic_dict]
+    bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num) for x in panoptic_dict]
     print(target_box)
     print(f'bbox_list: {bbox_list}')
 
@@ -203,13 +203,13 @@ def create_location(
 
     destination_mask_sq = destination_mask[0, 0, :, :]
     # [1, 3, h, w] -> [h, w]
-
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (opt.use_dilation, opt.use_dilation))
-    dilated_mask = cv2.dilate(np.uint8(destination_mask_sq * 255), kernel, iterations=opt.iteration_num)
+    # (dilation, iter) = (2,2) or (1,3)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (opt.dilation,opt.dilation))
+    dilated_mask = cv2.dilate(np.uint8(destination_mask_sq * 255), kernel, iterations=opt.dilation_iter_num)
     # dilated_mask = mask_inside_box(target_box, destination_mask_sq, kernel, opt.iteration_num)  # create from target_box
-    eroded_mask = cv2.erode(np.uint8(destination_mask_sq * 255), kernel, iterations=opt.iteration_num)
+    eroded_mask = cv2.erode(np.uint8(destination_mask_sq * 255), kernel, iterations=opt.dilation_iter_num)
     example_area = re_mask(dilated_mask / 255. * (1. - eroded_mask / 255.)) # [h w]
-    example_area = repeat(torch.tensor(cv2.erode(np.uint8(example_area*255), kernel, iterations=opt.iteration_num*2)).unsqueeze(-1), 'h w 1 -> h w c', c=3) # [h w 3]
+    example_area = repeat(torch.tensor(cv2.erode(np.uint8(example_area*255), kernel, iterations=opt.iteration_num)).unsqueeze(-1), 'h w 1 -> h w c', c=3) # [h w 3]
     print(f'box_0 = {box_0}')
     ref = Image.fromarray(np.uint8(Ref_Image))
     target_content = Image.fromarray(np.uint8(np.array(rm_img) * np.array(example_area)), mode='RGB')

@@ -123,8 +123,8 @@ def replace_target(
                                                                 key=(lambda x: x['area']), reverse=True)
     # print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
     sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list] if not opt.use_max_min else None
-    box_1 = match_sam_box(mask_1, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=True, dilation=opt.mask_erosion, dilation_iter=3)
-    bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=True, dilation=opt.mask_erosion, dilation_iter=3) for x in panoptic_dict]
+    box_1 = match_sam_box(mask_1, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)
+    bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num) for x in panoptic_dict]
     # only mask input -> extract max-min coordinates as bounding box)
     print(f'box_1 = {box_1}')
     print(f'bbox_list = {bbox_list}')
@@ -141,14 +141,14 @@ def replace_target(
         'name': old_noun,
         'bbox': box_1
     })
-    if not (opt.use_max_min or opt.use_dilation):
+    if not (opt.use_max_min or opt.dilation_iter_num>0):
         diffusion_mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), \
                                                                              key=(lambda x: x['area']), reverse=True)
         sam_mask_list = ([(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list] if not opt.use_max_min else None)
     else:
         sam_mask_list = None
 
-    box_2 = match_sam_box(mask_2, sam_mask_list, use_max_min=opt.use_max_min, use_dilation=True, dilation=opt.mask_erosion, dilation_iter=3)
+    box_2 = match_sam_box(mask_2, sam_mask_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion_iter_num, dilation_iter=opt.erosion_iter_num)
     question = Label().get_str_rescale(old_noun, new_noun, box_name_list)
     print(f'Question: \n{question}')
 
