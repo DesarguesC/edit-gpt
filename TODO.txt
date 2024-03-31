@@ -1,10 +1,8 @@
 TODO: 2024-01-03
-
 1. prompt/guide.py   ->   give examples to GPT
 给一些例子
 2. operations/locate.py   ->   expand mask area via a hyperparameter [done] -> 「cause mask refactor problem」 ?
 [does it exists here ? 运行room.jpg的locate在refator_mask那里报错] => 这部分replace里也报错了，在repeat和rearrange上需要调
-
 * 规范remove, replace, locate, add之外的编辑指令，用ip2p实现
 
 TODO: 2024-01-27
@@ -16,7 +14,6 @@ TODO: 2024-01-27
 4.考虑一下如何表示如CCA中的多agent合作
 
 previous idea of exp:
-
 llm grounded diffusion那篇的定量实验是怎么做的
 方位数据集？
 用gpt问答模型（llm-vqa）给自己做测评（看下llm的对比测评方式）
@@ -28,29 +25,29 @@ llm grounded diffusion那篇的定量实验是怎么做的
 结合社会激励测评，不过会不会被质疑为什么不用社会激励？
 尝试用gpt 4或者gpt 4v（好像叫这个？）测评？
 
-
-
 Experiments Conception Details
-
 1.原有模型中，输入的change/replace这种动词其实没有发挥作用，因为diffusion本身不理解clip（编辑指令只用clip编码，但clip对动词不灵敏，可以说是几乎没有用）-> 证明他（做一些展示diffusion混淆指令的例子）
 2.基于1.，过去做的instruct image-editing实质上基本是在做replace，人们基于remove
 之类的工作以很少的关注
 3.没有人做过locate的工作
-
 Our Contribution：做了locate，同时整合了前面的图像编辑功能，形成一个拥有replace/remove/add/locate能力的集成系统
-
-
-
 Question：
 我是否需要有model selection的部分，因为看到Hugging-GPT和CAA里都有？
 但是我希望我做的“显得”更通用一些
-
 尝试说明：用GPT4去做这个任务，视觉信息是冗余的 -> 如何证明信息冗余？-> 数据流型
-
 
 2024.3.9
 stable-diffusion XL 部分似乎出了一点问题，remains to be fixed
 
 TODO: 2024-03-19
-
 Regularize the seed !
+
+TODO: 2024-04-01
+1. Add LLaVA/IMP to bot
+2. 检查一下task planner那部分的完整代码，在寻找路径方面
+3. New OpenAI API account, 完成剩下的实验（可能得到周二做）
+4. Ablation: 1. w/o Dilation 2. (SEEM+GPT-3.5) -> GPT-4v or LLaVA-1.5 or LLaVA-1.6 or IMP
+5. 再仔细阅读一下以前看过的论文的ablation
+6. 提出一个衡量大模型在生成式创造性方面的指标？（结合Diffusion效果）
+
+
