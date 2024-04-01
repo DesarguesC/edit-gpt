@@ -481,7 +481,7 @@ def get_bot(engine, api_key, system_prompt, proxy, type='gpt'):
             if type == 'gpt':
                 agent = Chatbot(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
             else:
-                agent = LLM_Remote(type)
+                agent = LLM_Remote(type=type, system_prompt=system_prompt)
         except Exception as err:
             print('Error Msg: ', err)
             print('Apply Agent Timed Out')
