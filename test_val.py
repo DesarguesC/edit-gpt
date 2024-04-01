@@ -359,6 +359,106 @@ def Validate_planner():
     csv_writer(f'{static_out_dir}/ssim-dict-task-{qwq}.csv', ssim_dict)
 
 
+def Validate_planner_No_Img():
+    opt = get_arguments()
+    static_out_dir = opt.out_dir
+    if not os.path.exists(static_out_dir):
+        os.mkdir(static_out_dir)  # os.system(f'rm -rf {static_out_dir}')
+
+    if os.path.isfile(os.path.join(static_out_dir, 'multi-task-valuation.log')): os.system(
+        'rm multi-task-valuation.log')
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s : %(levelname)s : %(message)s',
+        filename=f'{static_out_dir}/multi-task-valuation.log'
+    )
+
+    # validate the accuracy of GPT task planner on human labeled dataset
+    base_path = '../autodl-tmp/planner-test-labeled/'
+    all_data_folder = []
+    big_folders = [os.path.join(base_path, x) for x in os.listdir(base_path) if 'engine' in x]
+    for folder in big_folders:
+        for gpt_i_folder in os.listdir(folder):
+            if 'zip' not in gpt_i_folder and '.DS_Store' not in gpt_i_folder:
+                all_data_folder.append(os.path.join(folder, gpt_i_folder))
+
+    score_list = []
+    cur_dict = {}
+    planning_agent = get_planning_system_agent(opt)
+    print(f'len(os.listdir(static_out_dir)) = {len(os.listdir(static_out_dir))}')
+
+    cnt_global = len(
+        [x for x in os.listdir(static_out_dir) if not (os.path.isfile(x) or x in ['.', '..', '.ipynb_checkpoints'])])
+
+    print(f'\nAll Data Folder amount: {len(all_data_folder)}\nGlobal cnt = {cnt_global}')
+
+    for qwq in range(len(all_data_folder)):  # xxxx/GPT-1/
+        # TODO: Only a folder one time !
+        folder = all_data_folder[qwq]
+
+        raw_path = os.path.join(folder, 'GPT_gen_raw')
+        ground_path = os.path.join(folder, 'GPT_gen_label')
+
+        raw_csv_list = [os.path.join(raw_path, csv_) for csv_ in os.listdir(raw_path) if csv_.endswith('.csv')]
+        ground_csv_list = [os.path.join(ground_path, csv_) for csv_ in os.listdir(ground_path) if csv_.endswith('.csv')]
+
+        assert len(raw_csv_list) == len(
+            ground_csv_list), f'len(raw_csv_list) = {len(raw_csv_list)}, len(ground_csv_list) = {len(ground_csv_list)}'
+        tot = len(raw_csv_list)
+
+        for i in range(tot):
+            # if i > randint(1,3): break
+            # try:
+            opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
+            os.mkdir(opt.out_dir)
+            cnt_global += 1
+            length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
+            label_list = receive_from_csv(ground_csv_list[i], type='label')
+            plans = get_planns_directly(planning_agent, prompts)  # key: "type" in use | [{"type":..., "command":...}]
+            plan_list = [x['type'].lower().strip() for x in plans]
+
+            # Task Planner Validation Algorithm
+            j, p, q = 0, len(plan_list), len(label_list)
+            while j < min(p, q) and label_list[j] == plan_list[j]:
+                j = j + 1
+            if j == q - 1:
+                j = j - (p - q)
+
+            cur_score = j / min(p, q)
+            score_list.append(cur_score)
+            if str(length) in cur_dict.keys():
+                cur_dict[str(length)].append(cur_score)
+            else:
+                cur_dict[str(length)] = [cur_score]
+
+            score_string = f'\n\tValidate Step [{(i + 1):0{3}}|{tot:0{3}}]|[{(qwq + 1):0{2}}|{(len(all_data_folder) + 1):0{2}}] †† current score: {cur_score}, average score: {np.mean(score_list)}\n'
+            print(score_string)
+            logging.info(score_string)
+
+    tot_score = np.mean(score_list)
+    print(f'Test Planner: Average score-ratio on {len(score_list)} pieces data: {tot_score}')
+
+    from raw_gen import csv_writer
+    from matplotlib import pyplot as plt
+    csv_writer(f'{static_out_dir}/dict-task-planning.csv', cur_dict)
+    # print(cur_dict)
+    x, y = [], []
+    for (k, v) in cur_dict.items():
+        x.append(int(float(k)))
+        y.append(np.mean(v))
+
+    assert len(x) == len(y), f'len(x) = {len(x)}, len(y) = {y}'
+    plt.scatter(np.array(x), np.array(y), color='blue', marker='*')
+    plt.plot(x, y, 'b-')
+
+    plt.xlabel('Task Length (ground truth)')
+    plt.xticks(np.arange(min(np.min(x) - 1, 0), max(np.max(x) + 1, 12), 1))
+    plt.ylabel('Accuracy')
+    plt.title('Task Planning Accuracy Score')
+    # plt.legend()
+    plt.grid(True)
+    plt.savefig(f'{static_out_dir}/planner-curve.jpg')
+
 
 def Validate_on_Ip2p_Dataset(test_num):
     opt = get_arguments()
@@ -429,13 +529,7 @@ def Validate_on_Ip2p_Dataset(test_num):
                                              typer='Multi Task planning', psnr_score=psnr_score, ssim_score=ssim_score)
     logging.info(writing_string)
     
-    
 
-    
-
-    
-    
-    
 
 if __name__ == '__main__':
-    Validate_planner()
+    Validate_planner_No_Img()

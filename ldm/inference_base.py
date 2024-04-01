@@ -207,7 +207,7 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        '--planner_type',
+        '--llm_type',
         type=str,
         help="which llm to be the task planner",
         default='gpt'  # default: linear
