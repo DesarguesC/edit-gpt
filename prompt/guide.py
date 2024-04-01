@@ -1,5 +1,5 @@
 from revChatGPT.V3 import Chatbot
-from .anthropic_util import Claude
+from .anthropic_util import *
 import time, os
 """
     Remove, Replace 作为两个单独的状态，后面一个包括位置移动、大小修改、对象内容修改（ip2p）  【对象修改是否需要？还是我就做好位置、大小这些】
@@ -481,7 +481,7 @@ def get_bot(engine, api_key, system_prompt, proxy, type='gpt'):
             if type == 'gpt':
                 agent = Chatbot(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
             else:
-                agent = Claude(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
+                agent = LLM_Remote(type)
         except Exception as err:
             print('Error Msg: ', err)
             print('Apply Agent Timed Out')
@@ -513,7 +513,7 @@ def get_response(chatbot, asks, mute_print=False):
         if not mute_print: print('Finish')
         return answer
 
-def Use_Agent(opt, TODO=None, print_first_answer=False, ratio_mode=False, type='claude'):
+def Use_Agent(opt, TODO=None, print_first_answer=False, ratio_mode=False, type='gpt'):
     # bounding box has its own engine
     if hasattr(opt, 'print_first_answer'): print_first_answer = opt.print_first_answer
     TODO = TODO.lower()
@@ -681,8 +681,8 @@ planning_system_prompt = "You are an image editing system that can give editing 
                             "you need to give the editing tool use plan according to the overall editing requirements of the image. "\
                             "The tasks of each step are specified in order in the form of $(type, method)$item. "\
                             "Pay attention to the items between the \";\" Separate. Here are two examples of input and output. \n"\
-                            "INPUT: a women enters the livingroom and take the box on the desk, while a cuckoo flies into the house. \n"\
-                            "OUTPUT: (Remove, \"remove the box on the desk\");  (Add, \"add a cukoo in the house\"). \n\n"\
+                            "INPUT: \"A women enters the livingroom and take the box on the desk, while a cuckoo flies into the house. And replace the desk with a red chair.\n"\
+                            "OUTPUT: \"(Remove, \"remove the box on the desk\");  (Add, \"add a cukoo in the house\"); (Replace, \"Replace the desk with a red chair\"). \n"\
                             "INPUT: \"The sun went down, the sky was suddenly dark, and the birds returned to their nests. \"\n"\
                             "Output: (Remove, \"remove the sun\"); (Transfer, \"the lights are out, darkness\"); "\
                             "(Add, \"add some birds, they are flying in the sky\")\nNote that when you are giving output, \n"\

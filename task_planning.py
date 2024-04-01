@@ -214,12 +214,11 @@ def Add_Method(
     else: return pil_return
 
 def get_planning_system_agent(opt):
-    planning_system_agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=planning_system_prompt, proxy=opt.net_proxy)
+    planning_system_agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=planning_system_prompt, proxy=opt.net_proxy, type=opt.planner_type)
     _ = get_response(planning_system_agent, planning_system_first_ask)
     return planning_system_agent
 
 def get_plans(opt, planning_system_agent):
-    # planning_system_agent = get_planning_system_agent(opt)
     response = get_response(planning_system_agent, opt.edit_txt)
     print(response)
     response = re.split(r"[;]", response)

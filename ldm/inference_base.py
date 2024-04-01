@@ -205,6 +205,13 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         help="user linearart adpater or depth adapter in XL",
         default=True   # default: linear
     )
+
+    parser.add_argument(
+        '--planner_type',
+        type=str,
+        help="which llm to be the task planner",
+        default='gpt'  # default: linear
+    )
     
     parser.add_argument(
         '--use_lama',
