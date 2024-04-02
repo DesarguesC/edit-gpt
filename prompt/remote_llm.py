@@ -30,7 +30,8 @@ class LLM_Remote():
             res_list = [x.strip().lstrip("\"") for x in re.split(r'OUTPUT', response)]
             string = res_list[1].split('\n')[0]
             for i in range(len(string)):
-
+                if string[i] == ':':
+                    return string[i+2:]
 
         # if response.startswith('OUTPUT: '):
         #     # 3. OUTPUT: \n...

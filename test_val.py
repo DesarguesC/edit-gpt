@@ -394,7 +394,7 @@ def Validate_planner_No_Img():
 
     for qwq in range(len(all_data_folder)):  # xxxx/GPT-1/
         # TODO: Only a folder one time !
-        if qwq < 8: continue
+        # if qwq < 8: continue
         folder = all_data_folder[qwq]
 
         raw_path = os.path.join(folder, 'GPT_gen_raw')
