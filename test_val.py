@@ -405,13 +405,13 @@ def Validate_planner_No_Img():
         assert len(raw_csv_list) == len(
             ground_csv_list), f'len(raw_csv_list) = {len(raw_csv_list)}, len(ground_csv_list) = {len(ground_csv_list)}'
         tot = len(raw_csv_list)
-
+        print(f'tot = {tot}')
         for i in range(tot):
-            # if i > randint(1,3): break
-            # try:
             opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
             os.mkdir(opt.out_dir)
             cnt_global += 1
+            # print(f'raw_csv_list[i] = {raw_csv_list[i]}')
+            # print(f'ground_csv_list[i] = {ground_csv_list[i]}')
             length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
             label_list = receive_from_csv(ground_csv_list[i], type='label')
             plans = get_planns_directly(planning_agent, prompts)  # key: "type" in use | [{"type":..., "command":...}]

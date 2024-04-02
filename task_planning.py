@@ -215,7 +215,8 @@ def Add_Method(
 
 def get_planning_system_agent(opt):
     planning_system_agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=planning_system_prompt, proxy=opt.net_proxy, type=opt.llm_type)
-    _ = get_response(planning_system_agent, planning_system_first_ask)
+    if opt.llm_type == 'gpt':
+        _ = get_response(planning_system_agent, planning_system_first_ask)
     return planning_system_agent
 
 def get_plans(opt, planning_system_agent):
