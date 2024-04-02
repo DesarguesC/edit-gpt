@@ -246,7 +246,7 @@ def get_planns_directly(agent, prompt):
         if len(task_str) > 2:
             for j in range(2, len(task_str)):
                 task_str[1] = task_str[1] + f'; {task_str[j]}'
-        elif len(task_str) == 1:
+        elif len(task_str) <= 1:
             del_idx.append(i)
             continue
         # else:
