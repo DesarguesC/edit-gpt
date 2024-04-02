@@ -1,4 +1,5 @@
 import re
+import time
 from socket import *
 
 class LLM_Remote():
@@ -14,12 +15,45 @@ class LLM_Remote():
     #     return f'{self.system_prompt}. Here\'s your INPUT: {inputs}.\n[None that no any other characters.]'
 
     def cut(self, response):
-        return [x for x in re.split(r'OUTPUT: |INPUT: |\n', response) if x not in ['', ' ']][0].lstrip('\"').rstrip('\"')
+        """
+            1. INPUT: ... \nOUTPUT: ...
+            2. INPUT: ... OUTPUT: ...
+            3. OUTPUT: \n...
+            4. ... OUTPUT:
+            5. " "
+        """
+        # find the first "OUTPUT: "
+        if response == " " or "OUTPUT" not in response:
+            # 5. " "
+            return " "
+        else:
+            res_list = [x.strip().lstrip("\"") for x in re.split(r'OUTPUT', response)]
+            string = res_list[1].split('\n')[0]
+            for i in range(len(string)):
+
+
+        # if response.startswith('OUTPUT: '):
+        #     # 3. OUTPUT: \n...
+        #     return [x for x in re.split(r'\n|INPUT: ', response) if x not in ['', ' ']][0].lstrip('\"').rstrip('\"')
+        # # 1. INPUT: ... \nOUTPUT: ...
+        # res_list = [x for x in re.split(r'[\n]', response) if x not in ['', ' ']]
+        # print(f'res_list = {res_list}')
+        # for x in res_list:
+        #     x = x.lstrip("\"")
+        #     if 'OUTPUT: ' in x:
+        #         return x.lstrip("OUTPUT: ").lstrip("\"")
+        # res_list = [x for x in re.split(r'INPUT: ', response) if x not in ['', ' ']]
+        # for x in res_list:
+        #     if 'OUTPUT: ' in x:
+        #         return x.lstrip('OUTPUT: ').lstrip('\"')
+        # return ' '
 
     def ask(self, prompt):
         print('-' * 9 + f' Using LLM {self.type.upper()} ' + '-' * 9)
         self.clientSocket.send(prompt.encode())
-        response = self.clientSocket.recv(1024).decode()
+        # time.sleep(2)
+        response = self.clientSocket.recv(4096).decode()
+        # self.clientSocket.close()
         print(f'Original Response: {response}')
         response = self.cut(response)
         print(f'Cut Response: {response}')

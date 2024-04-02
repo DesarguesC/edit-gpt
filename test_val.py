@@ -125,7 +125,7 @@ def receive_from_csv(input_csv, type='raw'):
             prompts = prompts + ('' if prompts == '' else '; ') + csv_dict[key]
         return length, prompts
     elif type == 'label':
-        return [value.lower().strip() for (_, value) in csv_dict.items()]
+        return [str(value).lower().strip() for (_, value) in csv_dict.items()]
 
 
 # def find_img_dict_file(csv_raw_path):
@@ -394,6 +394,7 @@ def Validate_planner_No_Img():
 
     for qwq in range(len(all_data_folder)):  # xxxx/GPT-1/
         # TODO: Only a folder one time !
+        if qwq < 8: continue
         folder = all_data_folder[qwq]
 
         raw_path = os.path.join(folder, 'GPT_gen_raw')
@@ -406,6 +407,7 @@ def Validate_planner_No_Img():
             ground_csv_list), f'len(raw_csv_list) = {len(raw_csv_list)}, len(ground_csv_list) = {len(ground_csv_list)}'
         tot = len(raw_csv_list)
         print(f'tot = {tot}')
+        # tot = 20
         for i in range(tot):
             opt.out_dir = os.path.join(static_out_dir, f'{cnt_global:0{4}}')
             os.mkdir(opt.out_dir)
@@ -416,6 +418,7 @@ def Validate_planner_No_Img():
             label_list = receive_from_csv(ground_csv_list[i], type='label')
             plans = get_planns_directly(planning_agent, prompts)  # key: "type" in use | [{"type":..., "command":...}]
             plan_list = [x['type'].lower().strip() for x in plans]
+            # print(f'length = {length}, prompts = {prompts}')
 
             # Task Planner Validation Algorithm
             j, p, q = 0, len(plan_list), len(label_list)
@@ -424,7 +427,11 @@ def Validate_planner_No_Img():
             if j == q - 1:
                 j = j - (p - q)
 
-            cur_score = j / min(p, q)
+            # assert min(p, q) != 0, f'csv: raw: {raw_csv_list[i]}, ground: {ground_csv_list[i]}'
+            if min(p,q) == 0:
+                cur_score = 0.
+            else:
+                cur_score = j / min(p, q)
             score_list.append(cur_score)
             if str(length) in cur_dict.keys():
                 cur_dict[str(length)].append(cur_score)
