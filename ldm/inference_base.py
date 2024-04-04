@@ -17,8 +17,6 @@ DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fin
 
 PROMPT_BASE = '8K, highly detailed, expressively clear, high resolution'
 
-from prompt.guide import Use_Agent
-
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True

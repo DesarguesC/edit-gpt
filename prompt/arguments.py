@@ -16,6 +16,12 @@ ENGINES = [
     "gpt-4-32k-0314",
     "gpt-4-0613",
     "gpt-4-32k-0613",
+    'claude-instant-1.2', # recommended for test
+    'claude-2.1',
+    'claude-2.0',
+    'claude-3-opus-20240229',
+    'claude-3-sonnet-20240229', # recommended for test
+    'claude-3-haiku-20240307' # recommended for test
 ]
 
 def create_parse_args():
