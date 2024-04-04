@@ -5,7 +5,7 @@ class Claude():
     def __init__(self, engine, api_key, system_prompt, proxy='http://127.0.0.1:7890', max_tokens=300):
         self.engine = engine
         self.api_key = api_key
-        self.system_prompt = system_prompt
+        self.system_prompt = system_prompt + '\nAny irrelevant characters appear in your response is STRICTLY forbidden. '
         self.proxy = proxy
         self.max_tokens = max_tokens
         self.client = anthropic.Client(
@@ -26,4 +26,4 @@ class Claude():
                 {"role": "user", "content": question}  # <-- user prompt
             ]
         ).content[-1].text
-        return self.pre_cut(response)
+        return response

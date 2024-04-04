@@ -60,16 +60,18 @@ def create_location(
     # move the target to the destination, editing via GPT (tell the bounding box)
     opt, img_pil = get_reshaped_img(opt, input_pil)
     # resize and prepare the original image
-    if preloaded_model is None:
-        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
-        sam.to(device=opt.device)
-        mask_generator = SamAutomaticMaskGenerator(sam)
-    else:
-        mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
-    # prepare SAM, matched via SEEM
-    if opt.dilation_iter_num <= 0:
-        mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
-        sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list] if not opt.use_max_min else None
+    if opt.erosion_iter_num <= 0 or not opt.use_max_min:
+        if preloaded_model is None:
+            sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+            sam.to(device=opt.device)
+            mask_generator = SamAutomaticMaskGenerator(sam)
+        else:
+            mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
+        # prepare SAM, matched via SEEM
+        mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)),
+                               key=(lambda x: x['area']), reverse=True)
+        sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in
+                        mask_box_list] if not opt.use_max_min else None
     else:
         sam_seg_list = None
 
@@ -203,7 +205,7 @@ def create_location(
     # dilated_mask = mask_inside_box(target_box, destination_mask_sq, kernel, opt.iteration_num)  # create from target_box
     eroded_mask = cv2.erode(np.uint8(destination_mask_sq * 255), kernel, iterations=opt.dilation_iter_num)
     example_area = re_mask(dilated_mask / 255. * (1. - eroded_mask / 255.)) # [h w]
-    example_area = repeat(torch.tensor(cv2.erode(np.uint8(example_area*255), kernel, iterations=opt.iteration_num)).unsqueeze(-1), 'h w 1 -> h w c', c=3) # [h w 3]
+    example_area = repeat(torch.tensor(cv2.erode(np.uint8(example_area*255), kernel, iterations=opt.dilation_iter_num)).unsqueeze(-1), 'h w 1 -> h w c', c=3) # [h w 3]
     print(f'box_0 = {box_0}')
     ref = Image.fromarray(np.uint8(Ref_Image))
     target_content = Image.fromarray(np.uint8(np.array(rm_img) * np.array(example_area)), mode='RGB')

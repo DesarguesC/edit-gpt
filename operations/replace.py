@@ -111,18 +111,22 @@ def replace_target(
                             opt, diffusion_pil, new_noun, 
                             preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         )
-    
-    if preloaded_model is None:
-        sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
-        sam.to(device=opt.device)
-        mask_generator = SamAutomaticMaskGenerator(sam)
+
+    if opt.erosion_iter_num <= 0 or not opt.use_max_min:
+        if preloaded_model is None:
+            sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+            sam.to(device=opt.device)
+            mask_generator = SamAutomaticMaskGenerator(sam)
+        else:
+            mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
+        # prepare SAM, matched via SEEM
+        mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)),
+                               key=(lambda x: x['area']), reverse=True)
+        sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in
+                        mask_box_list] if not opt.use_max_min else None
     else:
-        mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
-    
-    mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), \
-                                                                key=(lambda x: x['area']), reverse=True)
-    # print(f'mask_box_list[0].keys() = {mask_box_list[0].keys()}')
-    sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list] if not opt.use_max_min else None
+        sam_seg_list = None
+
     box_1 = match_sam_box(mask_1, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)
     bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num) for x in panoptic_dict]
     # only mask input -> extract max-min coordinates as bounding box)
@@ -141,17 +145,26 @@ def replace_target(
         'name': old_noun,
         'bbox': box_1
     })
-    if not (opt.use_max_min or opt.dilation_iter_num>0):
-        diffusion_mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), \
-                                                                             key=(lambda x: x['area']), reverse=True)
-        sam_mask_list = ([(u['bbox'], u['segmentation'], u['area']) for u in diffusion_mask_box_list] if not opt.use_max_min else None)
-    else:
-        sam_mask_list = None
 
-    box_2 = match_sam_box(mask_2, sam_mask_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion_iter_num, dilation_iter=opt.erosion_iter_num)
+    if opt.erosion_iter_num <= 0 or not opt.use_max_min:
+        if preloaded_model is None:
+            sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
+            sam.to(device=opt.device)
+            mask_generator = SamAutomaticMaskGenerator(sam)
+        else:
+            mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
+        # prepare SAM, matched via SEEM
+        mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)),
+                               key=(lambda x: x['area']), reverse=True)
+        sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in
+                        mask_box_list] if not opt.use_max_min else None
+    else:
+        sam_seg_list = None
+
     question = Label().get_str_rescale(old_noun, new_noun, box_name_list)
     print(f'Question: \n{question}')
 
+    box_2 = match_sam_box(mask_2, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num > 0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)
     box_0 = (0, 0, 0, 0)
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
@@ -188,8 +201,8 @@ def replace_target(
         print(f'fixed box: (x,y,w,h) = {box_0}')
         try_time += 1
 
-    if opt.use_ration:
-        box_2 = (int(box_2[0] * opt.W), int(box_2[1] * opt.H), int(box_2[2] * opt.W), int(box_2[3] * opt.H))
+    if opt.use_ratio:
+        # box_2 = (int(box_2[0] * opt.W), int(box_2[1] * opt.H), int(box_2[2] * opt.W), int(box_2[3] * opt.H))
         box_0 = (int(box_0[0] * opt.W), int(box_0[1] * opt.H), int(box_0[2] * opt.W), int(box_0[3] * opt.H))
     # will be converted to int in 'refactor_mask'
 

@@ -50,14 +50,15 @@ def Add_Object(
     add_path = os.path.join(opt.base_dir, 'added')
     if not os.path.exists(add_path): os.mkdir(add_path)
 
-    if not (opt.dilation_iter_num>0 or opt.use_max_min):
-        if preloaded_model:
+    if opt.dilation_iter_num <= 0 or not opt.use_max_min:
+        if preloaded_model is None:
             # load SAM
             sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
             sam.to(device=opt.device)
             mask_generator = SamAutomaticMaskGenerator(sam)
         else:
             mask_generator = preloaded_model['preloaded_sam_generator']['mask_generator']
+
         mask_box_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
         sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_box_list]
     else:
@@ -157,14 +158,14 @@ def Add_Object(
         assert mask_example.shape[-2:] == (opt.H, opt.W), f'mask_example.shape = {mask_example.shape}, opt(H, W) = {(opt.H, opt.W)}'
 
 
-        if not (opt.dilation_iter_num>0 or opt.use_max_min):
+        if opt.dilation_iter_num <= 0 or not opt.use_max_min:
             mask_sam_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
             sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_sam_list]
         else:
             sam_seg_list = None
 
         # input: normal. output: normal | bounding box has been recovered from ratio space
-        box_example = match_sam_box(mask_example, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=opt.ersion_iter_num>0, dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)  # only mask input -> extract max-min coordinates as bounding box
+        box_example = match_sam_box(mask_example, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.ersion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)  # only mask input -> extract max-min coordinates as bounding box
 
         if opt.use_ratio:
             box_example = (int(box_example[0] * opt.W), int(box_example[1] * opt.H), int(box_example[2] * opt.W), int(box_example[3] * opt.H))

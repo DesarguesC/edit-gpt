@@ -514,7 +514,8 @@ def get_response(chatbot, asks, mute_print=False):
             print(string)
             print('Request Timed Out')
             if iteration > 2:
-                os.system("bash ../clash/restart-clash.sh")
+                # os.system("bash ../clash/restart-clash.sh")
+                pass
             time.sleep(60 if 'too many' in string.lower() else 5)
             if iteration % 5 == 4: print('')
             continue

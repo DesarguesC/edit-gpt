@@ -135,7 +135,8 @@ def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_m
     assert mask is not None, f'mask is None'
     if isinstance(mask, torch.Tensor):
         mask = mask.cpu().detach().numpy()
-    if use_dilation:
+    # Senseless: use_dilation, but not use_max_min
+    if use_dilation and use_max_min:
         # print(f'[Before Dilation] mask.shape = {mask.shape} | np.max(mask) = {np.max(mask)}')
         # Add: [h, w], Move: [1, h, w] ?
         while len(mask.shape) > 2 and mask.shape[0] == 1:
