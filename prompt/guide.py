@@ -483,7 +483,7 @@ def get_bot(engine, api_key, system_prompt, proxy, type='gpt'):
             if type == 'gpt':
                 agent = Chatbot(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
             elif type == 'imp' or type == 'llava' or 'claude_tcp':
-                agent = LLM_Remote(type=type, system_prompt=system_prompt)
+                agent = LLM_Remote(type=type, system_prompt=system_prompt, llm_model=engine)
             elif type == 'claude':
                 agent = Claude(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
             else:

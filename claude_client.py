@@ -1,9 +1,9 @@
-from anthropic_util import *
-from guide import get_response
+from prompt.anthropic_util import *
+from prompt.guide import get_response
 import pandas as pd
 from socket import *
 serverName = '127.0.0.1'
-serverPort = 4001
+serverPort = 4003
 
 
 def main():
@@ -14,9 +14,9 @@ def main():
     engine = clientSocket.recv(1024).decode()
     clientSocket.send('engine received'.encode())
     system_prompt = clientSocket.recv(1024).decode()
-    clientSocket.send('system_prompt received'.encode)
+    clientSocket.send('system_prompt received'.encode())
 
-    api_key = list(pd.read_csv('../key.csv')['key'])[0]
+    api_key = list(pd.read_csv('key.csv')['key'])[0]
     proxy = 'http://127.0.0.1:7890'
 
     chatbot = Claude(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
