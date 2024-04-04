@@ -70,6 +70,7 @@ dependencies:
     - timm==0.4.12
     - easydict
     - nltk
+    - anthropic
     - pycocotools
     - fvcore==0.1.5.post20221221
     - -U controlnet_aux==0.0.7
