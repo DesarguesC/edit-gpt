@@ -26,7 +26,7 @@ from detectron2.layers import cat, shapes_to_tensor
 # import sys
 # print(sys.path)
 
-from utils.constants import *
+from ...utils.constants import *
 
 def pad_arbitrary_tensors(tensors, padding_value=0.):
     max_len = torch.stack([torch.tensor(x.shape) for x in tensors]).max(dim=0)[0]

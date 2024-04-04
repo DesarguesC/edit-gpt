@@ -19,13 +19,13 @@ import whisper
 import numpy as np
 
 from gradio import processing_utils
-from modeling.BaseModel import BaseModel
-from modeling import build_model
-from utils.distributed import init_distributed
-from utils.arguments import load_opt_from_config_files
-from utils.constants import COCO_PANOPTIC_CLASSES
+from ...modeling.BaseModel import BaseModel
+from ...modeling import build_model
+from ...utils.distributed import init_distributed
+from ...utils.arguments import load_opt_from_config_files
+from ...utils.constants import COCO_PANOPTIC_CLASSES
 
-from demo.seem.tasks import *
+from ..seem.tasks import *
 
 
 def parse_option():

@@ -7,8 +7,8 @@ from seem.utils.visualizer import Visualizer
 from detectron2.utils.colormap import random_color
 from detectron2.data import MetadataCatalog
 from detectron2.structures import BitMasks
-from modeling.language.loss import vl_similarity
-from utils.constants import COCO_PANOPTIC_CLASSES
+from .modeling.language.loss import vl_similarity
+from .utils.constants import COCO_PANOPTIC_CLASSES
 from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
 
 metadata = MetadataCatalog.get('coco_2017_train_panoptic')
