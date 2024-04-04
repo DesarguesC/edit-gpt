@@ -6,8 +6,8 @@ from PIL import Image
 import torch
 from random import randint
 
-if not nltk.data.find('taggers/averaged_perceptron_tagger'):
-    nltk.download('averaged_perceptron_tagger')
+# if not nltk.data.find('./taggers/averaged_perceptron_tagger'):
+nltk.download('averaged_perceptron_tagger')
 
 # preload: load the model and processor
 def preload_vqa_model(model_path, device='cuda', model_name='blip'):
