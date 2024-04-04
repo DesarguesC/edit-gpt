@@ -476,13 +476,14 @@ first_ask_expand = 'If you have fully understand your task, please answer \'yes\
 def get_bot(engine, api_key, system_prompt, proxy, type='gpt'):
     iteration = 0
     engine = str(engine).lower()
+    print(f'in \'get_bot\', engine = {engine}')
     while True:
         iteration += 1
         print(f"talking {iteration}......", end='')
         try:
             if type == 'gpt':
                 agent = Chatbot(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)
-            elif type == 'imp' or type == 'llava' or 'claude_tcp':
+            elif type == 'imp' or type == 'llava' or type == 'claude_tcp':
                 agent = LLM_Remote(type=type, system_prompt=system_prompt, llm_model=engine)
             elif type == 'claude':
                 agent = Claude(engine=engine, api_key=api_key, system_prompt=system_prompt, proxy=proxy)

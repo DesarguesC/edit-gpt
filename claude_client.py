@@ -1,6 +1,7 @@
 from prompt.anthropic_util import *
 from prompt.guide import get_response
 import pandas as pd
+import time
 from socket import *
 serverName = '127.0.0.1'
 serverPort = 4003
@@ -12,7 +13,8 @@ def main():
     clientSocket.connect((serverName, serverPort))
 
     engine = clientSocket.recv(1024).decode()
-    clientSocket.send('engine received'.encode())
+
+    clientSocket.send(f'engine received: \'{engine}\''.encode())
     system_prompt = clientSocket.recv(1024).decode()
     clientSocket.send('system_prompt received'.encode())
 
@@ -23,9 +25,13 @@ def main():
 
     while True:
         message = clientSocket.recv(4096).decode() # query prompt
+        if message is None:
+            print('waiting ... ')
+            time.sleep(5)
+            continue
         response = get_response(chatbot, message, mute_print=True)
-        print(f'Msg Received from Claude LLM: {response}')
         clientSocket.send(response.encode())
+        print(f'Msg Sent: [{response}]')
 
 if __name__ == '__main__':
     main()

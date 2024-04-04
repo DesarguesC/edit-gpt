@@ -14,6 +14,9 @@ class Claude():
         )
         self.messages = []
 
+    def pre_cut(self, prompt):
+        return prompt[prompt.find('('):]
+
     def ask(self, question: str):
         response = self.client.messages.create(
             model = self.engine, # "claude-2.1",
@@ -22,5 +25,5 @@ class Claude():
             messages=[
                 {"role": "user", "content": question}  # <-- user prompt
             ]
-        )
-        return response.content[-1].text
+        ).content[-1].text
+        return self.pre_cut(response)

@@ -18,7 +18,7 @@ from functools import partial
 # validate multi task
 from operations.utils import get_reshaped_img
 from preload_utils import preload_all_models, preload_all_agents
-from task_planning import get_operation_menu, get_planning_system_agent, get_planns_directly, get_plans
+from task_planning import get_operation_menu, get_planning_system_agent, get_plans_directly, get_plans
 from prompt.arguments import get_arguments
 
 from prompt.guide import get_response, get_bot, planning_system_prompt, planning_system_first_ask
@@ -209,7 +209,7 @@ def Validate_planner():
             cnt_global += 1
             length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
             label_list = receive_from_csv(ground_csv_list[i], type='label')
-            plans = get_planns_directly(planning_agent, prompts) # key: "type" in use | [{"type":..., "command":...}]
+            plans = get_plans_directly(planning_agent, prompts) # key: "type" in use | [{"type":..., "command":...}]
             plan_list = [x['type'].lower().strip() for x in plans]
 
             # Task Planner Validation Algorithm
@@ -416,7 +416,7 @@ def Validate_planner_No_Img():
             # print(f'ground_csv_list[i] = {ground_csv_list[i]}')
             length, prompts = receive_from_csv(raw_csv_list[i], type='raw')
             label_list = receive_from_csv(ground_csv_list[i], type='label')
-            plans = get_planns_directly(planning_agent, prompts)  # key: "type" in use | [{"type":..., "command":...}]
+            plans = get_plans_directly(planning_agent, prompts)  # key: "type" in use | [{"type":..., "command":...}]
             plan_list = [x['type'].lower().strip() for x in plans]
             # print(f'length = {length}, prompts = {prompts}')
 

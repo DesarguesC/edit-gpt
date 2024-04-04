@@ -230,7 +230,7 @@ def get_plans(opt, planning_system_agent):
         response[i] = {"type": task_str[0].lower(), "command": task_str[1]}
     return response
 
-def get_planns_directly(agent, prompt):
+def get_plans_directly(agent, prompt):
     response = [x.strip() for x in re.split(r"[;]", get_response(agent, prompt, mute_print=True)) if x != " " and x != ""]
     print(f'response = {response}')
     del_idx = []
@@ -269,8 +269,12 @@ def main():
     preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
     preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
 
-    planning_agent = None # get_planning_system_agent(opt)
-    task_plannings = [{"type": "move", "command": "move the dog to the left"}]# get_plans(opt, planning_agent) # [dict("type": ..., "command": ...)]
+    print('Loading planner ... ')
+    planning_agent = get_planning_system_agent(opt)
+    print('Planner loaded ... ')
+    # task_plannings = [{"type": "move", "command": "move the dog to the left"}]#
+
+    task_plannings = get_plans_directly(planning_agent, opt.edit_txt) # [dict("type": ..., "command": ...)]
 
     planning_folder = os.path.join(opt.out_dir, 'plans')
     if not os.path.exists(planning_folder): os.mkdir(planning_folder)
