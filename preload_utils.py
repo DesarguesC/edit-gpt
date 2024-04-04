@@ -10,6 +10,7 @@ from basicsr.utils import tensor2img, img2tensor
 from pytorch_lightning import seed_everything
 from ldm.util import load_model_from_config
 from ldm.inference_base import *
+from prompt.guide import Use_Agent
 from paint.control import get_adapter, get_adapter_feature, get_style_model, process_style_cond
 from paint.control import *
 from ldm.models.diffusion.ddim import DDIMSampler
@@ -239,15 +240,15 @@ def preload_all_models(opt):
 def preload_all_agents(opt):
     # task planning agent need to be added outside
     return {
-        A: Use_Agent(opt, TODO = A, ratio_mode=opt.use_ratio),
-        B: Use_Agent(opt, TODO = B, ratio_mode=opt.use_ratio),
-        C: Use_Agent(opt, TODO = C, ratio_mode=opt.use_ratio),
-        D: Use_Agent(opt, TODO = D, ratio_mode=opt.use_ratio),
-        E: Use_Agent(opt, TODO = E, ratio_mode=opt.use_ratio),
-        F: Use_Agent(opt, TODO = F, ratio_mode=opt.use_ratio),
-        G: Use_Agent(opt, TODO = G, ratio_mode=opt.use_ratio),
-        H: Use_Agent(opt, TODO = H, ratio_mode=opt.use_ratio),
-        I: Use_Agent(opt, TODO = I, ratio_mode=opt.use_ratio),
+        A: Use_Agent(opt, TODO = A, ratio_mode=opt.use_ratio, type=opt.llm_type),
+        B: Use_Agent(opt, TODO = B, ratio_mode=opt.use_ratio, type=opt.llm_type),
+        C: Use_Agent(opt, TODO = C, ratio_mode=opt.use_ratio, type=opt.llm_type),
+        D: Use_Agent(opt, TODO = D, ratio_mode=opt.use_ratio, type=opt.llm_type),
+        E: Use_Agent(opt, TODO = E, ratio_mode=opt.use_ratio, type=opt.llm_type),
+        F: Use_Agent(opt, TODO = F, ratio_mode=opt.use_ratio, type=opt.llm_type),
+        G: Use_Agent(opt, TODO = G, ratio_mode=opt.use_ratio, type=opt.llm_type),
+        H: Use_Agent(opt, TODO = H, ratio_mode=opt.use_ratio, type=opt.llm_type),
+        I: Use_Agent(opt, TODO = I, ratio_mode=opt.use_ratio, type=opt.llm_type),
     }
 
 

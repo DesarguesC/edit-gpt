@@ -78,7 +78,7 @@ preloaded_agent = preload_all_agents if opt.preload_all_models else None
 
 if 'remove' in sorted_class:
     # find the target -> remove -> recover the scenery
-    agent = Use_Agent(opt, TODO='find target to be removed') if preloaded_agent is None \
+    agent = Use_Agent(opt, TODO='find target to be removed', type=opt.llm_type) if preloaded_agent is None \
                     else preloaded_agent['find target to be removed']
     target_noun = get_response(agent, opt.edit_txt)
     print(f'\'{target_noun}\' will be removed')
@@ -92,7 +92,7 @@ if 'remove' in sorted_class:
 
 elif 'replace' in sorted_class:
     # find the target -> remove -> recover the scenery -> add the new
-    replace_agent = Use_Agent(opt, TODO='find target to be replaced') if preloaded_agent is None\
+    replace_agent = Use_Agent(opt, TODO='find target to be replaced', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['find target to be replaced']
     replace_tuple = get_response(replace_agent, opt.edit_txt)
     print(f'replace_tuple = {replace_tuple}')
@@ -101,17 +101,17 @@ elif 'replace' in sorted_class:
     del replace_agent
 
     # TODO: replace has no need of an agent; original mask and box is necessary!
-    rescale_agent = Use_Agent(opt, TODO='rescale bbox for me') if preloaded_agent is None\
+    rescale_agent = Use_Agent(opt, TODO='rescale bbox for me', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['rescale bbox for me']
-    diffusion_agent = Use_Agent(opt, TODO='expand diffusion prompts for me') if preloaded_agent is None\
+    diffusion_agent = Use_Agent(opt, TODO='expand diffusion prompts for me', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['expand diffusion prompts for me']
     replace_target(opt, old_noun, new_noun, edit_agent=rescale_agent, expand_agent=diffusion_agent)
 
 elif 'locate' in sorted_class:
     # find the (move-target, move-destiny) -> remove -> recover the scenery -> paste the origin object
-    move_agent = Use_Agent(opt, TODO='arrange a new bbox for me') if preloaded_agent is None\
+    move_agent = Use_Agent(opt, TODO='arrange a new bbox for me', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['arrange a new bbox for me']
-    noun_agent = Use_Agent(opt, TODO='find target to be moved') if preloaded_agent is None\
+    noun_agent = Use_Agent(opt, TODO='find target to be moved', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['find target to be moved']
     target_noun = get_response(noun_agent, opt.edit_txt)
     print(f'target_noun: {target_noun}')
@@ -119,7 +119,7 @@ elif 'locate' in sorted_class:
     create_location(opt, target_noun, edit_agent=move_agent)
 
 elif 'add' in sorted_class:
-    add_agent = Use_Agent(opt, TODO='find target to be added') if preloaded_agent is None\
+    add_agent = Use_Agent(opt, TODO='find target to be added', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['find target to be added']
     ans = get_response(add_agent, opt.edit_txt)
     print(f'tuple_ans: {ans}')
@@ -127,11 +127,11 @@ elif 'add' in sorted_class:
     del add_agent
     print(f'name = {name}, num = {num}, place = {place}')
 
-    arrange_agent = (Use_Agent(opt, TODO='generate a new bbox for me') if preloaded_agent is None\
+    arrange_agent = (Use_Agent(opt, TODO='generate a new bbox for me', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['generate a new bbox for me']) if '<NULL>' in place \
-                    else (Use_Agent(opt, TODO='adjust bbox for me') if preloaded_agent is None\
+                    else (Use_Agent(opt, TODO='adjust bbox for me', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['adjust bbox for me'])
-    diffusion_agent = Use_Agent(opt, TODO='expand diffusion prompts for me') if preloaded_agent is None\
+    diffusion_agent = Use_Agent(opt, TODO='expand diffusion prompts for me', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['expand diffusion prompts for me']
     Add_Object(opt, name, num, place, edit_agent=arrange_agent, expand_agent=diffusion_agent)
 

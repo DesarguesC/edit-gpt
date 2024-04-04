@@ -528,55 +528,55 @@ def Use_Agent(opt, TODO=None, print_first_answer=False, ratio_mode=False, type='
     # engine = 'claude-3-opus-20240229'
     box_engine = opt.box_engine if hasattr(opt, 'box_engine') else opt.engine
     if TODO == 'find target to be removed':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy)
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_remove, proxy=net_proxy, type=type)
         first_ans = get_response(agent, remove_first_ask)
         if print_first_answer: print(first_ans) # first ask answer
     elif TODO == 'find target to be replaced':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy)
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy, type=type)
         first_ans = get_response(agent, replace_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'rescale bbox for me': # Special Engine
         if ratio_mode:
-            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale_ratio, proxy=net_proxy)
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale_ratio, proxy=net_proxy, type=type)
             first_ans = get_response(agent, rescale_first_ask_ratio)
         else:
-            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy)
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale, proxy=net_proxy, type=type)
             first_ans = get_response(agent, rescale_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'expand diffusion prompts for me':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy)
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_expand, proxy=net_proxy, type=type)
         first_ans = get_response(agent, first_ask_expand)
         if print_first_answer: print(first_ans)
     elif TODO == 'arrange a new bbox for me': # Special Engine
         if ratio_mode:
-            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_locate_ratio, proxy=net_proxy)
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_locate_ratio, proxy=net_proxy, type=type)
             first_ans = get_response(agent, locate_first_ask) # just for "yes" response
         else:
-            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy)
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_locate, proxy=net_proxy, type=type)
             first_ans = get_response(agent, locate_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'find target to be moved':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_noun, proxy=net_proxy)
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_noun, proxy=net_proxy, type=type)
         first_ans = get_response(agent, first_ask_noun)
         if print_first_answer: print(first_ans)
     elif TODO == 'find target to be added':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addHelp, proxy=net_proxy)
+        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_addHelp, proxy=net_proxy, type=type)
         first_ans = get_response(agent, addHelp_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'generate a new bbox for me': # Special Engine
         if ratio_mode:
-            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_add_ratio, proxy=net_proxy)
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_add_ratio, proxy=net_proxy, type=type)
             first_ans = get_response(agent, add_first_ask_ratio)
         else:
-            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy)
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_add, proxy=net_proxy, type=type)
             first_ans = get_response(agent, add_first_ask)
         if print_first_answer: print(first_ans)
     elif TODO == 'adjust bbox for me': # Special Engine
         if ratio_mode:
-            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_addArrange_ratio, proxy=net_proxy)
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_addArrange_ratio, proxy=net_proxy, type=type)
             first_ans = get_response(agent, addArrange_first_ask_ratio)
         else:
-            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy)
+            agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_addArrange, proxy=net_proxy, type=type)
             first_ans = get_response(agent, addArrange_first_ask)
         if print_first_answer: print(first_ans)
     # elif TODO == 'use gpt-4v':
