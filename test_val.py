@@ -379,7 +379,7 @@ def Validate_planner_No_Img():
     big_folders = [os.path.join(base_path, x) for x in os.listdir(base_path) if 'engine' in x]
     for folder in big_folders:
         for gpt_i_folder in os.listdir(folder):
-            if 'zip' not in gpt_i_folder and '.DS_Store' not in gpt_i_folder:
+            if 'zip' not in gpt_i_folder and '.DS_Store' not in gpt_i_folder and 'txt' not in gpt_i_folder:
                 all_data_folder.append(os.path.join(folder, gpt_i_folder))
 
     score_list = []
