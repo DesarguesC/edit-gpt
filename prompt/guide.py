@@ -475,6 +475,7 @@ first_ask_expand = 'If you have fully understand your task, please answer \'yes\
 
 def get_bot(engine, api_key, system_prompt, proxy, type='gpt'):
     iteration = 0
+    engine = str(engine).lower()
     while True:
         iteration += 1
         print(f"talking {iteration}......", end='')
