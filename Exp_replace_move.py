@@ -190,10 +190,8 @@ def Val_Replace_Method(opt):
 def Val_Move_Method(opt):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017/'
-    """
-    Mute GPT
-        # agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
-    """
+    # Mute GPT
+    agent = use_exp_agent(opt, system_prompt_gen_move_instructions)
 
 
     with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
@@ -250,11 +248,10 @@ def Val_Move_Method(opt):
         caption = captions_dict[str(img_id)]
         label = label_metadata[str(label_id)]
 
-        """
-            Mute GPT
-            place = [x for x in get_response(agent, f'{opt.edit_txt}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
-        """
-        place = ['on the right', 'on the left']
+        # Mute GPT
+        place = [x for x in get_response(agent, f'{opt.edit_txt}, {label}, {(x,y,w,h)}').split(';') if x != '' and x != ' ']
+        # place = ['on the right', 'on the left']
+        
         assert len(place) == 2, f'place = {place}'
         ori_place, gen_place = place[0], place[1]
 

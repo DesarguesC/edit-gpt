@@ -148,8 +148,6 @@ def Move_Method(
     ):
     opt = gpt_mkdir(opt, Type='move')
 
-    """
-    
     #####################
     #####  Mute GPT #####
     #####################
@@ -158,17 +156,15 @@ def Move_Method(
     noun_agent = Use_Agent(opt, TODO='find target to be moved', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['find target to be moved']
     target_noun = get_response(noun_agent, opt.edit_txt)
+    # target_noun = target # 'dog'
     
-    """
-
-
-    target_noun = target # 'dog'
+    
     print(f'target_noun: {target_noun}')
 
     pil_return = create_location(
                         opt, target_noun, 
                         input_pil = input_pil, 
-                        edit_agent = None, # move_agent
+                        edit_agent = move_agent,
                         preloaded_model = preloaded_model
                     )
 
