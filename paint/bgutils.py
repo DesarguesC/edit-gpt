@@ -112,14 +112,8 @@ def max_min_box(mask0):
     mask0[mask0<=0.5] = 0
     # print(f'TEST-min-max: mask.shape = {mask0.shape}') # 1 * h * w
     H, W = mask0.shape
-    # if len(mask0.shape) == 4:
-    #     *_, H, W = mask0.shape
-    # elif len(mask0.shape) == 3:
-    #     _, H, W = mask0.shape
-    # else:
-    #     H, W = mask0.shape
-    max_x, max_y = W - 1, H - 1
-    min_x, min_y = 0, 0
+    max_x, max_y = 0, 0
+    min_x, min_y = W - 1, H - 1
 
     for i in range(H):
         for j in range(W):
@@ -132,6 +126,7 @@ def max_min_box(mask0):
 
 def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_min=False, use_dilation=False, dilation=1, dilation_iter=4):
     # not deal with ratio mode yet, return normal integer box elements
+    # dilation: opt.erosion, dilation_iter_num: opt.erosion_iter_num
     assert mask is not None, f'mask is None'
     if isinstance(mask, torch.Tensor):
         mask = mask.cpu().detach().numpy()
