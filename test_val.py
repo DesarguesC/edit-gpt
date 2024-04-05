@@ -536,6 +536,34 @@ def Validate_on_Ip2p_Dataset(test_num):
                                              typer='Multi Task planning', psnr_score=psnr_score, ssim_score=ssim_score)
     logging.info(writing_string)
     
+def test_MGIE_tcp():
+    from socket import *
+    import numpy as np
+    import cv2, time
+    from PIL import Image
+    import tcp-utils
+
+
+    clientHost, clientPort = '127.0.0.1', 4096
+    clientSocket = socket(AF_INET, SOCK_STREAM)
+    clientSocket.connect((clientHost, clientPort))
+
+    while True:
+        edit_txt = "replace the dog with a bear"
+        clientSocket.send(edit_txt.encode())
+        image = Image.open('./assets/dog&chair.jpg').convert('RGB')
+        image = np.array(image)
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 100]
+        result, img_encode = cv2.imencode('.jpg', image, encode_param)
+        data = np.array(img_encode)
+        str_data = data.tostring()
+        # 发送
+        clientSocket.send(str(len(str_data)).ljust(16).encode())  # send length
+        print('length sent')
+        clientSocket.send(str_data)  # send img
+        print('img sent')
+        time.sleep(20)
+        print('New Turn')
 
 
 if __name__ == '__main__':
