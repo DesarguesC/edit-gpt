@@ -58,7 +58,7 @@ def Tcplink(sock, addr):
     while True:
         message = sock.recv(4096).decode()
         print(f'Message Reveived: {message}')
-        input_ids = input_ids = tokenizer(f'{planning_system_prompt} {message}. {notes}', return_tensors='pt').input_ids.to('cuda')
+        input_ids = tokenizer(f'{planning_system_prompt} {message}. {notes}', return_tensors='pt').input_ids.to('cuda')
         output_ids = model.generate(
             input_ids,
             temperature=0.8,
