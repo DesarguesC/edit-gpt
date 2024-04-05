@@ -5,6 +5,7 @@ from prompt.util import Cal_FIDScore as cal_fid
 from prompt.util import cal_metrics_write, PSNR_compute, SSIM_compute
 from PIL import Image, ImageOps
 from prompt.util import *
+from socket import *
 from basicsr import tensor2img, img2tensor
 import numpy as np
 from tqdm import tqdm
@@ -535,14 +536,13 @@ def Validate_on_Ip2p_Dataset(test_num):
     writing_string = write_valuation_results(os.path.join(dataset_path, 'test-on-ip2p-dataset.txt'),
                                              typer='Multi Task planning', psnr_score=psnr_score, ssim_score=ssim_score)
     logging.info(writing_string)
-    
+
+
 def test_MGIE_tcp():
-    from socket import *
     import numpy as np
     import cv2, time
     from PIL import Image
-    import tcp-utils
-
+    from tcputils import receive_image_from_length, Encode_and_Send
 
     clientHost, clientPort = '127.0.0.1', 4096
     clientSocket = socket(AF_INET, SOCK_STREAM)
@@ -552,19 +552,13 @@ def test_MGIE_tcp():
         edit_txt = "replace the dog with a bear"
         clientSocket.send(edit_txt.encode())
         image = Image.open('./assets/dog&chair.jpg').convert('RGB')
-        image = np.array(image)
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 100]
-        result, img_encode = cv2.imencode('.jpg', image, encode_param)
-        data = np.array(img_encode)
-        str_data = data.tostring()
-        # 发送
-        clientSocket.send(str(len(str_data)).ljust(16).encode())  # send length
-        print('length sent')
-        clientSocket.send(str_data)  # send img
-        print('img sent')
-        time.sleep(20)
-        print('New Turn')
+        Encode_and_Send(clientSocket, image)
+        recv_img = receive_image_from_length(clientSocket) # np.array
+        cv2.imshow('MGIE Received', recv_img)
+        cv2.waitKey(10)
+        cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    Validate_planner_No_Img()
+    # Validate_planner_No_Img()
+    test_MGIE_tcp()
