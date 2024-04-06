@@ -24,6 +24,11 @@ from prompt.arguments import get_arguments
 
 from prompt.guide import get_response, get_bot, planning_system_prompt, planning_system_first_ask
 
+from socket import *
+import numpy as np
+import cv2, time
+from PIL import Image, ImageOps
+from tcputils import receive_image_from_length, Encode_and_Send
 
 
 def main_1():
@@ -539,24 +544,23 @@ def Validate_on_Ip2p_Dataset(test_num):
 
 
 def test_MGIE_tcp():
-    import numpy as np
-    import cv2, time
-    from PIL import Image
-    from tcputils import receive_image_from_length, Encode_and_Send
-
     clientHost, clientPort = '127.0.0.1', 4096
     clientSocket = socket(AF_INET, SOCK_STREAM)
     clientSocket.connect((clientHost, clientPort))
 
     while True:
-        edit_txt = "replace the dog with a bear"
+        edit_txt = "replace the dog with a bear."
+        # clientSocket.send(str(len(edit_txt)).encode())
         clientSocket.send(edit_txt.encode())
-        image = Image.open('./assets/dog&chair.jpg').convert('RGB')
+        time.sleep(0.5)
+        image = np.array(ImageOps.fit(Image.open('./assets/dog&chair.jpg').convert('RGB'), (256,256), method=Image.Resampling.LANCZOS))
         Encode_and_Send(clientSocket, image)
+        # time.sleep(2)
         recv_img = receive_image_from_length(clientSocket) # np.array
-        cv2.imshow('MGIE Received', recv_img)
-        cv2.waitKey(10)
+        cv2.imshow('MGIE Received', cv2.cvtColor(np.array(recv_img), cv2.COLOR_RGB2BGR))
+        cv2.waitKey(5)
         cv2.destroyAllWindows()
+        time.sleep(2)
 
 
 if __name__ == '__main__':
