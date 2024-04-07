@@ -37,7 +37,7 @@ def preload_remove_model(opt):
     }
 
 def use_exp_agent(opt, system_prompt):
-    agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=system_prompt, proxy=opt.net_proxy)
+    agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=system_prompt, proxy=opt.net_proxy, type=opt.llm_type)
     return agent
 
 def Val_Add_Method(opt):
