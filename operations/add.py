@@ -5,7 +5,7 @@ from paint.bgutils import refactor_mask, match_sam_box, fix_box
 from paint.example import paint_by_example
 from PIL import Image
 import numpy as np
-# from utils.visualizer import Visualizer
+from .utils import IsAbnormal
 from detectron2.data import MetadataCatalog as mt
 from torch import autocast
 from torch.nn import functional as F
@@ -107,7 +107,7 @@ def Add_Object(
         try_time = 0
         notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
 
-        while fixed_box == (0,0,0,0) or fixed_box[2] == 0 or fixed_box[3] == 0:
+        while IsAbnormal(fixed_box, (1., 1., 3) if opt.use_ratio else (opt.W, opt.H, 3)):
             if try_time > 0:
                 if try_time > 4:
                     fixed_box = (0.25,0.25,0.1,0.1) if opt.use_ratio else (50,50,50,50)

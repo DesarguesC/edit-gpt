@@ -17,6 +17,7 @@ from prompt.item import Label
 from prompt.guide import get_response, Use_Agent
 from prompt.gpt4_gen import gpt_4v_bbox_return
 from jieba import re
+from .utils import IsAbnormal
 from seem.masks import middleware, query_middleware
 from ldm.inference_base import diffusion_inference, get_sd_models
 from basicsr.utils import tensor2img
@@ -118,7 +119,7 @@ def create_location(
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
 
-    while box_0 == (0,0,0,0) or box_0[2] == 0 or box_0[3] == 0:
+    while IsAbnormal(box_0, (1., 1., 3) if opt.use_ratio else (opt.W, opt.H, 3)):
         if try_time > 0:
             if try_time > 6:
                 box_0 = (0.1,0.2,0.5,0.6) if opt.use_ratio else (50,50,50,50)

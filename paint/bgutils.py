@@ -243,6 +243,12 @@ def fix_box(gpt_box, img_shape, ori_box=None):
     if h < 0: 
         h = -h
         print('?')
+    if x < 0:
+        x = -x
+        print('??')
+    if y < 0:
+        y = -y
+        print('??')
     if h == 0 or w == 0:
         return fixed_box
     

@@ -20,6 +20,7 @@ from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamP
 from segment_anything import SamPredictor, sam_model_registry
 from einops import repeat, rearrange
 import torch, cv2, os
+from .utils import IsAbnormal
 from paint.example import generate_example
 from operations.utils import get_reshaped_img
 from prompt.gpt4_gen import gpt_4v_bbox_return
@@ -169,7 +170,7 @@ def replace_target(
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
 
-    while box_0 == (0,0,0,0) or box_0[2] == 0 or box_0[3] == 0:
+    while IsAbnormal(box_0, (1., 1., 3) if opt.use_ratio else (opt.W, opt.H, 3)):
         if try_time > 0:
             if try_time > 6:
                 box_0 = (0.25,0.25,0.1,0.1) if opt.use_ratio else (50,50,50,50)

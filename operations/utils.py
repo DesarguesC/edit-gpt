@@ -18,6 +18,19 @@ from lama.saicinpainting.evaluation.data import pad_tensor_to_modulo
 
 from paint.utils import load_img_to_array, save_array_to_img
 
+def IsAbnormal(bbox, size):
+    W, H = size
+    x, y, w, h = bbox
+    if w <= 0 or h <= 0:
+        return True
+    elif x < 0 or y < 0:
+        return True
+    elif x + w >= W or y + h >= H:
+        return True
+    return False
+
+
+
 def get_reshaped_img(opt, img_pil=None, val=False, val_shape=(512,512)):
 
     img_pil = Image.open(opt.in_dir).convert('RGB') if img_pil is None else img_pil
