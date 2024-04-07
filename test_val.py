@@ -557,9 +557,9 @@ def test_MGIE_tcp():
         Encode_and_Send(clientSocket, image)
         # time.sleep(2)
         recv_img = receive_image_from_length(clientSocket) # np.array
-        cv2.imshow('MGIE Received', cv2.cvtColor(np.array(recv_img), cv2.COLOR_RGB2BGR))
-        cv2.waitKey(5)
-        cv2.destroyAllWindows()
+        cv2.imwrite('../MGIE-Received.jpg', cv2.cvtColor(np.array(recv_img), cv2.COLOR_RGB2BGR))
+        # cv2.waitKey(5)
+        # cv2.destroyAllWindows()
         time.sleep(2)
 
 
