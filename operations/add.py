@@ -10,7 +10,7 @@ from detectron2.data import MetadataCatalog as mt
 from torch import autocast
 from torch.nn import functional as F
 from prompt.item import Label
-from prompt.guide import get_response, get_bot, system_prompt_expand
+from prompt.guide import get_response, get_bot, system_prompt_expand, Use_Agent
 from jieba import re
 from seem.masks import middleware, query_middleware
 from ldm.inference_base import *
@@ -43,7 +43,14 @@ def Add_Object(
             preloaded_example_painter
     """
     
-    assert edit_agent != None, 'no edit agent!'
+    if edit_agent is None:
+        edit_agent = Use_Agent(opt, TODO='generate a new bbox for me', type=opt.llm_type) if '<NULL>' in place else Use_Agent(opt, TODO='adjust bbox for me', type=opt.llm_type)
+        
+    if expand_agent is None:
+        expand_agent = Use_Agent(opt, TODO='expand diffusion prompts for me', type=opt.llm_type)
+        
+        
+        
     opt, img_pil = get_reshaped_img(opt, input_pil)
     print(f'ADD: (name, num, place) = ({name}, {num}, {place})')
     assert os.path.exists(opt.base_dir), 'where is base_dir ?'
@@ -141,36 +148,45 @@ def Add_Object(
 
         # fixed_box will be converted to integer before 'refactor_mask'
 
-
+        if opt.use_ratio:
+            fixed_box = (int(fixed_box[0] * opt.W), int(fixed_box[1] * opt.H), int(fixed_box[2] * opt.W), int(fixed_box[3] * opt.H))
         # generate example
-        diffusion_pil = generate_example(
-                            opt, name, expand_agent = expand_agent, ori_img = img_pil, 
-                            preloaded_example_generator = preloaded_model['preloaded_example_generator'] if preloaded_model is not None else None
-                        )
         
-        # query mask-box & rescale
-        _, mask_example, _ = query_middleware(
-                                    opt, diffusion_pil, name,
-                                    preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
-                                )
-        print(f'diffusion_pil.size = {diffusion_pil.size}, mask_example.shape = {mask_example.shape}')
+        box_example = (-1,-1,-1,-1)
+        while box_example[2] < 0:
+            diffusion_pil = generate_example(
+                                opt, name, expand_agent = expand_agent, ori_img = img_pil, 
+                                preloaded_example_generator = preloaded_model['preloaded_example_generator'] if preloaded_model is not None else None
+                            )
 
-        assert mask_example.shape[-2:] == (opt.H, opt.W), f'mask_example.shape = {mask_example.shape}, opt(H, W) = {(opt.H, opt.W)}'
+            # query mask-box & rescale
+            _, mask_example, _ = query_middleware(
+                                        opt, diffusion_pil, name,
+                                        preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
+                                    )
+            print(f'diffusion_pil.size = {diffusion_pil.size}, mask_example.shape = {mask_example.shape}')
+
+            assert mask_example.shape[-2:] == (opt.H, opt.W), f'mask_example.shape = {mask_example.shape}, opt(H, W) = {(opt.H, opt.W)}'
 
 
-        if opt.dilation_iter_num <= 0 or not opt.use_max_min:
-            mask_sam_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
-            sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_sam_list]
-        else:
-            sam_seg_list = None
+            if opt.dilation_iter_num <= 0 or not opt.use_max_min:
+                mask_sam_list = sorted(mask_generator.generate(cv2.cvtColor(np.array(diffusion_pil), cv2.COLOR_RGB2BGR)), key=(lambda x: x['area']), reverse=True)
+                sam_seg_list = [(u['bbox'], u['segmentation'], u['area']) for u in mask_sam_list]
+            else:
+                sam_seg_list = None
 
-        # input: normal. output: normal | bounding box has been recovered from ratio space
-        box_example = match_sam_box(mask_example, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)  # only mask input -> extract max-min coordinates as bounding box
+            # input: normal. output: normal | bounding box has been recovered from ratio space
+            box_example = match_sam_box(mask_example, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)  # only mask input -> extract max-min coordinates as bounding box
+            opt.seed += 1
+            seed_everything(opt.seed)
 
         if opt.use_ratio:
             box_example = (int(box_example[0] * opt.W), int(box_example[1] * opt.H), int(box_example[2] * opt.W), int(box_example[3] * opt.H))
             fixed_box = (int(fixed_box[0] * opt.W), int(fixed_box[1] * opt.H), int(fixed_box[2] * opt.W), int(fixed_box[3] * opt.H))
         # will be converted to int in 'refactor_mask'
+        
+        
+        
         print(f'ans_box = {fixed_box}') # recovered from ratio
 
         target_mask = refactor_mask(box_example, mask_example, fixed_box)

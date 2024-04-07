@@ -364,8 +364,8 @@ if __name__ == '__main__':
     start_time = time.time()
     from Exp_replace_move import main1
     print('\nnFirst: Replace & Move \n\n')
-    main1(test_group_num=50)
+    main1(test_group_num=2)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(test_group_num=50)
+    main2(test_group_num=2)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

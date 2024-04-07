@@ -107,7 +107,10 @@ def target_removing(
     if recovery: pil_removed = pil_removed.resize(ori_shape)
     return pil_removed
 
-def max_min_box(mask0):
+def max_min_box(mask):
+    
+    mask0 = mask / (1. if np.max(mask)<=1 else 255.)
+    
     mask0[mask0>0.5] = 1
     mask0[mask0<=0.5] = 0
     # print(f'TEST-min-max: mask.shape = {mask0.shape}') # 1 * h * w

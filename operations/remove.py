@@ -157,12 +157,12 @@ def Remove_Me_lama(
                             preloaded_lama_remover = preloaded_model['preloaded_lama_remover'] if preloaded_model is not None else None
                         )
     print(img_inpainted.shape)
+    print(f'\n\nIn LaMa: target_mask = {target_mask.shape}, target_mask_dilate.shape = {target_mask_dilate[0].shape}\n\n')
     
     rm_output = os.path.join(opt.base_dir, 'removed')
     t = 0
     while os.path.isfile(f'./{rm_output}-{t}.jpg'): t += 1
-    # img_inpainted = cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR)
-    cv2.imwrite(f'./{rm_output}-{t}.jpg', img_inpainted)
+    cv2.imwrite(f'./{rm_output}-{t}.jpg', cv2.cvtColor(np.uint8(img_inpainted), cv2.COLOR_RGB2BGR))
     print(f'removed image saved at \'./{rm_output}-{t}.jpg\'')
     
     return img_inpainted, target_mask, rm_output

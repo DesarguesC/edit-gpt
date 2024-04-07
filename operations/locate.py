@@ -6,6 +6,7 @@ import numpy as np
 from einops import repeat, rearrange
 
 from operations.remove import Remove_Me, Remove_Me_lama
+from operations.add import Add_Object
 from operations.utils import get_reshaped_img
 from seem.masks import middleware
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
@@ -99,6 +100,9 @@ def create_location(
     print(f'target_mask.shape = {target_mask.shape}')
     
     target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)  # target box
+    if target_box[2] < 0:
+        return Add_Object(opt, target, 1, '<NULL>', input_pil, None, None, preloaded_model)
+    
     print(f'Matched via max-min: target_box = {target_box}')
     print(panoptic_dict[0].keys())
     bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num) for x in panoptic_dict]

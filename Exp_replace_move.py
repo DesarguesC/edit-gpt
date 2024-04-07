@@ -29,6 +29,7 @@ def preload_replace_model(opt):
 
 def preload_move_model(opt):
     return {
+        'preloaded_example_generator': preload_example_generator(opt), 
         'preloaded_example_painter': preload_paint_by_example_model(opt), # 10446 MiB
         'preloaded_ip2p': preload_ip2p(opt) if opt.with_ip2p_val else None,  # 8854 MiB
         'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
@@ -321,17 +322,17 @@ def main1(test_group_num=50):
         filename='Replace_Move.log'
     )
     
-    # opt.out_dir = '../autodl-tmp/Exp_Replace'
-    # if os.path.exists(opt.out_dir):
-    #     os.system(f'rm {opt.out_dir}.zip')
-    #     os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
-    #     os.system(f'rm -rf {opt.out_dir}')
-    # if not os.path.exists(opt.out_dir):
-    #     os.mkdir(opt.out_dir)
-    # base_cnt = len(os.listdir(opt.out_dir))
-    # setattr(opt, 'base_cnt', base_cnt)
-    # print('Start to valuate Replace Method...')
-    # Val_Replace_Method(opt)
+    opt.out_dir = '../autodl-tmp/Exp_Replace'
+    if os.path.exists(opt.out_dir):
+        os.system(f'rm {opt.out_dir}.zip')
+        os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
+        os.system(f'rm -rf {opt.out_dir}')
+    if not os.path.exists(opt.out_dir):
+        os.mkdir(opt.out_dir)
+    base_cnt = len(os.listdir(opt.out_dir))
+    setattr(opt, 'base_cnt', base_cnt)
+    print('Start to valuate Replace Method...')
+    Val_Replace_Method(opt)
     
     opt.out_dir = '../autodl-tmp/Exp_Move'
     if os.path.exists(opt.out_dir): 

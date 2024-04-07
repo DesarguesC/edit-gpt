@@ -95,24 +95,8 @@ def replace_target(
                             input_pil = img_pil, preloaded_model = preloaded_model
                         ) if opt.use_lama \
                         else Remove_Me(opt, old_noun, remove_mask=True, replace_box=opt.replace_box)
-    
     rm_img = Image.fromarray(rm_img)
-    _, panoptic_dict = middleware(
-                            opt, rm_img, 
-                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
-                        ) # key: name, mask
-
-    diffusion_pil = generate_example(
-                            opt, new_noun, expand_agent = expand_agent, 
-                            ori_img = img_pil, cond_mask = mask_1, 
-                            preloaded_example_generator = preloaded_model['preloaded_example_generator'] if preloaded_model is not None else None
-                        )
-    # TODO: add conditional condition to diffusion via ControlNet
-    _, mask_2, _ = query_middleware(
-                            opt, diffusion_pil, new_noun, 
-                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
-                        )
-
+    
     if opt.erosion_iter_num <= 0 or not opt.use_max_min:
         if preloaded_model is None:
             sam = sam_model_registry[opt.sam_type](checkpoint=opt.sam_ckpt)
@@ -129,6 +113,26 @@ def replace_target(
         sam_seg_list = None
 
     box_1 = match_sam_box(mask_1, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)
+    if box_1[2] < 0:
+        return Add_Object(opt, new_noun, 1, '<NULL>', input_pil, None, None, preloaded_model)
+    
+    _, panoptic_dict = middleware(
+                            opt, rm_img, 
+                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
+                        ) # key: name, mask
+
+    diffusion_pil = generate_example(
+                            opt, new_noun, expand_agent = expand_agent, 
+                            ori_img = img_pil, cond_mask = mask_1, 
+                            preloaded_example_generator = preloaded_model['preloaded_example_generator'] if preloaded_model is not None else None
+                        )
+    # TODO: add conditional condition to diffusion via ControlNet
+    _, mask_2, _ = query_middleware(
+                            opt, diffusion_pil, new_noun, 
+                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
+                        )
+
+    
     bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num) for x in panoptic_dict]
     # only mask input -> extract max-min coordinates as bounding box)
     print(f'box_1 = {box_1}')
@@ -166,6 +170,7 @@ def replace_target(
     print(f'Question: \n{question}')
 
     box_2 = match_sam_box(mask_2, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num > 0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)
+        
     box_0 = (0, 0, 0, 0)
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
@@ -203,7 +208,6 @@ def replace_target(
         try_time += 1
 
     if opt.use_ratio:
-        # box_2 = (int(box_2[0] * opt.W), int(box_2[1] * opt.H), int(box_2[2] * opt.W), int(box_2[3] * opt.H))
         box_0 = (int(box_0[0] * opt.W), int(box_0[1] * opt.H), int(box_0[2] * opt.W), int(box_0[3] * opt.H))
     # will be converted to int in 'refactor_mask'
 
