@@ -91,9 +91,16 @@ def create_location(
                             preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         )  # key: name, mask
     # destination: {[name, (x,y), (w,h)], ...} + edit-txt (tell GPT to find the target noun) + seg-box (as a hint) ==>  new box
+    # print(f'mask.sum = {np.sum(target_mask)}')
+    for x in panoptic_dict:
+        if target in x['name']:
+            target_mask = x['mask']
+    # print(f'mask.sum = {np.sum(target_mask)}')
     print(f'target_mask.shape = {target_mask.shape}')
+    
     target_box = match_sam_box(target_mask, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)  # target box
     print(f'Matched via max-min: target_box = {target_box}')
+    print(panoptic_dict[0].keys())
     bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num) for x in panoptic_dict]
     print(target_box)
     print(f'bbox_list: {bbox_list}')
@@ -183,7 +190,7 @@ def create_location(
     t = 0
     while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
     cv2.imwrite(f'{name_}-{t}(before-edited).jpg', cv2.cvtColor(np.uint8((255. if torch.max(target_mask) <= 1. else 1.) \
-                            * rearrange(repeat(target_mask, '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
+                            * rearrange(repeat(target_mask.unsqueeze(0) if len(target_mask.shape)<3 else target_mask, '1 ... -> c ...', c=3), 'c h w -> h w c')), cv2.COLOR_BGR2RGB))
     print(f'destination-mask saved: \'{name_}-{t}.jpg\'') # 原始图片的mask (编辑前)
 
     # TODO: Validate destination_mask content
@@ -192,7 +199,7 @@ def create_location(
     # print(d2==d3)
     
     img_np = np.array(img_pil)
-    Ref_Image = get_area(img_np * TURN(target_mask), target_box)
+    Ref_Image = get_area(img_np * TURN(target_mask.unsqueeze(0) if len(target_mask.shape)<3 else target_mask), target_box)
 
     print(f'img_np.shape = {img_np.shape}, Ref_Image.shape = {Ref_Image.shape}')
     # SAVE_TEST
@@ -218,7 +225,7 @@ def create_location(
                                     opt, example_area, target_content, moved_img, # i.e. img base
                                     preloaded_example_painter = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None
                                 )
-    print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask).shape = {TURN(target_mask).shape}, img_np.shape = {img_np.shape}')
+    print(f'x_sample_ddim.shape = {x_sample_ddim.shape}, TURN(target_mask.unsqueze).shape = {TURN(target_mask.unsqueeze(0) if len(target_mask.shape)<3 else target_mask).shape}, img_np.shape = {img_np.shape}')
 
     op_output = op_output if op_output.endswith('.jpg') else (op_output + '.jpg')
     x_sample_ddim = tensor2img(x_sample_ddim.detach().cpu() * destination_mask) + np.uint8(cv2.cvtColor(moved_img_np, cv2.COLOR_BGR2RGB) * (1 - mask_temp))

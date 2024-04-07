@@ -19,7 +19,8 @@ from lama.saicinpainting.evaluation.data import pad_tensor_to_modulo
 from paint.utils import load_img_to_array, save_array_to_img
 
 def IsAbnormal(bbox, size):
-    W, H = size
+    assert len(bbox) == 4 and len(size) == 3, f'bbox = {bbox}, size = {size}'
+    W, H, _ = size
     x, y, w, h = bbox
     if w <= 0 or h <= 0:
         return True

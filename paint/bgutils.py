@@ -144,6 +144,7 @@ def match_sam_box(mask: np.array = None, sam_list: list[tuple] = None, use_max_m
         # use opencv dilation instead of SAM/max_min
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (dilation, dilation))
         eroded = cv2.erode(mask, kernel, iterations=dilation_iter) # mask: [h, w]
+        mask = np.expand_dims(mask, axis=-1) # recover
         # set (erosion, erosion_iter_num) = (1,x), (2,1), (3,1) are better (erosion kernel > 3 becomes useless)
         """
             not using np.squeeze: msak [1 h w] seems to lead to an error ?
