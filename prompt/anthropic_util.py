@@ -17,7 +17,6 @@ class Claude():
             api_key = self.api_key,
             proxies = httpx.Proxy(proxy if isinstance(proxy, str) else 'http://127.0.0.1:7890')
         )
-        self.messages = []
     def pre_cut(self, prompt):
         return prompt[prompt.find('('):]
     def ask(self, question: str):
@@ -31,14 +30,21 @@ class Claude():
         ).content[-1].text
         return response
 
-class Vision_Claude(Claude):
+class Vision_Claude():
     def __init__(self, engine, api_key, proxy='http://127.0.0.1:7890', max_tokens=1024):
-        super().__init__(engine, api_key, system_prompt='', proxy=proxy, max_tokens=max_tokens)
+        self.engine = engine
+        self.api_key = api_key
+        self.proxy = proxy
+        self.max_tokens = max_tokens
+        self.client = anthropic.Client(
+            api_key=self.api_key,
+            proxies=httpx.Proxy(proxy if isinstance(proxy, str) else 'http://127.0.0.1:7890')
+        )
 
     def ask(self, question: str, encoded_img):
         response = self.client.messages.create(
             model = self.engine,
-            max_token = self.max_token,
+            max_tokens = self.max_tokens,
             messages = [
                 {
                     "role": "user",
@@ -69,13 +75,14 @@ Question = lambda x, y, w, h: f"I want to edit this image with an instruction \"
 
 
 def ask_claude_vision(img_encoded, agent, edit_txt, target, img_size):
-    question = Question(edit_txt, target, img_size)
+    w, h, _ = img_size # (w, h, 3)
+    question = Question(edit_txt, target, w, h)
     response = agent.ask(question, img_encoded)
     return response
 
 def claude_vision_box(opt, target_noun: str, size):
     img_encoded = encode_image(opt.in_dir)
-    agent = Vision_Claude(engine=opt.engine, api_key=opt.api_key)
+    agent = Vision_Claude(engine=opt.vision_engine, api_key=opt.api_key)
 
     raw_return = ask_claude_vision(img_encoded, agent, opt.edit_txt, target_noun, size) # "(x, y, w, h)" string return expected
     raw_return = raw_return[raw_return.find('('): raw_return.rfind(')')+1]

@@ -268,6 +268,14 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        '--vision_engine',
+        type=str,
+        default='claude-3-haiku-20240307',
+        choices=['claude-3-haiku-20240307', 'claude-3-sonnet-20240229', 'claude-3-opus-20240229'],
+        help='claude-3 category',
+    )
+
+    parser.add_argument(
         '--compile',
         type=str2bool,
         default=False,

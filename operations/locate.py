@@ -141,7 +141,7 @@ def create_location(
         # Mute GPT
         box_ans = [x.strip() for x in re.split(r'[\[\],()]',
                     gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
-                    else claude_vision_box(opt, target) if opt.claude_vision \
+                    else claude_vision_box(opt, target, (1., 1., 3) if opt.use_ratio else (opt.W, opt.H, 3)) if opt.claude_vision \
                     else get_response(edit_agent, question if try_time < 3 else (question + notes))
                 ) if x not in ['', ' ']]
         # deal with the answer, procedure is the same as in replace.py
