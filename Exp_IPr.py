@@ -55,7 +55,8 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
     planning_agent = get_planning_system_agent(opt)
     for folder in folders:
         file_list = os.listdir(os.path.join(dataset_path, folder))
-        data = json.load(os.path.join(dataset_path, folder, 'prompt.json'))
+        with open(os.path.join(dataset_path, folder, 'prompt.json')) as f:
+            data = json.load(f)
         opt.edit_txt = data['edit']
         task_plannings = get_plans(opt, planning_agent)
 
@@ -63,8 +64,9 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
 
         for img_name in img_name_list:
             cnt = cnt + 1
-            opt.out_dir = os.path.join(static_out_dir, f'{cnt:0{3}}')
-            os.mkdir(opt.out_dir)
+            opt.out_dir = os.path.join(static_out_dir, f'{cnt:0{6}}')
+            now_out_dir = opt.out_dir
+            if not os.path.exists(opt.out_dir): os.mkdir(opt.out_dir)
             planning_folder = os.path.join(opt.out_dir, 'plans')
             if not os.path.exists(planning_folder): os.mkdir(planning_folder)
             plan_step, tot_step = 1, len(task_plannings)
@@ -74,21 +76,34 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
             img_before = img_pil
 
             # evaluate other similar model first
+            if not hasattr(opt, 'out_name'): setattr(opt, 'out_name', 'val')
+            static_name = opt.out_name
             if opt.with_ip2p_val:
                 opt.model_type = 'IP2P'
+                opt.out_name = f'IP2P-{static_name}'
+                opt.out_dir = os.path.join(now_out_dir, 'IP2P')
+                if not os.path.exists(opt.out_dir): os.mkdir(opt.out_dir)
                 img_pil_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_models, preloaded_agents,
                                        record_history=False, model_type=opt.model_type, clientSocket=None,
                                        size=(512, 512))
+
                 opt.model_type = 'SDEdit'
+                opt.out_name = f'SDEdit-{static_name}'
+                opt.out_dir = os.path.join(now_out_dir, 'SDEdit')
+                if not os.path.exists(opt.out_dir): os.mkdir(opt.out_dir)
                 img_pil_sdedit = Transfer_Method(opt, 0, 0, img_pil, preloaded_models, preloaded_agents,
                                        record_history=False, model_type=opt.model_type, clientSocket=None,
                                        size=(512, 512))
+
                 opt.model_type = 'MGIE'
+                opt.out_name = f'MGIE-{static_name}'
+                opt.out_dir = os.path.join(now_out_dir, 'MGIE')
+                if not os.path.exists(opt.out_dir): os.mkdir(opt.out_dir)
                 img_pil_mgie = Transfer_Method(opt, 0, 0, img_pil, preloaded_models, preloaded_agents,
                                        record_history=False, model_type=opt.model_type, clientSocket=clientSocket,
                                        size=(512, 512))
 
-
+            opt.out_name = static_name
             for plan_item in task_plannings:
                 plan_type = plan_item['type']
                 edit_tool = operation_menu[plan_type]
@@ -104,6 +119,10 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
                     )
                 img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
                 plan_step += 1
+
+            img_before.save(f'./{planning_folder}/Input.jpg')
+            with open(f'./{now_out_dir}/instruction.txt', 'w') as f:
+                f.write(str(opt.edit_txt))
 
             if img_pil.size != (512, 512):
                 img_pil = ImageOps.fit(img_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
@@ -124,7 +143,7 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
         img_before_list, img_after_list,
         None, cap_before_list,
         cap_after_list, static_out_dir=static_out_dir,
-        type_name=' - Val All - ', extra_string="", model_type='EditGPT'
+        type_name=' - Val All - ', extra_string="", model_type='EditGPT', model_interface='EditGPT'
     )
 
     if opt.with_ip2p_val:
@@ -132,27 +151,33 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
             img_before_list, Ip2p_after_list,
             None, cap_before_list,
             cap_after_list, static_out_dir=static_out_dir,
-            type_name=' - Val All - ', extra_string="", model_type='IP2P'
+            type_name=' - Val All - ', extra_string="", model_type='IP2P', model_interface='IP2P'
         )
         cal_metrics_write(
             img_before_list, SDEdit_after_list,
             None, cap_before_list,
             cap_after_list, static_out_dir=static_out_dir,
-            type_name=' - Val All - ', extra_string="", model_type='SDEdit'
+            type_name=' - Val All - ', extra_string="", model_type='SDEdit', model_interface='SDEdit'
         )
         cal_metrics_write(
             img_before_list, SDEdit_after_list,
             None, cap_before_list,
             cap_after_list, static_out_dir=static_out_dir,
-            type_name=' - Val All - ', extra_string="", model_type='MGIE'
+            type_name=' - Val All - ', extra_string="", model_type='MGIE', model_interface='MGIE'
         )
 
 
 if __name__ == '__main__':
-    start_time = time.time()
+
     opt = get_arguments()
-    preloaded_models = preload_all_models(opt)
-    preloaded_agents = preload_all_agents(opt)
+    os.system(f'rm {opt.out_dir}.zip {opt.out_dir}')
+    os.system(f'zip -f {opt.out_dir}.zip {opt.out_dir}')
+    os.system(f'rm -rf {opt.out_dir}')
+
+    start_time = time.time()
+
+    preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
+    preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
 
     clientSocket = None
     if opt.with_ip2p_val:
@@ -160,6 +185,6 @@ if __name__ == '__main__':
         clientSocket = socket(AF_INET, SOCK_STREAM)
         clientSocket.connect((clientHost, clientPort))
 
-    Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=1, clientSocket=clientSocket)
+    Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, clientSocket=clientSocket)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

@@ -206,7 +206,7 @@ def write_valuation_results(path, typer='', clip_score='not cal', clip_direction
 def cal_metrics_write(
         image_before_list, image_after_list, image_ip2p_list,
         caption_before_list, caption_after_list, static_out_dir,
-        type_name='Move', extra_string=None, model_type='Ip2p'):
+        type_name='Move', extra_string=None, model_type='Ip2p', model_interface='EditGPT'):
     assert isinstance(image_before_list,list)
     # use list[Image]
     # print(f'Cal: {(len(image_before_list), len(image_after_list), len(image_ip2p_list), len(caption_before_list), len(caption_after_list))}')
@@ -243,7 +243,7 @@ def cal_metrics_write(
         clip_score = string
         clip_score_ip2p = string
     
-    write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_EditGPT.txt'), f'{type_name}-EditGPT',
+    write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_{model_interface}.txt'), f'{type_name}-EditGPT',
                             clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=extra_string)
     if image_ip2p_list is not None:
         write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_{model_type}.txt'), f'{type_name}-{model_type}',

@@ -138,10 +138,10 @@ locate_first_ask =      'If you have fully understood your task, '\
 # <resize the object>
 # no place
 system_prompt_add = 'You are a text detection master and need to generate a new bounding box for a specific object. '\
-                    'You are going to get a series texts input in the form of the bellow: \n'\
+                    'You are going to get a text input, the form is as follows: \n'\
                     'Size: $(W_{img},H{img})$\n'\
-                    'Objects: $\\{[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
-                    '[Name_n, (X_n,Y_n), (W_n,H_n))]\\}$\nTarget: Name\n'\
+                    'Objects: $\{[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
+                    '[Name_n, (X_n,Y_n), (W_n,H_n))]\}$\nTarget: Name\n'\
                     'For the i-th item $[Name_i, (X_i,Y_i), (W_i,H_i)]$ in the field \"Objects\", '\
                     '$Name_i$ represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
                     'and $(X_i,Y_i), (W_i,H_i)$ represent the location and size respectively in an image(or a photo). '\
@@ -151,25 +151,25 @@ system_prompt_add = 'You are a text detection master and need to generate a new 
                     'The whole bounding box must be in the range of the image sized $(W_{img}, H_{img})$'\
                     'You need to give the position and size of the specified new object "Name" in bounding box format. '\
                     'Regarding the arrangement of its position, you need to consider relative size to '\
-                    'arrange a place $(X,Y)$ and a size $(W,H)$ for "Name". Your out put should be in format: '\
+                    'arrange a place $(X,Y)$ and a size $(W,H)$ for "Name". Your output must be in form of '\
                     '$[Name, (X,Y,W,H)]$.'
 # TODO: output Form ?
 
 # TODO: need to amend label.str etc method.
 system_prompt_add_ratio = 'You are a text detection master and need to generate a new bounding box for a specific object. '\
-                    'You are going to get a series texts input in the form of the bellow: \n'\
-                    'Objects: $\\{[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
-                    '[Name_n, (X_n,Y_n), (W_n,H_n))]\\}$\nTarget: Name\n'\
+                    'You are going to get a text input, the form is as follows: \n'\
+                    'Objects: $\{[Name_1, (X_1,Y_1), (W_1,H_1))], [Name_2, (X_2,Y_2), (W_2,H_2))],... , '\
+                    '[Name_n, (X_n,Y_n), (W_n,H_n))]\}$\nTarget: Name\n'\
                     'For the i-th item $[Name_i, (X_i,Y_i), (W_i,H_i)]$ in the field \"Objects\", '\
                     '$Name_i$ represents its name (i.e. object class, such as cat, dog, apple and etc.), '\
                     'and $(X_i,Y_i), (W_i,H_i)$ represent the relative location and relative size respectively in an image(or a photo). '\
                     'Additianally, $(X_i,Y_i), (W_i,H_i)$ is in form of the bounding box, '\
                     'where $(X_i,Y_i)$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
                     'and $(W_i,H_i)$ represents the width and height of a rectangular box that including the i-th object. '\
-                    'They are all ranged in $[0,1]$, as a relative location and relative size. '\
+                    'They are all ranged in $[0, 1]$, as a relative location and relative size. '\
                     'You need to give the position and size of the specified new object "Name" in bounding box format. '\
                     'Regarding the arrangement of its position, you need to consider relative size to '\
-                    'arrange a place $(X,Y)$ and a size $(W,H)$ for "Name". Your out put should be in format: '\
+                    'arrange a place $(X,Y)$ and a size $(W,H)$ for "Name". Your output must be in form of '\
                     '$[Name, (X,Y,W,H)]$.'
 
 add_first_ask = 'If you have fully understand your task, please answer "yes" without any extra characters, and your output mustn\'t contain '\
