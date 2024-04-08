@@ -473,7 +473,7 @@ def Validate_planner_No_Img():
     plt.savefig(f'{static_out_dir}/planner-curve.jpg')
 
 
-def Validate_on_Ip2p_Dataset(test_num):
+def Validate_on_IPr2IPr(test_num):
     opt = get_arguments()
     if not hasattr(opt, 'test_num'): setattr(opt, 'test_num', test_num)
     preloaded_models = preload_all_models(opt)

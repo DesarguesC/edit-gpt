@@ -10,10 +10,7 @@ from task_planning import Add_Method, Remove_Method, Transfer_Method
 from prompt.arguments import get_arguments
 from prompt.util import write_instruction, write_valuation_results, cal_metrics_write
 from preload_utils import *
-
 from operations.vqa_utils import preload_vqa_model, Val_add_amount, IsRemoved
-
-
 from pytorch_lightning import seed_everything
 
 
