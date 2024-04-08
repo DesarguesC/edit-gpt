@@ -52,7 +52,7 @@ def read_original_prompt(path_to_json):
     prompt2 = f'{prompt1}, with {edit}'
     return (prompt1, prompt2, edit)
 
-def Val_Replace_Method(opt):
+def Val_Replace_Method(opt, clientSocket):
     seed_everything(opt.seed)
     # agent = use_exp_agent(opt, system_prompt_edit_sort)
     val_folder = '../autodl-tmp/COCO/val2017'
@@ -124,7 +124,7 @@ def Val_Replace_Method(opt):
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
             if opt.with_ip2p_val:
-                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False, model_type=opt.model_type)
+                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False, model_type=opt.model_type, clientSocket=clientSocket, size=(512,512))
                 if out_ip2p.size != (512,512):
                     out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
@@ -188,7 +188,7 @@ def Val_Replace_Method(opt):
         type_name='Replace', extra_string=string, model_type=opt.model_type
     )
 
-def Val_Move_Method(opt):
+def Val_Move_Method(opt, clientSocket):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017/'
     # Mute GPT
@@ -264,7 +264,7 @@ def Val_Move_Method(opt):
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil, (512,512), method=Image.Resampling.LANCZOS)
             if opt.with_ip2p_val:
-                out_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False, model_type=opt.model_type)
+                out_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False, model_type=opt.model_type, clientSocket=clientSocket, size=(512,512))
                 if out_ip2p.size != (512,512):
                     out_ip2p = ImageOps.fit(out_ip2p, (512,512), method=Image.Resampling.LANCZOS)
 
@@ -309,10 +309,9 @@ def Val_Move_Method(opt):
         type_name='Move', extra_string=None, model_type=opt.model_type
     )
     
-def main1(test_group_num=50):
+def main1(opt, test_group_num=50, clientSocket=None):
 
     if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
-    opt = get_arguments()
     setattr(opt, 'test_group_num', test_group_num)
     seed_everything(opt.seed)
 
@@ -332,7 +331,7 @@ def main1(test_group_num=50):
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
     print('Start to valuate Replace Method...')
-    Val_Replace_Method(opt)
+    Val_Replace_Method(opt, clientSocket)
     
     opt.out_dir = '../autodl-tmp/Exp_Move'
     if os.path.exists(opt.out_dir): 
@@ -344,11 +343,12 @@ def main1(test_group_num=50):
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
     print('Start to valuate Move Method...')
-    Val_Move_Method(opt)
+    Val_Move_Method(opt, clientSocket)
 
 
 if __name__ == '__main__':
     start_time = time.time()
-    main1(50)
+    opt = get_arguments()
+    main1(opt, 50)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

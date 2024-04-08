@@ -556,13 +556,21 @@ def test_MGIE_tcp():
         image = np.array(ImageOps.fit(Image.open('./assets/dog&chair.jpg').convert('RGB'), (256,256), method=Image.Resampling.LANCZOS))
         Encode_and_Send(clientSocket, image)
         # time.sleep(2)
-        recv_img = receive_image_from_length(clientSocket) # np.array
+        recv_img = receive_image_from_length(clientSocket) # PIL.Image
         cv2.imwrite('../MGIE-Received.jpg', cv2.cvtColor(np.array(recv_img), cv2.COLOR_RGB2BGR))
         # cv2.waitKey(5)
         # cv2.destroyAllWindows()
         time.sleep(2)
 
-
+def send_to_MGIE(opt, img_pil, clientSocket, size=(512,512)):
+    edit_txt = opt.edit_txt
+    clientSocket.send(edit_txt.encode())
+    time.sleep(0.8)
+    image = np.array(ImageOps.fit(img_pil.convert('RGB'), size, method=Image.Resampling.LANCZOS))
+    Encode_and_Send(clientSocket, image)
+    # time.sleep(2)
+    recv_img = receive_image_from_length(clientSocket)  # PIL.Image
+    return recv_img
 
 
 if __name__ == '__main__':

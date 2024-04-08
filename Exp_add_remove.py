@@ -3,6 +3,7 @@ from prompt.guide import get_response, get_bot
 from basicsr.utils import tensor2img, img2tensor
 from random import randint, choice
 from PIL import Image, ImageOps
+from socket import *
 import numpy as np
 from task_planning import Add_Method, Remove_Method, Transfer_Method
 from prompt.arguments import get_arguments
@@ -40,7 +41,7 @@ def use_exp_agent(opt, system_prompt):
     agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=system_prompt, proxy=opt.net_proxy, type=opt.llm_type)
     return agent
 
-def Val_Add_Method(opt):
+def Val_Add_Method(opt, clientSocket):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017'
     with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
@@ -114,7 +115,7 @@ def Val_Add_Method(opt):
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
             if opt.with_ip2p_val:
-                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False, model_type=opt.model_type)
+                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False, model_type=opt.model_type, clientSocket=clientSocket, size=(512,512))
                 if out_ip2p.size != (512,512):
                     out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
@@ -184,7 +185,7 @@ def Val_Add_Method(opt):
         type_name='Add', extra_string=string, model_type=opt.model_type
     )
 
-def Val_Remove_Method(opt):
+def Val_Remove_Method(opt, clientSocket):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017'
     with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
@@ -253,7 +254,7 @@ def Val_Remove_Method(opt):
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
             if opt.with_ip2p_val:
-                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False, model_type=opt.model_type)
+                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False, model_type=opt.model_type, clientSocket=clientSocket, size=(512,512))
                 if out_ip2p.size != (512, 512):
                     out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
@@ -319,10 +320,10 @@ def Val_Remove_Method(opt):
         type_name='Remove', extra_string=string, model_type=opt.model_type
     )
 
-def main2(test_group_num=50):
+def main2(opt, test_group_num=50, clientSocket=None):
 
     if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
-    opt = get_arguments()
+
     setattr(opt, 'test_group_num', test_group_num)
     seed_everything(opt.seed)
 
@@ -342,7 +343,7 @@ def main2(test_group_num=50):
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
     print('Start to valuate Add Method...')
-    Val_Add_Method(opt)
+    Val_Add_Method(opt, clientSocket)
 
     opt.out_dir = '../autodl-tmp/Exp_Remove'
     if os.path.exists(opt.out_dir): 
@@ -354,15 +355,23 @@ def main2(test_group_num=50):
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
     print('Start to valuate Remove Method...')
-    Val_Remove_Method(opt)
+    Val_Remove_Method(opt, clientSocket)
     
 
 if __name__ == '__main__':
     start_time = time.time()
     from Exp_replace_move import main1
+    opt = get_arguments()
+
+    clientSocket = None
+    if opt.model_type == 'MGIE':
+        clientHost, clientPort = '127.0.0.1', 4096
+        clientSocket = socket(AF_INET, SOCK_STREAM)
+        clientSocket.connect((clientHost, clientPort))
+
     print('\nnFirst: Replace & Move \n\n')
-    main1(test_group_num=50)
+    main1(opt, test_group_num=50, clientSocket=clientSocket)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(test_group_num=50)
+    main2(opt, test_group_num=50, clientSocket=clientSocket)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

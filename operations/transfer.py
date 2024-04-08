@@ -2,7 +2,7 @@ import numpy as np
 import torch, cv2, os, random, math, einops
 from torch import nn, autocast
 from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
-
+from test_val import send_to_MGIE
 # calculate IoU between SAM & SEEM
 from PIL import Image
 from einops import repeat, rearrange
@@ -41,7 +41,9 @@ def Transfer_Me_ip2p(
         dilate_kernel_size: int = 15,
         preloaded_model = None,
         record_history = True,
-        model_type = 'Ip2p'
+        model_type = 'Ip2p',
+        clientSocket=None,
+        size=(512,512)
     ):
     """
     -> preloded_model
@@ -58,6 +60,9 @@ def Transfer_Me_ip2p(
             txt_cfg,
             preloaded_model,
         )
+    elif model_type == 'MGIE':
+        print('Trnasfer with MGIE')
+        return send_to_MGIE(opt, input_pil, clientSocket, size)
     print('Transfer with Ip2p')
     # 'dilate_kernel_size'  unused
     # Consider: whether mask play some roles in ip2p.
