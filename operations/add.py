@@ -128,18 +128,24 @@ def Add_Object(
             box_ans = [x.strip() for x in re.split(r'[\[\],()]', agent_return[agent_return.find('('):agent_return.rfind(')')+1]) if x not in ['', ' ']]
             # deal with the answer, procedure is the same as in replace.py
             print(f'box_ans = {box_ans}')
-            if len(box_ans) < 4:
-                print('WARNING: string return')
-                try_time += 1
-                continue
-            print(f'box_ans[0](i.e. target) = {box_ans[0]}')
-            try:
-                x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]) * opt.expand_scale, float(box_ans[4]) * opt.expand_scale
-            except Exception as err:
-                print(f'err: box_ans = {box_ans}\bError: {err}')
-                fixed_box = (0,0,0,0)
-                try_time += 1
-                continue
+            if len(box_ans) <= 4:
+                try:
+                    x, y, w, h = float(box_ans[0]), float(box_ans[1]), float(box_ans[2]) * opt.expand_scale, float(box_ans[3]) * opt.expand_scale
+                except Exception as err:
+                    print(f'err: box_ans = {box_ans}\bError: {err}')
+                    print('WARNING: string return')
+                    fixed_box = (0,0,0,0)
+                    try_time += 1
+                    continue
+            else:
+                print(f'box_ans[0](i.e. target) = {box_ans[0]}')
+                try:
+                    x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]) * opt.expand_scale, float(box_ans[4]) * opt.expand_scale
+                except Exception as err:
+                    print(f'err: box_ans = {box_ans}\bError: {err}')
+                    fixed_box = (0,0,0,0)
+                    try_time += 1
+                    continue
 
             fixed_box = (x, y, w, h)
             print(f'box_0 before fixed: {fixed_box}')

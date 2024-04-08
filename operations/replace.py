@@ -191,18 +191,24 @@ def replace_target(
                 ) if x not in ['', ' ']]
         print(f'box_ans = {box_ans}')
         if len(box_ans) < 4:
-            print('WARNING: string return')
-            try_time += 1
-            continue
-        new_noun = box_ans[0]
-        try:
-            x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]) * opt.expand_scale, float(box_ans[4]) * opt.expand_scale
-        except Exception as err:
-            print(f'err: box_0 = {box_0}\nError: {err}')
-            box_0 = (0, 0, 0, 0)
-            try_time += 1
-            continue
+            try:
+                x, y, w, h = float(box_ans[0]), float(box_ans[1]), float(box_ans[2]) * opt.expand_scale, float(box_ans[3]) * opt.expand_scale
+            except Exception as err:
+                print(f'err: box_ans = {box_ans}\bError: {err}')
+                print('WARNING: string return')
+                box_0 = (0, 0, 0, 0)
+                try_time += 1
+                continue
+        else:
+            try:
+                x, y, w, h = float(box_ans[1]), float(box_ans[2]), float(box_ans[3]) * opt.expand_scale, float(box_ans[4]) * opt.expand_scale
+            except Exception as err:
+                print(f'err: box_0 = {box_0}\nError: {err}')
+                box_0 = (0, 0, 0, 0)
+                try_time += 1
+                continue
 
+        new_noun = box_ans[0]
         print(f'new_noun, x, y, w, h = {new_noun}, {x}, {y}, {w}, {h}')
         box_0 = (x, y, w, h)
         box_0 = fix_box(box_0, (1., 1., 3) if opt.use_ratio else (opt.H,opt.W,3))

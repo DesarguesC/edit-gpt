@@ -147,18 +147,25 @@ def create_location(
         # deal with the answer, procedure is the same as in replace.py
         print(f'box_ans = {box_ans}')
         if len(box_ans) < 4:
-            print('WARNING: string return')
-            try_time += 1
-            continue
-        print(f'box_ans[0](i.e. target) = {box_ans[0]}')
-        # box_ans[0]: target
-        try:
-            box_0 = (float(box_ans[1]), float(box_ans[2]), float(box_ans[3]) * opt.expand_scale, float(box_ans[4]) * opt.expand_scale)
-        except Exception as err:
-            print(f'err: box_ans = {box_ans}\nError: {err}')
-            box_0 = (0, 0, 0, 0)
-            try_time += 1
-            continue
+            try:
+                box_0 = float(box_ans[0]), float(box_ans[1]), float(box_ans[2]) * opt.expand_scale, float(box_ans[3]) * opt.expand_scale
+            except Exception as err:
+                print(f'err: box_ans = {box_ans}\bError: {err}')
+                print('WARNING: string return')
+                box_0 = (0, 0, 0, 0)
+                try_time += 1
+                continue
+
+        else:
+            try:
+                # box_ans[0]: target
+                print(f'box_ans[0](i.e. target) = {box_ans[0]}')
+                box_0 = (float(box_ans[1]), float(box_ans[2]), float(box_ans[3]) * opt.expand_scale, float(box_ans[4]) * opt.expand_scale)
+            except Exception as err:
+                print(f'err: box_ans = {box_ans}\nError: {err}')
+                box_0 = (0, 0, 0, 0)
+                try_time += 1
+                continue
 
         print(f'box_0 before fixed: {box_0}')
         box_0 = fix_box(box_0, (1., 1., 3) if opt.use_ratio else (opt.W, opt.H, 3), target_box)
