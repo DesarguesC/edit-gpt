@@ -261,6 +261,13 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        '--claude_vision',
+        type=str2bool,
+        default=False,
+        help='ablation for MLLM',
+    )
+
+    parser.add_argument(
         '--compile',
         type=str2bool,
         default=False,
