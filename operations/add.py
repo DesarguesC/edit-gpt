@@ -24,6 +24,7 @@ import torch, cv2, os
 from paint.example import generate_example
 from operations.utils import get_reshaped_img
 from prompt.gpt4_gen import gpt_4v_bbox_return
+from prompt.anthropic_util import claude_vision_box
 
 def Add_Object(
         opt, 
@@ -112,7 +113,7 @@ def Add_Object(
 
         fixed_box = (0,0,0,0)
         try_time = 0
-        notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
+        notes = '\n(Note that: Your response must not use $(0,0,0,0)$ as bounding box! i.e., $w\neq 0, h\neq 0$. )'
 
         while IsAbnormal(fixed_box, (1., 1., 3) if opt.use_ratio else (opt.W, opt.H, 3)):
             if try_time > 0:
@@ -121,10 +122,10 @@ def Add_Object(
                     break
                 print(f'Trying to fix... - Iter: {try_time}')
                 print(f'QUESTION: \n{question}')
-            box_ans = [x.strip() for x in re.split(r'[\[\],()]', 
-                        gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
+            agent_return = gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
+                        else claude_vision_box(opt, name) if opt.claude_vision \
                         else get_response(edit_agent, question if try_time < 2 else (question + notes))
-                    ) if x not in ['', ' ']]
+            box_ans = [x.strip() for x in re.split(r'[\[\],()]', agent_return[agent_return.find('('):agent_return.rfind(')')+1]) if x not in ['', ' ']]
             # deal with the answer, procedure is the same as in replace.py
             print(f'box_ans = {box_ans}')
             if len(box_ans) < 4:

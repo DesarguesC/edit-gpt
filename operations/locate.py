@@ -25,6 +25,7 @@ from basicsr.utils import tensor2img
 from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
+from prompt.anthropic_util import claude_vision_box
 
 TURN = lambda x: repeat(rearrange(np.array(x.cpu().detach().numpy()), 'c h w -> h w c'), '... 1 -> ... c', c=3)
 
@@ -137,10 +138,10 @@ def create_location(
                 break
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
-        box_ans = [str(target), '0.2', '0.4', '0.3', '0.27']
         # Mute GPT
         box_ans = [x.strip() for x in re.split(r'[\[\],()]',
                     gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
+                    else claude_vision_box(opt, target) if opt.claude_vision \
                     else get_response(edit_agent, question if try_time < 3 else (question + notes))
                 ) if x not in ['', ' ']]
         # deal with the answer, procedure is the same as in replace.py

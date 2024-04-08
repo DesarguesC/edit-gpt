@@ -1,11 +1,12 @@
 import numpy as np
-import torch, cv2, os, random, math, einops
+import torch, cv2, os, einops, time
 from torch import nn, autocast
 from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
 # calculate IoU between SAM & SEEM
-from PIL import Image
+from PIL import Image, ImageOps
 from einops import repeat, rearrange
 from pytorch_lightning import seed_everything
+from tcputils import receive_image_from_length, Encode_and_Send
 
 from ldm.util import load_model_from_config, instantiate_from_config
 from omegaconf import OmegaConf
@@ -32,12 +33,15 @@ class CFGDenoiser(nn.Module):
 
 def send_to_MGIE(opt, img_pil, clientSocket, size=(512,512)):
     edit_txt = opt.edit_txt
+    print(f'Edit text \"{edit_txt}\" was sent...')
     clientSocket.send(edit_txt.encode())
     time.sleep(0.8)
     image = np.array(ImageOps.fit(img_pil.convert('RGB'), size, method=Image.Resampling.LANCZOS))
     Encode_and_Send(clientSocket, image)
+    print(f'MGIE input image sent...')
     # time.sleep(2)
     recv_img = receive_image_from_length(clientSocket)  # PIL.Image
+    print(f'MGIE result received...')
     return recv_img
 
 def Transfer_Me_ip2p(
@@ -68,8 +72,9 @@ def Transfer_Me_ip2p(
             preloaded_model,
         )
     elif model_type == 'MGIE':
-        print('Trnasfer with MGIE')
+        print('Trnasfer with MGIE... ', end = '')
         return send_to_MGIE(opt, input_pil, clientSocket, size)
+
     print('Transfer with Ip2p')
     # 'dilate_kernel_size'  unused
     # Consider: whether mask play some roles in ip2p.

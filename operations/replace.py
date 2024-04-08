@@ -24,6 +24,7 @@ from .utils import IsAbnormal
 from paint.example import generate_example
 from operations.utils import get_reshaped_img
 from prompt.gpt4_gen import gpt_4v_bbox_return
+from prompt.anthropic_util import claude_vision_box
 from operations.add import Add_Object
 
 
@@ -185,6 +186,7 @@ def replace_target(
         # TODO: Consider [1024,1024,-1025,-1025] return, stuck on this loop.
         box_0 = [x.strip() for x in re.split(r"[\[\](),]", 
                     gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
+                    else claude_vision_box(opt, new_noun) if opt.claude_vision \
                     else get_response(edit_agent, (question if try_time < 3 else f'{question}\n{notes}')).strip()
                 ) if x not in ['', ' ']]
         print(f'box_ans = {box_0}')
