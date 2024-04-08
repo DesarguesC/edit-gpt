@@ -509,8 +509,10 @@ def Validate_on_IPr2IPr(test_num):
             plan_step, tot_step = 1, len(task_plannings)
 
             opt.in_dir = os.path.join(dataset_path, folder, f'{img_name}_0.jpg')
-            opt, img_pil = get_reshaped_img(opt)
+            opt, img_pil = get_reshaped_img(opt, val=True, val_shape=(512,512))
             img_before = img_pil
+
+            # evaluate other similar model first
 
             for plan_item in task_plannings:
                 plan_type = plan_item['type']
@@ -527,6 +529,9 @@ def Validate_on_IPr2IPr(test_num):
                     )
                 img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
                 plan_step += 1
+
+            if img_pil.size != (512, 512):
+                img_pil = ImageOps.fit(img_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
             img_before_list.append(img_before)
             img_after_list.append(img_pil)

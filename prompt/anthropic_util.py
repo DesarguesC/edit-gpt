@@ -71,11 +71,12 @@ class Vision_Claude():
         return response
 
 
-Question = lambda x, y, w, h: f"I want to edit this image with an instruction \"{x} in the image\", please arrange the location of \"{y}\". "\
-                        f"And you should tell me the of \"{y}\", in form of $(x,y,w,h)$, where $x,y$ indicates the coordinates "\
-                        f"and $(w,h)$ indicates the width and height. The image sized {(w,h)}. " + \
-                        "Note that you are getting a ratio, so you only need to output a ratio too. " if (w,h) == (1,1) else ""\
-                        "Any other characters in your output is strictly forbidden. "
+Question = lambda x, y, w, h: f"Now you get an image, and I want to edit this image with an instruction \"{x} in the image\". "\
+                              f"What you should do is to arrange a location for \"{y}\". And you should tell me the "\
+                              f"location in form of $(x,y,w,h)$, where $x,y$ indicates the coordinates "\
+                              f"and $(w,h)$ indicates the width and height. The image sized {(w,h)}. " + \
+                              "Note that you are getting a ratio, so you only need to output a ratio too. " if (w,h) == (1,1) else ""\
+                              "Any other characters in your output is strictly forbidden. "
 
 
 def ask_claude_vision(img_encoded, agent, edit_txt, target, img_size):

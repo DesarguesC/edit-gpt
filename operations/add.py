@@ -148,7 +148,6 @@ def Add_Object(
             try_time += 1
 
         # fixed_box will be converted to integer before 'refactor_mask'
-
         if opt.use_ratio:
             fixed_box = (int(fixed_box[0] * opt.W), int(fixed_box[1] * opt.H), int(fixed_box[2] * opt.W), int(fixed_box[3] * opt.H))
         # generate example
@@ -181,13 +180,6 @@ def Add_Object(
             opt.seed += 1
             seed_everything(opt.seed)
 
-        if opt.use_ratio:
-            # box_example = (int(box_example[0] * opt.W), int(box_example[1] * opt.H), int(box_example[2] * opt.W), int(box_example[3] * opt.H))
-            fixed_box = (int(fixed_box[0] * opt.W), int(fixed_box[1] * opt.H), int(fixed_box[2] * opt.W), int(fixed_box[3] * opt.H))
-        # will be converted to int in 'refactor_mask'
-        
-        
-        
         print(f'ans_box = {fixed_box}') # recovered from ratio
 
         target_mask = refactor_mask(box_example, mask_example, fixed_box)
