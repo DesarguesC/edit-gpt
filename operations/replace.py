@@ -128,12 +128,21 @@ def replace_target(
                             preloaded_example_generator = preloaded_model['preloaded_example_generator'] if preloaded_model is not None else None
                         )
     # TODO: add conditional condition to diffusion via ControlNet
-    _, mask_2, _ = query_middleware(
-                            opt, diffusion_pil, new_noun, 
-                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
-                        )
+    box_2 = (-1,-1,-1,-1)
+    while True:
+        _, mask_2, _ = query_middleware(
+                                opt, diffusion_pil, new_noun,
+                                preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
+                            )
+        box_2 = match_sam_box(mask_2, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num > 0),
+                              dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)
+        if box_2[2] < 0:
+            opt.seed += 1
+            seed_everything(opt.seed)
+            continue
+        else:
+            break
 
-    
     bbox_list = [match_sam_box(x['mask'], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num) for x in panoptic_dict]
     # only mask input -> extract max-min coordinates as bounding box)
     print(f'box_1 = {box_1}')
@@ -170,8 +179,6 @@ def replace_target(
     question = Label().get_str_rescale(old_noun, new_noun, box_name_list)
     print(f'Question: \n{question}')
 
-    box_2 = match_sam_box(mask_2, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num > 0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)
-        
     box_0 = (0, 0, 0, 0)
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
