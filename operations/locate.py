@@ -183,7 +183,7 @@ def create_location(
 
     print(f'BEFORE: box_0={box_0}')
     print(f'{target_box} -> {box_0}')
-
+    box_0 = (int(box_0[0]), int(box_0[1]), int(box_0[2]), int(box_0[3]))
     if torch.max(target_mask) <= 1.:
         target_mask[target_mask > 0.5] = 0.9 if opt.mask_ablation else 1.
         target_mask[target_mask <= 0.5] = 0.1 if opt.mask_ablation else 0.

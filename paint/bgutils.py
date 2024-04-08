@@ -176,6 +176,7 @@ def move_ref2base(box, ref_img, ori_img, mask: torch.Tensor = None):
     if isinstance(ref_img, Image.Image):
         ref_img = np.array(ref_img) # [h w 3]
     x, y, w, h = box
+    x, y, w, h = int(x), int(y), int(w), int(h)
     ref_img = cv2.resize(ref_img, (w,h))
     if isinstance(ori_img, Image.Image):
         ori_img = np.array(ori_img)
