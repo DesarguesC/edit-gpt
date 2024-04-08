@@ -111,13 +111,17 @@ def Val_Add_Method(opt, clientSocket):
             # caption2 = f'{caption1}, with a {add_label} added on the {amend}'
             opt.edit_txt = f'add a {add_label}'
             caption2 = f'{caption1}; with {add_label} added'
+            
+            if opt.with_ip2p_val:
+                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, 
+                                           record_history=False, model_type=opt.model_type, clientSocket=clientSocket, size=(512,512))
+                if out_ip2p.size != (512,512):
+                    out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
+                    
             out_pil = Add_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
-            if opt.with_ip2p_val:
-                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False, model_type=opt.model_type, clientSocket=clientSocket, size=(512,512))
-                if out_ip2p.size != (512,512):
-                    out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
+            
 
             image_before_list.append(ori_img)
             image_after_list.append(out_pil)
@@ -250,13 +254,17 @@ def Val_Remove_Method(opt, clientSocket):
 
             opt.edit_txt = f'remove the {ori_label}'
             caption2 = f'{caption1}; with {ori_label} removed'
+            
+            if opt.with_ip2p_val:
+                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, 
+                                           record_history=False, model_type=opt.model_type, clientSocket=clientSocket, size=(512,512))
+                if out_ip2p.size != (512, 512):
+                    out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
+            
             out_pil = Remove_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
             if out_pil.size != (512,512):
                 out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
-            if opt.with_ip2p_val:
-                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False, model_type=opt.model_type, clientSocket=clientSocket, size=(512,512))
-                if out_ip2p.size != (512, 512):
-                    out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
+            
 
 
             image_before_list.append(ori_img)
@@ -370,8 +378,8 @@ if __name__ == '__main__':
         clientSocket.connect((clientHost, clientPort))
 
     print('\nnFirst: Replace & Move \n\n')
-    main1(opt, test_group_num=50, clientSocket=clientSocket)
+    main1(opt, test_group_num=1, clientSocket=clientSocket)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(opt, test_group_num=50, clientSocket=clientSocket)
+    main2(opt, test_group_num=1, clientSocket=clientSocket)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

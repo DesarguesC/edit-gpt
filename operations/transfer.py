@@ -2,7 +2,6 @@ import numpy as np
 import torch, cv2, os, random, math, einops
 from torch import nn, autocast
 from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
-from test_val import send_to_MGIE
 # calculate IoU between SAM & SEEM
 from PIL import Image
 from einops import repeat, rearrange
@@ -31,7 +30,15 @@ class CFGDenoiser(nn.Module):
         out_cond, out_img_cond, out_uncond = self.inner_model(cfg_z, cfg_sigma, cond=cfg_cond).chunk(3)
         return out_uncond + text_cfg_scale * (out_cond - out_img_cond) + image_cfg_scale * (out_img_cond - out_uncond)
 
-
+def send_to_MGIE(opt, img_pil, clientSocket, size=(512,512)):
+    edit_txt = opt.edit_txt
+    clientSocket.send(edit_txt.encode())
+    time.sleep(0.8)
+    image = np.array(ImageOps.fit(img_pil.convert('RGB'), size, method=Image.Resampling.LANCZOS))
+    Encode_and_Send(clientSocket, image)
+    # time.sleep(2)
+    recv_img = receive_image_from_length(clientSocket)  # PIL.Image
+    return recv_img
 
 def Transfer_Me_ip2p(
         opt, 
