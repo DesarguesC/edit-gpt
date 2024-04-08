@@ -24,6 +24,7 @@ class Claude():
             model = self.engine, # "claude-2.1",
             max_tokens = self.max_tokens,
             system = self.system_prompt,  # <-- system prompt
+            temperature = 0.8,
             messages=[
                 {"role": "user", "content": question}  # <-- user prompt
             ]
@@ -45,6 +46,7 @@ class Vision_Claude():
         response = self.client.messages.create(
             model = self.engine,
             max_tokens = self.max_tokens,
+            temperature = 0.8,
             messages = [
                 {
                     "role": "user",
@@ -65,13 +67,15 @@ class Vision_Claude():
                 }
             ]
         ).content[-1].text
+        print(f'\nRaw response from Claude-3: {response}\n')
         return response
 
 
 Question = lambda x, y, w, h: f"I want to edit this image with an instruction \"{x} in the image\", please arrange the location of \"{y}\". "\
                         f"And you should tell me the of \"{y}\", in form of $(x,y,w,h)$, where $x,y$ indicates the coordinates "\
                         f"and $(w,h)$ indicates the width and height. The image sized {(w,h)}. " + \
-                        "Note that you are getting a ratio, so you only need to output a ratio too. " if (w,h) == (1,1) else ""
+                        "Note that you are getting a ratio, so you only need to output a ratio too. " if (w,h) == (1,1) else ""\
+                        "Any other characters in your output is strictly forbidden. "
 
 
 def ask_claude_vision(img_encoded, agent, edit_txt, target, img_size):

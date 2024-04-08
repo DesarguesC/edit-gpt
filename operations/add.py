@@ -88,8 +88,8 @@ def Add_Object(
                 'bbox': match_sam_box(place_mask_list[i], sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num>0), dilation=opt.erosion, dilation_iter=opt.erosion_iter_num) # only mask input -> extract max-min coordinates as bounding box
             }
             if opt.use_ratio:
-                temp_item['bbox'][0], temp_item['bbox'][1] = temp_item['bbox'][0] / opt.W, temp_item['bbox'][1] / opt.H
-                temp_item['bbox'][2], temp_item['bbox'][3] = temp_item['bbox'][2] / opt.W, temp_item['bbox'][3] / opt.H
+                temp_item['bbox'] = temp_item['bbox'][0] / opt.W, temp_item['bbox'][1] / opt.H, \
+                                                    temp_item['bbox'][2] / opt.W, temp_item['bbox'][3] / opt.H
             panoptic_dict.append(temp_item)
 
         question = Label().get_str_add_panoptic(panoptic_list, name, (opt.W,opt.H), ratio_mode=opt.use_ratio)
@@ -182,7 +182,7 @@ def Add_Object(
             seed_everything(opt.seed)
 
         if opt.use_ratio:
-            box_example = (int(box_example[0] * opt.W), int(box_example[1] * opt.H), int(box_example[2] * opt.W), int(box_example[3] * opt.H))
+            # box_example = (int(box_example[0] * opt.W), int(box_example[1] * opt.H), int(box_example[2] * opt.W), int(box_example[3] * opt.H))
             fixed_box = (int(fixed_box[0] * opt.W), int(fixed_box[1] * opt.H), int(fixed_box[2] * opt.W), int(fixed_box[3] * opt.H))
         # will be converted to int in 'refactor_mask'
         

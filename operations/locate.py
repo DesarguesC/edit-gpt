@@ -126,8 +126,8 @@ def create_location(
     # question = f'Size: ({opt.W},{opt.H})\n' + question
     print(f'Question: \n{question}')
 
-    box_0 = target_box # Mute GPT 
-    # box_0 = (0, 0, 0, 0)
+
+    box_0 = (0, 0, 0, 0)
     try_time = 0
     notes = '\n(Note that: Your response must not contain $(0,0)$ as bounding box! $w\neq 0, h\neq 0$. )'
 

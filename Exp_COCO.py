@@ -14,36 +14,11 @@ from operations.vqa_utils import preload_vqa_model, Val_add_amount, IsRemoved
 from pytorch_lightning import seed_everything
 
 
-def preload_replace_model(opt):
-    return {
-        'preloaded_example_generator': preload_example_generator(opt),
-        # XL - 8272 MiB, XL_ad - 8458 MiB, V1.5 - 10446 MiB
-        'preloaded_ip2p': preload_ip2p(opt) if opt.with_ip2p_val else None,  # 8854 MiB
-        'preloaded_example_painter': preload_paint_by_example_model(opt),  # 10446 MiB
-        'preloaded_sam_generator': preload_sam_generator(opt),  # 10446 MiB
-        'preloaded_seem_detector': preload_seem_detector(opt),  # 10446 MiB
-        'preloaded_lama_remover': preload_lama_remover(opt),  # 10446 MiB
-        'preloaded_refiner': preload_refiner(opt) if opt.example_type != 'XL' else None
-    }
-
-
-def preload_move_model(opt):
-    return {
-        'preloaded_example_generator': preload_example_generator(opt),
-        'preloaded_example_painter': preload_paint_by_example_model(opt),  # 10446 MiB
-        'preloaded_ip2p': preload_ip2p(opt) if opt.with_ip2p_val else None,  # 8854 MiB
-        'preloaded_sam_generator': preload_sam_generator(opt),  # 10446 MiB
-        'preloaded_seem_detector': preload_seem_detector(opt),  # 10446 MiB
-        'preloaded_lama_remover': preload_lama_remover(opt),  # 10446 MiB
-        'preloaded_refiner': preload_refiner(opt) if opt.example_type != 'XL' else None
-    }
-
 
 def use_exp_agent(opt, system_prompt):
     agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=system_prompt, proxy=opt.net_proxy,
                     type=opt.llm_type)
     return agent
-
 
 def read_original_prompt(path_to_json):
     assert path_to_json.endswith('.json')
@@ -55,7 +30,7 @@ def read_original_prompt(path_to_json):
     return (prompt1, prompt2, edit)
 
 
-def Val_Replace_Method(opt, clientSocket):
+def Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket=None):
     seed_everything(opt.seed)
     # agent = use_exp_agent(opt, system_prompt_edit_sort)
     val_folder = '../autodl-tmp/COCO/val2017'
@@ -63,14 +38,10 @@ def Val_Replace_Method(opt, clientSocket):
         data_ = json.load(f)
         # query caption via image_id
     data_val = data_['annotations']
-    length = len(data_val)
     folders = os.listdir(val_folder)
     length = len(folders)
     selected_list = []
 
-    from preload_utils import preload_all_agents
-    preloaded_replace_model = preload_replace_model(opt) if opt.preload_all_models else None
-    preloaded_agent = preload_all_agents(opt) if opt.preload_all_agents else None
     model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)
 
     with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
@@ -126,11 +97,11 @@ def Val_Replace_Method(opt, clientSocket):
         caption1 = captions_dict[str(img_id)]
         caption2 = f'{caption1}; with {label_ori} replaced with {label_new}'
 
-        out_pil = Replace_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent, record_history=False)
+        out_pil = Replace_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents, record_history=False)
         if out_pil.size != (512, 512):
             out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
         if opt.with_ip2p_val:
-            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_replace_model, preloaded_agent,
+            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents,
                                        record_history=False, model_type=opt.model_type, clientSocket=clientSocket,
                                        size=(512, 512))
             if out_ip2p.size != (512, 512):
@@ -180,8 +151,6 @@ def Val_Replace_Method(opt, clientSocket):
         #     del selected_list[-1]
 
     # TODO: Clip Image Score & PSNR && SSIM
-
-    del preloaded_agent, preloaded_replace_model
     acc_ratio_replace = acc_num_replace / len(selected_list)
     if opt.with_ip2p_val:
         acc_ratio_ip2p = acc_num_ip2p / len(selected_list)
@@ -198,8 +167,7 @@ def Val_Replace_Method(opt, clientSocket):
         type_name='Replace', extra_string=string, model_type=opt.model_type
     )
 
-
-def Val_Move_Method(opt, clientSocket):
+def Val_Move_Method(opt, preloaded_models, preloaded_agents, clientSocket):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017/'
     # Mute GPT
@@ -211,9 +179,6 @@ def Val_Move_Method(opt, clientSocket):
     captions_dict = {}
     caption_before_list, caption_after_list = [], []
     image_before_list, image_after_list, image_ip2p_list = [], [], []
-
-    preloaded_move_model = preload_move_model(opt) if opt.preload_all_models else None
-    preloaded_agent = preload_all_agents(opt) if opt.preload_all_agents else None
 
     for x in caption['annotations']:
         image_id = str(x['image_id'])
@@ -272,12 +237,12 @@ def Val_Move_Method(opt, clientSocket):
         img_pil = ImageOps.fit(Image.open(img_path).convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
         opt.in_dir = img_path
 
-        out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False,
+        out_pil = Move_Method(opt, 0, 0, img_pil, preloaded_models, preloaded_agents, record_history=False,
                               target=label)
         if out_pil.size != (512, 512):
             out_pil = ImageOps.fit(out_pil, (512, 512), method=Image.Resampling.LANCZOS)
         if opt.with_ip2p_val:
-            out_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_move_model, preloaded_agent, record_history=False,
+            out_ip2p = Transfer_Method(opt, 0, 0, img_pil, preloaded_models, preloaded_agents, record_history=False,
                                        model_type=opt.model_type, clientSocket=clientSocket, size=(512, 512))
             if out_ip2p.size != (512, 512):
                 out_ip2p = ImageOps.fit(out_ip2p, (512, 512), method=Image.Resampling.LANCZOS)
@@ -312,9 +277,6 @@ def Val_Move_Method(opt, clientSocket):
         #     logging.error(string)
         #     del selected_list[-1]
 
-    del preloaded_agent, preloaded_move_model
-    # consider if there is need to save all images replaced
-
     # TODO: Clip Image Score & PSNR && SSIM
     cal_metrics_write(
         image_before_list, image_after_list,
@@ -324,7 +286,7 @@ def Val_Move_Method(opt, clientSocket):
     )
 
 
-def main1(opt, test_group_num=50, clientSocket=None):
+def main1(opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=None):
     if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
     setattr(opt, 'test_group_num', test_group_num)
     seed_everything(opt.seed)
@@ -345,7 +307,7 @@ def main1(opt, test_group_num=50, clientSocket=None):
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
     print('Start to valuate Replace Method...')
-    Val_Replace_Method(opt, clientSocket)
+    Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket)
 
     opt.out_dir = '../autodl-tmp/Exp_Move'
     if os.path.exists(opt.out_dir):
@@ -357,36 +319,9 @@ def main1(opt, test_group_num=50, clientSocket=None):
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
     print('Start to valuate Move Method...')
-    Val_Move_Method(opt, clientSocket)
+    Val_Move_Method(opt, preloaded_models, preloaded_agents, clientSocket)
 
-
-
-
-def preload_add_model(opt):
-    return {
-        'preloaded_example_painter': preload_paint_by_example_model(opt), # 10446 MiB
-        'preloaded_example_generator': preload_example_generator(opt), 
-        'preloaded_sam_generator': preload_sam_generator(opt), # 10446 MiB
-        'preloaded_seem_detector': preload_seem_detector(opt), # 10446 MiB
-        'preloaded_lama_remover': preload_lama_remover(opt), # 10446 MiB
-        'preloaded_ip2p': preload_ip2p(opt) if opt.with_ip2p_val else None, # 8854 MiB
-        'preloaded_refiner': preload_refiner(opt) if opt.example_type != 'XL' else None
-    }
-
-def preload_remove_model(opt):
-    return {
-        'preloaded_sam_generator': preload_sam_generator(opt),  # 10446 MiB
-        'preloaded_seem_detector': preload_seem_detector(opt),  # 10446 MiB
-        'preloaded_lama_remover': preload_lama_remover(opt),  # 10446 MiB
-        'preloaded_ip2p': preload_ip2p(opt) if opt.with_ip2p_val else None,
-        'preloaded_refiner': preload_refiner(opt) if opt.example_type != 'XL' else None
-    }
-
-def use_exp_agent(opt, system_prompt):
-    agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=system_prompt, proxy=opt.net_proxy, type=opt.llm_type)
-    return agent
-
-def Val_Add_Method(opt, clientSocket):
+def Val_Add_Method(opt, preloaded_models, preloaded_agents, clientSocket):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017'
     with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
@@ -399,8 +334,7 @@ def Val_Add_Method(opt, clientSocket):
     image_before_list, image_after_list, image_ip2p_list = [], [], []
 
     # locations = ['left', 'right', 'behind', 'head']
-    preloaded_add_model = preload_add_model(opt) if opt.preload_all_models else None
-    preloaded_agent = preload_all_agents(opt) if opt.preload_all_models else None
+
     model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)
 
     with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
@@ -459,12 +393,12 @@ def Val_Add_Method(opt, clientSocket):
         caption2 = f'{caption1}; with {add_label} added'
 
         if opt.with_ip2p_val:
-            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent,
+            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents,
                                        record_history=False, model_type=opt.model_type, clientSocket=clientSocket, size=(512,512))
             if out_ip2p.size != (512,512):
                 out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
-        out_pil = Add_Method(opt, 0, 0, ori_img, preloaded_add_model, preloaded_agent, record_history=False)
+        out_pil = Add_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents, record_history=False)
         if out_pil.size != (512,512):
             out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
@@ -520,7 +454,6 @@ def Val_Add_Method(opt, clientSocket):
 
     # TODO: Clip Image Score & PSNR && SSIM
 
-    del preloaded_agent, preloaded_add_model
     # consider if there is need to save all images replaced
     acc_ratio_add = acc_num_add / len(selected_list)
     if opt.with_ip2p_val:
@@ -535,7 +468,7 @@ def Val_Add_Method(opt, clientSocket):
         type_name='Add', extra_string=string, model_type=opt.model_type
     )
 
-def Val_Remove_Method(opt, clientSocket):
+def Val_Remove_Method(opt, preloaded_models, preloaded_agents, clientSocket=None):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017'
     with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
@@ -547,8 +480,6 @@ def Val_Remove_Method(opt, clientSocket):
     caption_before_list, caption_after_list = [], []
     image_before_list, image_after_list, image_ip2p_list = [], [], []
 
-    preloaded_remove_model = preload_remove_model(opt) if opt.preload_all_models else None
-    preloaded_agent = preload_all_agents(opt) if opt.preload_all_models else None
     model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)
 
     if not os.path.exists(f'{opt.out_dir}/Inputs-Add/'):
@@ -603,12 +534,12 @@ def Val_Remove_Method(opt, clientSocket):
         caption2 = f'{caption1}; with {ori_label} removed'
 
         if opt.with_ip2p_val:
-            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent,
+            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents,
                                        record_history=False, model_type=opt.model_type, clientSocket=clientSocket, size=(512,512))
             if out_ip2p.size != (512, 512):
                 out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
-        out_pil = Remove_Method(opt, 0, 0, ori_img, preloaded_remove_model, preloaded_agent, record_history=False)
+        out_pil = Remove_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents, record_history=False)
         if out_pil.size != (512,512):
             out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
@@ -658,8 +589,6 @@ def Val_Remove_Method(opt, clientSocket):
         #     del selected_list[-1]
 
     # TODO: Clip Image Score & PSNR && SSIM
-
-    del preloaded_agent, preloaded_remove_model
     # consider if there is need to save all images replaced
     acc_ratio_remove = acc_num_remove / len(selected_list)
     if opt.with_ip2p_val:
@@ -675,7 +604,7 @@ def Val_Remove_Method(opt, clientSocket):
         type_name='Remove', extra_string=string, model_type=opt.model_type
     )
 
-def main2(opt, test_group_num=50, clientSocket=None):
+def main2(opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=None):
 
     if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
 
@@ -698,7 +627,7 @@ def main2(opt, test_group_num=50, clientSocket=None):
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
     print('Start to valuate Add Method...')
-    Val_Add_Method(opt, clientSocket)
+    Val_Add_Method(opt, preloaded_models, preloaded_agents, clientSocket)
 
     opt.out_dir = '../autodl-tmp/Exp_Remove'
     if os.path.exists(opt.out_dir): 
@@ -710,7 +639,7 @@ def main2(opt, test_group_num=50, clientSocket=None):
     base_cnt = len(os.listdir(opt.out_dir))
     setattr(opt, 'base_cnt', base_cnt)
     print('Start to valuate Remove Method...')
-    Val_Remove_Method(opt, clientSocket)
+    Val_Remove_Method(opt, preloaded_models, preloaded_agents, clientSocket)
     
 
 if __name__ == '__main__':
@@ -722,10 +651,13 @@ if __name__ == '__main__':
         clientHost, clientPort = '127.0.0.1', 4096
         clientSocket = socket(AF_INET, SOCK_STREAM)
         clientSocket.connect((clientHost, clientPort))
+    from preload_utils import preload_all_agents, preload_all_models
+    preloaded_models = preload_all_models(opt)
+    preloaded_agents = preload_all_agents(opt)
 
-    print('\nnFirst: Replace & Move \n\n')
-    main1(opt, test_group_num=1, clientSocket=clientSocket)
+    print('\n\nFirst: Replace & Move \n\n')
+    main1(opt, preloaded_models, preloaded_agents, test_group_num=1, clientSocket=clientSocket)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(opt, test_group_num=1, clientSocket=clientSocket)
+    main2(opt, preloaded_models, preloaded_agents, test_group_num=1, clientSocket=clientSocket)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')
