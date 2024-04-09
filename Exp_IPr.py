@@ -174,17 +174,16 @@ if __name__ == '__main__':
     os.system(f'zip -f {opt.out_dir}.zip {opt.out_dir}')
     os.system(f'rm -rf {opt.out_dir}')
 
-    start_time = time.time()
-
-    preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
-    preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
-
     clientSocket = None
     if opt.with_ip2p_val:
         clientHost, clientPort = '127.0.0.1', 4096
         clientSocket = socket(AF_INET, SOCK_STREAM)
         clientSocket.connect((clientHost, clientPort))
 
+    preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
+    preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
+
+    start_time = time.time()
     Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, clientSocket=clientSocket)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')
