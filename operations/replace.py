@@ -122,14 +122,16 @@ def replace_target(
                             preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
                         ) # key: name, mask
 
-    diffusion_pil = generate_example(
-                            opt, new_noun, expand_agent = expand_agent, 
-                            ori_img = img_pil, cond_mask = mask_1, 
-                            preloaded_example_generator = preloaded_model['preloaded_example_generator'] if preloaded_model is not None else None
-                        )
+
     # TODO: add conditional condition to diffusion via ControlNet
     box_2 = (-1,-1,-1,-1)
     while True:
+        diffusion_pil = generate_example(
+            opt, new_noun, expand_agent=expand_agent,
+            ori_img=img_pil, cond_mask=mask_1,
+            preloaded_example_generator=preloaded_model[
+                'preloaded_example_generator'] if preloaded_model is not None else None
+        )
         _, mask_2, _ = query_middleware(
                                 opt, diffusion_pil, new_noun,
                                 preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
