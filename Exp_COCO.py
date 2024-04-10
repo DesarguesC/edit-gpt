@@ -285,42 +285,6 @@ def Val_Move_Method(opt, preloaded_models, preloaded_agents, clientSocket):
         type_name='Move', extra_string=None, model_type=opt.model_type
     )
 
-
-def main1(opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=None):
-    if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
-    setattr(opt, 'test_group_num', test_group_num)
-    seed_everything(opt.seed)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s : %(levelname)s : %(message)s',
-        filename='Replace_Move.log'
-    )
-
-    # opt.out_dir = '../autodl-tmp/Exp_Replace'
-    # if os.path.exists(opt.out_dir):
-    #     os.system(f'rm {opt.out_dir}.zip')
-    #     os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
-    #     os.system(f'rm -rf {opt.out_dir}')
-    # if not os.path.exists(opt.out_dir):
-    #     os.mkdir(opt.out_dir)
-    # base_cnt = len(os.listdir(opt.out_dir))
-    # setattr(opt, 'base_cnt', base_cnt)
-    # print('Start to valuate Replace Method...')
-    # Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket)
-
-    opt.out_dir = '../autodl-tmp/Exp_Move'
-    if os.path.exists(opt.out_dir):
-        os.system(f'rm {opt.out_dir}.zip')
-        os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
-        os.system(f'rm -rf {opt.out_dir}')
-    if not os.path.exists(opt.out_dir):
-        os.mkdir(opt.out_dir)
-    base_cnt = len(os.listdir(opt.out_dir))
-    setattr(opt, 'base_cnt', base_cnt)
-    print('Start to valuate Move Method...')
-    Val_Move_Method(opt, preloaded_models, preloaded_agents, clientSocket)
-
 def Val_Add_Method(opt, preloaded_models, preloaded_agents, clientSocket):
     seed_everything(opt.seed)
     val_folder = '../autodl-tmp/COCO/val2017'
@@ -604,7 +568,43 @@ def Val_Remove_Method(opt, preloaded_models, preloaded_agents, clientSocket=None
         type_name='Remove', extra_string=string, model_type=opt.model_type
     )
 
-def main2(opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=None):
+
+def main1(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=None):
+    if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
+    setattr(opt, 'test_group_num', test_group_num)
+    seed_everything(opt.seed)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s : %(levelname)s : %(message)s',
+        filename='Replace_Move.log'
+    )
+
+    opt.out_dir = os.path.join(general_path, 'Exp_Replace')
+    if os.path.exists(opt.out_dir):
+        os.system(f'rm {opt.out_dir}.zip')
+        os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
+        os.system(f'rm -rf {opt.out_dir}')
+    if not os.path.exists(opt.out_dir):
+        os.mkdir(opt.out_dir)
+    base_cnt = len(os.listdir(opt.out_dir))
+    setattr(opt, 'base_cnt', base_cnt)
+    print('Start to valuate Replace Method...')
+    Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket)
+
+    opt.out_dir = os.path.join(general_path, 'Exp_Move')
+    if os.path.exists(opt.out_dir):
+        os.system(f'rm {opt.out_dir}.zip')
+        os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
+        os.system(f'rm -rf {opt.out_dir}')
+    if not os.path.exists(opt.out_dir):
+        os.mkdir(opt.out_dir)
+    base_cnt = len(os.listdir(opt.out_dir))
+    setattr(opt, 'base_cnt', base_cnt)
+    print('Start to valuate Move Method...')
+    Val_Move_Method(opt, preloaded_models, preloaded_agents, clientSocket)
+
+def main2(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=None):
 
     if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
 
@@ -617,7 +617,7 @@ def main2(opt, preloaded_models, preloaded_agents, test_group_num=50, clientSock
         filename='Add_Remove.log'
     )
     
-    opt.out_dir = '../autodl-tmp/Exp_Add'
+    opt.out_dir = os.path.join(general_path, 'Exp_Add')
     if os.path.exists(opt.out_dir): 
         os.system(f'rm {opt.out_dir}.zip')
         os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
@@ -629,7 +629,7 @@ def main2(opt, preloaded_models, preloaded_agents, test_group_num=50, clientSock
     print('Start to valuate Add Method...')
     Val_Add_Method(opt, preloaded_models, preloaded_agents, clientSocket)
 
-    opt.out_dir = '../autodl-tmp/Exp_Remove'
+    opt.out_dir = os.path.join(general_path, 'Exp_Remove')
     if os.path.exists(opt.out_dir): 
         os.system(f'rm {opt.out_dir}.zip')
         os.system(f'zip -r {opt.out_dir}.zip {opt.out_dir}')
@@ -645,6 +645,7 @@ def main2(opt, preloaded_models, preloaded_agents, test_group_num=50, clientSock
 if __name__ == '__main__':
     start_time = time.time()
     opt = get_arguments()
+    general_path = opt.out_dir
 
     clientSocket = None
     if opt.model_type == 'MGIE':
