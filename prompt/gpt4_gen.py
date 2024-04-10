@@ -72,7 +72,7 @@ def gpt4v_response(system_prompt='', edit_prompt=None, image_encoded=None, has_e
 gpt4_v_get_box = "You are a bounding box generator. I'm giving you a image and a editing prompt. The prompt is to move a target object to another place, "\
                  "such as \"Move the apple under the desk\", \"move the desk to the left\". "\
                  "What you should do is to return a proper bounding box for it. The output should be in the form of $[Name, (X,Y,W,H)]$"\
-                 "For instance, you can output $[\"apple\", (200, 300, 20, 30)]$. Your output cannot contain $(0,0,0,0) as bounding box. $"
+                 "For instance, you can output $[\"apple\", (200, 300, 20, 30)]$. Your output cannot contain $(0,0,0,0)$ as bounding box. "
 
 def gpt_4v_bbox_return(image_path, edit_prompt):
     image_encoded = encode_image(image_path)

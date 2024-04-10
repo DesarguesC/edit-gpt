@@ -32,7 +32,7 @@ class Claude():
         return response
 
 class Vision_Claude():
-    def __init__(self, engine, api_key, proxy='http://127.0.0.1:7890', max_tokens=1024):
+    def __init__(self, engine, api_key, proxy='http://127.0.0.1:7890', max_tokens=300):
         self.engine = engine
         self.api_key = api_key
         self.proxy = proxy
@@ -71,7 +71,7 @@ class Vision_Claude():
         return response
 
 
-Question = lambda x, y, w, h: f"Now you get an image, and I want to edit this image with an instruction \"{x} in the image\". "\
+Question = lambda x, y, w, h: f"Now you get an image, and I want to edit this image with an instruction \"{x}\". "\
                               f"What you should do is to arrange a location for \"{y}\". And you should tell me the "\
                               f"location in form of $(x,y,w,h)$, where $x,y$ indicates the coordinates "\
                               f"and $(w,h)$ indicates the width and height. The image sized {(w,h)}. " + \
@@ -79,9 +79,15 @@ Question = lambda x, y, w, h: f"Now you get an image, and I want to edit this im
                               "Any other characters in your output is strictly forbidden. "
 
 
+static_question = "You are a bounding box generator. I'm giving you a image and a editing prompt. The prompt is to move a target object to another place, "\
+                 "such as \"Move the apple under the desk\", \"move the desk to the left\". "\
+                 "What you should do is to return a proper bounding box for it. The output should be in the form of $[Name, (X,Y,W,H)]$"\
+                 "For instance, you can output $[\"apple\", (200, 300, 20, 30)]$. Your output cannot contain $(0,0,0,0)$ as bounding box. "
+
 def ask_claude_vision(img_encoded, agent, edit_txt, target, img_size):
     w, h, _ = img_size # (w, h, 3)
-    question = Question(edit_txt, target, w, h)
+    # question = Question(edit_txt, target, w, h)
+    question = static_question + f"Here\'s the instruction: {edit_txt}"
     response = agent.ask(question, img_encoded)
     return response
 
