@@ -50,8 +50,6 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
         file_list = os.listdir(os.path.join(dataset_path, folder))
         img_name_list = list(set([x.split('_')[0] for x in file_list if x.endswith('.jpg')]))
         cnt += len(img_name_list)
-        if cnt < 35: continue
-        print(f'now cnt = {cnt}')
 
         with open(os.path.join(dataset_path, folder, 'prompt.json')) as f:
             data = json.load(f)
@@ -60,6 +58,7 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
         task_plannings = get_plans_directly(planning_agent, opt.edit_txt)
 
         for img_name in img_name_list:
+            cnt = cnt + 1
             try:
                 opt.out_dir = os.path.join(static_out_dir, f'{cnt:0{6}}')
                 now_out_dir = opt.out_dir
@@ -70,6 +69,7 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
 
                 opt.in_dir = os.path.join(dataset_path, folder, f'{img_name}_0.jpg')
                 opt, img_pil = get_reshaped_img(opt, val=True, val_shape=(512,512))
+                img_pil.save(f'{now_out_dir}/input.jpg')
                 img_before = img_pil
 
                 # evaluate other similar model first
@@ -117,7 +117,7 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
                     img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
                     plan_step += 1
 
-                cnt = cnt + 1
+
                 img_before.save(f'./{planning_folder}/Input.jpg')
                 with open(f'./{now_out_dir}/instruction.txt', 'w') as f:
                     f.write(str(opt.edit_txt))
@@ -136,6 +136,7 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
                     MGIE_after_list.append(img_pil_mgie)
             except Exception as err:
                 print(err)
+                cnt -= 1
                 p_path = os.path.join(static_out_dir, f'{cnt:0{6}}')
                 if os.path.exists(p_path): return os.system(f'rm -rf {p_path}')
             # print(f'cnt = {cnt}, test_num = {test_num}')
@@ -172,7 +173,7 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
 if __name__ == '__main__':
 
     opt = get_arguments()
-    os.system(f'rm {opt.out_dir}.zip {opt.out_dir}')
+    os.system(f'rm {opt.out_dir}.zip')
     os.system(f'zip -f {opt.out_dir}.zip {opt.out_dir}')
     os.system(f'rm -rf {opt.out_dir}')
 
@@ -186,6 +187,6 @@ if __name__ == '__main__':
     preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
 
     start_time = time.time()
-    Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, clientSocket=clientSocket)
+    Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=100, clientSocket=clientSocket)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')

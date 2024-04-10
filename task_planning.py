@@ -190,13 +190,15 @@ def Add_Method(
 
     add_agent = Use_Agent(opt, TODO='find target to be added', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['find target to be added']
+    note = ''
     while True:
         ans = get_response(add_agent, opt.edit_txt)
         ans = ans[ans.find('('):ans.rfind(')')+1]
         print(f'tuple_ans: {ans}')
         name, num, place = get_add_tuple(ans)
+        note = note + 'You can only output target to be added. '
         if name is not None: break
-
+    assert isinstance(name, list) and isinstance(num, list) and isinstance(place, list)
     print(f'name = {name}, num = {num}, place = {place}')
     arrange_agent = (Use_Agent(opt, TODO='generate a new bbox for me', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['generate a new bbox for me']) if '<NULL>' in place \
@@ -204,17 +206,20 @@ def Add_Method(
                             else preloaded_agent['adjust bbox for me'])
     diffusion_agent = Use_Agent(opt, TODO='expand diffusion prompts for me', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['expand diffusion prompts for me']
-    pil_return = Add_Object(
-                        opt, name, num, place, 
-                        input_pil = input_pil, 
-                        edit_agent = arrange_agent, expand_agent = diffusion_agent,
-                        preloaded_model = preloaded_model
-                    )
+
+
+    for i in range(len(name)):
+        input_pil = Add_Object(
+                            opt, name[i], num[i], place[i],
+                            input_pil = input_pil,
+                            edit_agent = arrange_agent, expand_agent = diffusion_agent,
+                            preloaded_model = preloaded_model
+                        )
     
     if record_history:
         method_history = (f'[{current_step:02}|{tot_step:02}]\tAdd: 「{name}」')
-        return pil_return, method_history
-    else: return pil_return
+        return input_pil, method_history
+    else: return input_pil
 
 def get_planning_system_agent(opt):
     planning_system_agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=planning_system_prompt, proxy=opt.net_proxy, type=opt.llm_type)

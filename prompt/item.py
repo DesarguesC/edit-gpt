@@ -96,18 +96,27 @@ def get_replace_tuple(replace_tupple: str):
 
 def get_add_tuple(add_tuple: str):
     punctuation = re.split(r'[\[(),\]:]', add_tuple)
-    p = [x.strip() for x in punctuation if x!='' and x!= ' ']
-    if len(p) != 3:
+    p = [x.strip() for x in punctuation if x not in ['', ' ']]
+    if len(p)%3 != 0:
         return None, None, None
-    try:
-        p[1] = int(p[1])
-    except Exception as e:
-        print(e)
-        print('set p[1] = 3')
-        p[1] = 3
+        try:
+            p[1] = int(p[1])
+        except Exception as e:
+            print(e)
+            print('set p[1] = 3')
+            p[1] = 3
 
-    name, num, place = p[0], p[1], p[2]
-    return name, num, place
+        name, num, place = p[0], p[1], p[2]
+        return [name], [num], [place]
+    else:
+        cnt = 0
+        name, num, place = [], [], []
+        while cnt < len(p):
+            name.append(p[0])
+            num.append(p[1])
+            place.append(p[2])
+            cnt += 3
+        return name, num, place
 
 
 
