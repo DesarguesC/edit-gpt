@@ -385,7 +385,7 @@ def Val_Add_Method(opt, preloaded_models, preloaded_agents, clientSocket):
             write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
 
-            amount_list = Val_add_amount(model_dict, add_label, ori_img, [out_pil, out_ip2p] if opt.with_ip2p_val else None, device=opt.device)
+            amount_list = Val_add_amount(model_dict, add_label, ori_img, [out_pil, out_ip2p] if opt.with_ip2p_val else out_pil, device=opt.device)
 
             if opt.with_ip2p_val:
                 if len(amount_list) != 2:

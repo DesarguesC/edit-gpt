@@ -190,16 +190,35 @@ def Add_Method(
 
     add_agent = Use_Agent(opt, TODO='find target to be added', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['find target to be added']
-    note = ''
+    note, try_time = '', 0
+
     while True:
         ans = get_response(add_agent, opt.edit_txt)
         ans = ans[ans.find('('):ans.rfind(')')+1]
         print(f'tuple_ans: {ans}')
         name, num, place = get_add_tuple(ans)
+        print(f'name = {name}, num = {num}, place = {place}')
         note = note + 'You can only output target to be added. '
+
+        for i in range(len(num)):
+            try:
+                if num[i] not in ['some', 'many', 'much', 'lots of', 'a log', 'plenty of']:
+                    num[i] = int(float(num[i]))
+                else:
+                    num[i] = 1
+                    name[i] = f'{num[i]} {name[i]}'
+            except Exception as e:
+                print(e)
+                if try_time < 5:
+                    try_time += 1
+                    name = None
+                    break
+                else:
+                    num[i] = 10
         if name is not None: break
+
     assert isinstance(name, list) and isinstance(num, list) and isinstance(place, list)
-    print(f'name = {name}, num = {num}, place = {place}')
+
     arrange_agent = (Use_Agent(opt, TODO='generate a new bbox for me', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['generate a new bbox for me']) if '<NULL>' in place \
                     else (Use_Agent(opt, TODO='adjust bbox for me', type=opt.llm_type) if preloaded_agent is None\
