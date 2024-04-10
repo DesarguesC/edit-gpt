@@ -73,7 +73,9 @@ def Transfer_Me_ip2p(
         )
     elif model_type == 'MGIE':
         print('Trnasfer with MGIE... ', end = '')
-        return send_to_MGIE(opt, input_pil, clientSocket, size)
+        img = send_to_MGIE(opt, input_pil, clientSocket, size)
+        print('MGIE handshake done...')
+        return img
 
     print('Transfer with Ip2p')
     # 'dilate_kernel_size'  unused

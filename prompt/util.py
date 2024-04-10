@@ -243,7 +243,7 @@ def cal_metrics_write(
         clip_score = string
         clip_score_ip2p = string
     
-    write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_{model_interface}.txt'), f'{type_name}-EditGPT',
+    write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_{model_interface}.txt'), f'{type_name}-{model_interface}',
                             clip_score, clip_directional_similarity, psnr_score, ssim_score, fid_score, extra_string=extra_string)
     if image_ip2p_list is not None:
         write_valuation_results(os.path.join(static_out_dir, f'all_results_{type_name}_{model_type}.txt'), f'{type_name}-{model_type}',

@@ -97,7 +97,8 @@ def get_replace_tuple(replace_tupple: str):
 def get_add_tuple(add_tuple: str):
     punctuation = re.split(r'[\[(),\]:]', add_tuple)
     p = [x.strip() for x in punctuation if x!='' and x!= ' ']
-    assert len(p) == 3, f'p = {p}\nans = {add_tuple}'
+    if len(p) != 3:
+        return None, None, None
     try:
         p[1] = int(p[1])
     except Exception as e:

@@ -31,7 +31,6 @@ from tcputils import receive_image_from_length, Encode_and_Send
 def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, clientSocket=None):
 
     seed_everything(opt.seed)
-    if not hasattr(opt, 'test_num'): setattr(opt, 'test_num', test_num)
     # draw figure: y[clip score, clip directional similarity, PSNR, SSIM] ~ x[number of plans]
     dataset_path = '../autodl-tmp/clip-filtered/shard-00'
     folders = os.listdir(dataset_path)
@@ -47,18 +46,21 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
 
     planning_agent = get_planning_system_agent(opt)
     for folder in folders:
+
         file_list = os.listdir(os.path.join(dataset_path, folder))
+        img_name_list = list(set([x.split('_')[0] for x in file_list if x.endswith('.jpg')]))
+        cnt += len(img_name_list)
+        if cnt < 35: continue
+        print(f'now cnt = {cnt}')
+
         with open(os.path.join(dataset_path, folder, 'prompt.json')) as f:
             data = json.load(f)
         opt.edit_txt = data['edit']
         # task_plannings = get_plans(opt, planning_agent)
         task_plannings = get_plans_directly(planning_agent, opt.edit_txt)
-        img_name_list = list(set([x.split('_')[0] for x in file_list if x.endswith('.jpg')]))
 
         for img_name in img_name_list:
-
             try:
-                cnt = cnt + 1
                 opt.out_dir = os.path.join(static_out_dir, f'{cnt:0{6}}')
                 now_out_dir = opt.out_dir
                 if not os.path.exists(opt.out_dir): os.mkdir(opt.out_dir)
@@ -115,6 +117,7 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
                     img_pil.save(f'./{planning_folder}/plan{plan_step:02}({plan_type}).jpg')
                     plan_step += 1
 
+                cnt = cnt + 1
                 img_before.save(f'./{planning_folder}/Input.jpg')
                 with open(f'./{now_out_dir}/instruction.txt', 'w') as f:
                     f.write(str(opt.edit_txt))
@@ -133,11 +136,10 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
                     MGIE_after_list.append(img_pil_mgie)
             except Exception as err:
                 print(err)
-                cnt -= 1
                 p_path = os.path.join(static_out_dir, f'{cnt:0{6}}')
                 if os.path.exists(p_path): return os.system(f'rm -rf {p_path}')
-
-        if cnt > opt.test_num: break
+            # print(f'cnt = {cnt}, test_num = {test_num}')
+        if cnt > test_num: break
 
     cal_metrics_write(
         img_before_list, img_after_list,
@@ -160,12 +162,12 @@ def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, cl
             type_name=' - Val All - ', extra_string="", model_type='SDEdit', model_interface='SDEdit'
         )
         cal_metrics_write(
-            img_before_list, SDEdit_after_list,
+            img_before_list, MGIE_after_list,
             None, cap_before_list,
             cap_after_list, static_out_dir=static_out_dir,
             type_name=' - Val All - ', extra_string="", model_type='MGIE', model_interface='MGIE'
         )
-
+    print('done')
 
 if __name__ == '__main__':
 

@@ -35,7 +35,7 @@ def gpt_mkdir(opt, Type = None):
         if not hasattr(opt, 'out_name'): setattr(opt, 'out_name', 'transfered')
         else: opt.out_name = 'transfered'
     else:
-        folder_name = ''
+        # folder_name = ''
         exit(-1)
     opt.base_folder = folder_name
 
@@ -190,9 +190,12 @@ def Add_Method(
 
     add_agent = Use_Agent(opt, TODO='find target to be added', type=opt.llm_type) if preloaded_agent is None\
                             else preloaded_agent['find target to be added']
-    ans = get_response(add_agent, opt.edit_txt)
-    print(f'tuple_ans: {ans}')
-    name, num, place = get_add_tuple(ans)
+    while True:
+        ans = get_response(add_agent, opt.edit_txt)
+        ans = ans[ans.find('('):ans.rfind(')')+1]
+        print(f'tuple_ans: {ans}')
+        name, num, place = get_add_tuple(ans)
+        if name is not None: break
 
     print(f'name = {name}, num = {num}, place = {place}')
     arrange_agent = (Use_Agent(opt, TODO='generate a new bbox for me', type=opt.llm_type) if preloaded_agent is None\
@@ -235,7 +238,9 @@ def get_plans(opt, planning_system_agent):
     return response
 
 def get_plans_directly(agent, prompt):
-    response = [x.strip() for x in re.split(r"[;]", get_response(agent, prompt, mute_print=True)) if x != " " and x != ""]
+    response = get_response(agent, prompt, mute_print=True)
+    response = response[response.find('('):response.rfind(')') + 1]
+    response = [x.strip() for x in re.split(r"[;]", response) if x != " " and x != ""]
     print(f'response = {response}')
     del_idx = []
     for i in range(len(response)):

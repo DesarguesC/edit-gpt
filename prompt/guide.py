@@ -179,15 +179,15 @@ add_first_ask_ratio = 'If you have fully understand your task, please answer "ye
                 '$(0.0,0.0,0.0,0.0)$ as bounding box. Strictly forbid $(0.0,0.0,0.0,0.0) output.$'
 
 
-system_prompt_addHelp = 'You will receive an instruction for image editing, which aims at adding objects '\
-                        'to the image. Your task is to extract: What objects are to be added and How many respectively . '\
-                        'Ensure that the input instruction contains only added operations and only one '\
-                        '(but possibly multiple) objects. You need to output in the form (name, num, place), '\
-                        'where \'name\' represents the kind of object to be added (for example, cat, dog, tiger), etc.'\
-                        ', and place_n represents the target location to be added. '\
-                        'Besides, if no place is specified, just put \"<NULL>\". By the way, the word like \'many\', \'some\', '\
-                        'you can consider is as an adejuctive for \'name\', begining with \'some\', \'many\', etc. '\
-                        'And simultaneously set \'num\'=1.'
+system_prompt_addHelp = 'You will receive an instruction for image editing, aiming at adding objects '\
+                        'to the image. Your task is to extract what object is to be added and how many, respectively . '\
+                        'We ensure that the input instruction contains only added operations and only one '\
+                        '(but possibly multiple) objects. You need to output in the form $(name, num, place)$, '\
+                        'where $name$ represents the label of object (for example, cat, dog, tiger), etc.'\
+                        ', and $place$ represents the target location to be added. '\
+                        'Besides, if no place is specified, just put \"<NULL>\" as $place$. By the way, the word like \'many\', \'some\', '\
+                        'you can consider is as an adejective for $name$, begining with \'some\', \'many\', etc. '\
+                        'And simultaneously set $num$=1.'
 
 addHelp_first_ask = 'For your task, in the output "name", note that you need to output the "name" modifier in the '\
                     'input instruction along with it. For example, if the input is "two more cats with black and '\

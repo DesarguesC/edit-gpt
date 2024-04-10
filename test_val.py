@@ -475,7 +475,6 @@ def Validate_planner_No_Img():
 
 def Validate_on_IPr2IPr(test_num):
     opt = get_arguments()
-    if not hasattr(opt, 'test_num'): setattr(opt, 'test_num', test_num)
     preloaded_models = preload_all_models(opt)
     preloaded_agents = preload_all_agents(opt)
     # draw figure: y[clip score, clip directional similarity, PSNR, SSIM] ~ x[number of plans]
@@ -538,7 +537,7 @@ def Validate_on_IPr2IPr(test_num):
             cap_before_list.append(data['input'])
             cap_after_list.append(data['output'])
 
-        if cnt > opt.test_num: break
+        if cnt > test_num: break
 
     psnr_score = PSNR_compute(img_before_list, img_after_list)
     ssim_score = SSIM_compute(img_before_list, img_after_list)
