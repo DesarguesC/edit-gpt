@@ -29,7 +29,13 @@ class Claude():
                 {"role": "user", "content": question}  # <-- user prompt
             ]
         ).content[-1].text
-        return response
+        response = response[response.find('('):response.rfind(')')+1]
+        res = ''
+        for char in response:
+            if char not in ['[', '$']:
+                res = res + char
+        return res
+
 
 class Vision_Claude():
     def __init__(self, engine, api_key, proxy='http://127.0.0.1:7890', max_tokens=300):
