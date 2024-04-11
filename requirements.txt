@@ -44,7 +44,7 @@ ninja==1.11.1.1
 scikit-image==0.21.0
 pycocotools==2.0.7
 IPython
-matplotlib==3.8.2
+matplotlib
 onnxruntime==1.16.3
 onnx==1.15.0
 openai==1.4.0
@@ -52,7 +52,7 @@ easydict==1.11
 webdataset==0.2.35
 safetensors==0.3.1
 timm==0.4.12
-basicsr==1.4.2
+basicsr
 revChatGPT==6.8.6
 scikit-learn==1.3.1
 timm==0.4.12
