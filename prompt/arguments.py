@@ -73,7 +73,7 @@ def get_arguments():
     opt = create_parse_args()
     import torch
     opt.device = "cuda" if torch.cuda.is_available() else "cpu"
-    setattr(opt, 'api_key', list(pd.read_csv('./key.csv')['key'])[0])
+    setattr(opt, 'api_key', list(pd.read_csv('./key.csv')['openai' if 'gpt' in opt.llm_type else 'anthropic'])[0])
     setattr(opt, 'net_proxy', 'http://127.0.0.1:7890')
     print(f'API is now using: {opt.engine}')
 
