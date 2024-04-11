@@ -68,7 +68,11 @@ class Vision_Claude():
             ]
         ).content[-1].text
         print(f'\nRaw response from Claude-3: {response}\n')
-        return response
+        res = ''
+        for char in response:
+            if char != '$':
+                res = res + char
+        return res[res.find('('):res.rfind(')')+1]
 
 
 Question = lambda x, y, w, h: f"Now you get an image, and I want to edit this image with an instruction \"{x}\". "\

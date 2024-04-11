@@ -587,12 +587,12 @@ def main1(general_path, opt, preloaded_models, preloaded_agents, test_group_num=
     print('Start to valuate Replace Method...')
     Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket)
 
-    opt.out_dir = os.path.join(general_path, 'Exp_Move')
-    if not os.path.exists(opt.out_dir): os.mkdir(opt.out_dir)
-    base_cnt = len(os.listdir(opt.out_dir))
-    setattr(opt, 'base_cnt', base_cnt)
-    print('Start to valuate Move Method...')
-    Val_Move_Method(opt, preloaded_models, preloaded_agents, clientSocket)
+    # opt.out_dir = os.path.join(general_path, 'Exp_Move')
+    # if not os.path.exists(opt.out_dir): os.mkdir(opt.out_dir)
+    # base_cnt = len(os.listdir(opt.out_dir))
+    # setattr(opt, 'base_cnt', base_cnt)
+    # print('Start to valuate Move Method...')
+    # Val_Move_Method(opt, preloaded_models, preloaded_agents, clientSocket)
 
 def main2(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=None):
 
@@ -614,12 +614,12 @@ def main2(general_path, opt, preloaded_models, preloaded_agents, test_group_num=
     print('Start to valuate Add Method...')
     Val_Add_Method(opt, preloaded_models, preloaded_agents, clientSocket)
 
-    opt.out_dir = os.path.join(general_path, 'Exp_Remove')
-    if not os.path.exists(opt.out_dir): os.mkdir(opt.out_dir)
-    base_cnt = len(os.listdir(opt.out_dir))
-    setattr(opt, 'base_cnt', base_cnt)
-    print('Start to valuate Remove Method...')
-    Val_Remove_Method(opt, preloaded_models, preloaded_agents, clientSocket)
+    # opt.out_dir = os.path.join(general_path, 'Exp_Remove')
+    # if not os.path.exists(opt.out_dir): os.mkdir(opt.out_dir)
+    # base_cnt = len(os.listdir(opt.out_dir))
+    # setattr(opt, 'base_cnt', base_cnt)
+    # print('Start to valuate Remove Method...')
+    # Val_Remove_Method(opt, preloaded_models, preloaded_agents, clientSocket)
     
 
 if __name__ == '__main__':

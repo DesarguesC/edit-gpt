@@ -90,8 +90,9 @@ def generate_example(
     if not os.path.exists(ref_dir): os.mkdir(ref_dir)
     ad_output = os.path.join(ref_dir, 'ad_cond.jpg')
 
-    prompts = f'a photo of ONLY a/an {new_noun}, only one UNOBSTRUCTED object, {PROMPT_BASE}'
-    prompts = f'{prompts}. Simultaneously, {get_response(expand_agent, new_noun)}' if expand_agent != None else prompts
+    prompts = f'a photo of ONLY a/an {new_noun}' + f', only one UNOBSTRUCTED object, {PROMPT_BASE}' if expand_agent is not None else ''
+    if expand_agent is not None:
+        prompts = f'{prompts}. Simultaneously, {get_response(expand_agent, new_noun)}' if expand_agent != None else prompts
     print(f'prompt: \n {prompts}\n')
     """
     type:

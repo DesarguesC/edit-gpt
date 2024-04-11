@@ -243,7 +243,7 @@ def preload_all_agents(opt):
         A: Use_Agent(opt, TODO = A, ratio_mode=opt.use_ratio, type=opt.llm_type),
         B: Use_Agent(opt, TODO = B, ratio_mode=opt.use_ratio, type=opt.llm_type),
         C: Use_Agent(opt, TODO = C, ratio_mode=opt.use_ratio, type=opt.llm_type),
-        D: Use_Agent(opt, TODO = D, ratio_mode=opt.use_ratio, type=opt.llm_type),
+        D: Use_Agent(opt, TODO = D, ratio_mode=opt.use_ratio, type=opt.llm_type) if opt.use_expansion else None,
         E: Use_Agent(opt, TODO = E, ratio_mode=opt.use_ratio, type=opt.llm_type),
         F: Use_Agent(opt, TODO = F, ratio_mode=opt.use_ratio, type=opt.llm_type),
         G: Use_Agent(opt, TODO = G, ratio_mode=opt.use_ratio, type=opt.llm_type),

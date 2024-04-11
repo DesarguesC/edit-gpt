@@ -335,6 +335,13 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         help='choose which model to directly edit'
     )
 
+    parser.add_argument(
+        '--use_expansion',
+        type=str2bool,
+        default=True,
+        help='Ablation: w/o e-agent'
+    )
+
     return parser
 
 def get_sd_models(opt):
