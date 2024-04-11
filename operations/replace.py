@@ -193,13 +193,14 @@ def replace_target(
             print(f'Trying to fix... - Iter: {try_time}')
             print(f'QUESTION: \n{question}')
         # TODO: Consider [1024,1024,-1025,-1025] return, stuck on this loop.
-        box_ans = [x.strip() for x in re.split(r"[\[\](),]",
-                    gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
+        response = gpt_4v_bbox_return(opt.in_dir, opt.edit_txt).strip() if opt.gpt4_v \
                     else claude_vision_box(opt, new_noun, (1., 1., 3) if opt.use_ratio else (opt.W, opt.H, 3)) if opt.claude_vision \
                     else get_response(edit_agent, (question if try_time < 3 else f'{question}\n{notes}')).strip()
-                ) if x not in ['', ' ']]
+        # response = response[]
+        box_ans = [x.strip() for x in re.split(r"[\[\](),$]", response) if x not in ['', ' ']]
+
         print(f'box_ans = {box_ans}')
-        if len(box_ans) < 4:
+        if len(box_ans) == 4:
             try:
                 x, y, w, h = float(box_ans[0]), float(box_ans[1]), float(box_ans[2]) * opt.expand_scale, float(box_ans[3]) * opt.expand_scale
             except Exception as err:
