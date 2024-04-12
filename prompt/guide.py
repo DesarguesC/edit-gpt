@@ -522,6 +522,11 @@ def get_response(chatbot, asks, mute_print=False):
         if not mute_print: print('Finish')
         return answer
 
+def get_Resemble_agent(opt, type='gpt'):
+    engine, api_key, net_proxy = opt.engine, opt.api_key, opt.net_proxy
+    agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_Resemble, proxy=net_proxy, type=type)
+    return agent
+
 def Use_Agent(opt, TODO=None, print_first_answer=False, ratio_mode=False, type='gpt'):
     # bounding box has its own engine
     if hasattr(opt, 'print_first_answer'): print_first_answer = opt.print_first_answer
@@ -537,8 +542,6 @@ def Use_Agent(opt, TODO=None, print_first_answer=False, ratio_mode=False, type='
         agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_replace, proxy=net_proxy, type=type)
         first_ans = get_response(agent, replace_first_ask)
         if print_first_answer: print(first_ans)
-    elif TODO == 'resemble':
-        agent = get_bot(engine=engine, api_key=api_key, system_prompt=system_prompt_Resemble, proxy=net_proxy, type=type)
     elif TODO == 'rescale bbox for me': # Special Engine
         if ratio_mode:
             agent = get_bot(engine=box_engine, api_key=api_key, system_prompt=system_prompt_rescale_ratio, proxy=net_proxy, type=type)
@@ -759,7 +762,7 @@ task_planning_test_system_prompt = ("You are a text generator. Your task is to g
 system_prompt_Resemble = "You are to match words. You will get both a single word and a series of word (word list). "\
                          "And what you should do is to output the word in the list that matches the single word for the most. "\
                          "For example, here's a pari of I/O.\n"\
-                         "INPUT: [trees, grass, sun, house, river-merged, sky-merged, person], cabin\nOUTPUT: house"\
+                         "INPUT: [trees, grass, sun, house, river-merged, sky-merged, person], cabin.\nOUTPUT: house"\
                          "Because \"house\" match the cabin for the most. Note that any other characters in your OUTPUT is strictly forbidden. "
                  
 

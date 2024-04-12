@@ -338,6 +338,13 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         help='Ablation: w/o e-agent'
     )
 
+    parser.add_argument(
+        '--resemble',
+        type=str2bool,
+        default=False,
+        help='whether to use direct '
+    )
+
     return parser
 
 def get_sd_models(opt):
@@ -378,7 +385,7 @@ def diffusion_inference(opt, prompts, model, sampler, adapter_features=None, app
         opt.H = 512
         opt.W = 512
     
-    shape = [opt.C, 1024 // opt.f, 1024 // opt.f]
+    shape = [opt.C, 768 // opt.f, 768 // opt.f]
     
     samples_latents, _ = sampler.sample(
         S=opt.steps,
