@@ -1,11 +1,7 @@
-import torch, argparse, cv2
+import torch, argparse
 from omegaconf import OmegaConf
-from PIL import Image
-import numpy as np
-from enum import Enum, unique
+from torch.nn import functional as F
 
-from basicsr.utils import img2tensor
-from torch import autocast
 
 from ldm.modules.encoders.adapter import Adapter, StyleAdapter, Adapter_light
 from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict, resize_numpy_image
@@ -382,7 +378,7 @@ def diffusion_inference(opt, prompts, model, sampler, adapter_features=None, app
         opt.H = 512
         opt.W = 512
     
-    shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
+    shape = [opt.C, 1024 // opt.f, 1024 // opt.f]
     
     samples_latents, _ = sampler.sample(
         S=opt.steps,
@@ -401,6 +397,12 @@ def diffusion_inference(opt, prompts, model, sampler, adapter_features=None, app
 
     x_samples = model.decode_first_stage(samples_latents)
     x_samples = torch.clamp((x_samples + 1.0) / 2.0, min=0.0, max=1.0)
+    x_samples = F.interpolate(
+        x_samples,
+        size=(opt.H, opt.W),
+        mode='bilinear',
+        align_corners=False
+    )
 
     return x_samples
 
