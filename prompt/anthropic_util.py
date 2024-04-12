@@ -29,12 +29,15 @@ class Claude():
                 {"role": "user", "content": question}  # <-- user prompt
             ]
         ).content[-1].text
-        response = response[response.find('('):response.rfind(')')+1]
-        res = ''
-        for char in response:
-            if char not in ['[', '$']:
-                res = res + char
-        return res
+        if '(' in response:
+            response = response[response.find('('):response.rfind(')')+1]
+            res = ''
+            for char in response:
+                if char not in ['[', '$']:
+                    res = res + char
+            
+            return res
+        else: return response
 
 
 class Vision_Claude():
