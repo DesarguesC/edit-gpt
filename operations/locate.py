@@ -142,7 +142,7 @@ def create_location(
                 ) if x not in ['', ' ']]
         # deal with the answer, procedure is the same as in replace.py
         print(f'box_ans = {box_ans}')
-        if len(box_ans) < 4:
+        if len(box_ans) == 4:
             try:
                 box_0 = float(box_ans[0]), float(box_ans[1]), float(box_ans[2]) * opt.expand_scale, float(box_ans[3]) * opt.expand_scale
             except Exception as err:

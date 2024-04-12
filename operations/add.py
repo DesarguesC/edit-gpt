@@ -128,7 +128,7 @@ def Add_Object(
             box_ans = [x.strip() for x in re.split(r'[\[\],()]', agent_return[agent_return.find('('):agent_return.rfind(')')+1]) if x not in ['', ' ']]
             # deal with the answer, procedure is the same as in replace.py
             print(f'box_ans = {box_ans}')
-            if len(box_ans) <= 4:
+            if len(box_ans) == 4:
                 try:
                     x, y, w, h = float(box_ans[0]), float(box_ans[1]), float(box_ans[2]) * opt.expand_scale, float(box_ans[3]) * opt.expand_scale
                 except Exception as err:
