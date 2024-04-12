@@ -1,16 +1,10 @@
 from operations import Remove_Me, Remove_Me_lama
-from seem.masks import middleware
-from paint.crutils import ab8, ab64
 from paint.bgutils import refactor_mask, match_sam_box, fix_box
 from paint.example import paint_by_example
 from PIL import Image
 import numpy as np
-# from utils.visualizer import Visualizer
-from detectron2.data import MetadataCatalog as mt
-from torch import autocast
-from torch.nn import functional as F
 from prompt.item import Label
-from prompt.guide import get_response, Use_Agent
+from prompt.guide import get_response, get_Resemble_agent
 from jieba import re
 from seem.masks import middleware, query_middleware
 from ldm.inference_base import *
@@ -132,10 +126,32 @@ def replace_target(
             preloaded_example_generator=preloaded_model[
                 'preloaded_example_generator'] if preloaded_model is not None else None
         )
-        _, mask_2, _ = query_middleware(
-                                opt, diffusion_pil, new_noun,
-                                preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
-                            )
+        if opt.resemble:
+            res, panoptic_dict = middleware(
+                opt, old_noun,
+                preloaded_seem_detector=preloaded_model[
+                    'preloaded_seem_detector'] if preloaded_model is not None else None
+            )
+            question = ''
+            name_list = [_dict_['name'] for _dict_ in panoptic_dict]
+            for i in range(len(name_list)):
+                question += name_list[i]
+                if i != len(name_list) - 1: question += ', '
+            question = f'[{question}], {old_noun}. '
+            while True:
+                answer = get_response(get_Resemble_agent(opt, type=opt.llm_type), question).strip()
+                try:
+                    target_idx = name_list.index(answer)
+                    mask_2 = panoptic_dict[target_idx]['mask']
+                except Exception as err:
+                    print(err)
+                    continue
+                break
+        else:
+            _, mask_2, _ = query_middleware(
+                                    opt, diffusion_pil, new_noun,
+                                    preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
+                                )
         box_2 = match_sam_box(mask_2, sam_seg_list, use_max_min=opt.use_max_min, use_dilation=(opt.erosion_iter_num > 0),
                               dilation=opt.erosion, dilation_iter=opt.erosion_iter_num)
         if box_2[2] < 0:

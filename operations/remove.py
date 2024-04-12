@@ -4,6 +4,7 @@ from paint.bgutils import target_removing
 from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 # calculate IoU between SAM & SEEM
 from seem.masks import middleware, query_middleware
+from prompt.guide import get_Resemble_agent, get_response
 from PIL import Image
 from einops import repeat, rearrange
 from paint.bgutils import refactor_mask, match_sam_box
@@ -142,10 +143,32 @@ def Remove_Me_lama(
         
     print('-'*9 + 'Removing via LaMa' + '-'*9)
     opt, img_pil = get_reshaped_img(opt, input_pil)
-    res, target_mask, _ = query_middleware(
-                            opt, img_pil, target_noun, 
-                            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
-                        )
+    if opt.resemble:
+        res, panoptic_dict = middleware(
+            opt, target_noun,
+            preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
+        )
+        question = ''
+        name_list = [_dict_['name'] for _dict_ in panoptic_dict]
+        for i in range(len(name_list)):
+            question += name_list[i]
+            if i != len(name_list)-1: question += ', '
+        question = f'[{question}], {target_noun}. '
+        while True:
+            answer = get_response(get_Resemble_agent(opt, type=opt.llm_type), question).strip()
+            try:
+                target_idx = name_list.index(answer)
+                target_mask = panoptic_dict[target_idx]['mask']
+            except Exception as err:
+                print(err)
+                continue
+            break
+    else:
+        res, target_mask, _ = query_middleware(
+                                opt, img_pil, target_noun,
+                                preloaded_seem_detector = preloaded_model['preloaded_seem_detector'] if preloaded_model is not None else None
+                            )
+
         
     print(f'target_mask.shape = {target_mask.shape}')
     target_mask_dilate = [dilate_mask(a_mask, dilate_kernel_size) for a_mask in target_mask]

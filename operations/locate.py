@@ -8,11 +8,8 @@ from einops import repeat, rearrange
 from operations.remove import Remove_Me, Remove_Me_lama
 from operations.add import Add_Object
 from operations.utils import get_reshaped_img
-from seem.masks import middleware
-from paint.crutils import get_crfill_model, process_image_via_crfill, ab8, ab64
 from paint.example import paint_by_example
 from paint.bgutils import match_sam_box, refactor_mask, fix_box, move_ref2base, mask_inside_box
-from detectron2.data import MetadataCatalog as mt
 
 from prompt.item import Label
 from prompt.guide import get_response, Use_Agent
@@ -20,7 +17,6 @@ from prompt.gpt4_gen import gpt_4v_bbox_return
 from jieba import re
 from .utils import IsAbnormal
 from seem.masks import middleware, query_middleware
-from ldm.inference_base import diffusion_inference, get_sd_models
 from basicsr.utils import tensor2img
 from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
