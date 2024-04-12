@@ -75,6 +75,7 @@ def create_location(
         sam_seg_list = None
 
     # remove the target, get the mask (for bbox searching via SAM)
+    print(f'Moving Target: {target}')
     rm_img, target_mask, _ = Remove_Me_lama(
                                     opt, target, 
                                     input_pil = img_pil, 
