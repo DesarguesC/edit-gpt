@@ -246,6 +246,7 @@ def generate_example(
     name_ = f'./{ref_dir}/ref'
     t = 0
     while os.path.isfile(f'{name_}-{t}.jpg'): t += 1
+    gen_images = ImageOps.fit(gen_images.convert('RGB'), (opt.W, opt.H), method=Image.Resampling.LANCZOS)
     gen_images.save(f'{name_}-{t}.jpg')
 
     print(f'example saved at \'./{name_}-{t}.jpg\' --- [sized: {gen_images.size}]')

@@ -19,17 +19,7 @@ def encode_image(image_path):
     with open(image_path, 'rb') as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
-TYPE = {'add', 'replace', 'remove', 'move'}
 
-api_key = list(pd.read_csv('./key.csv')['key'])[0]
-headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {api_key}'
-    }
-proxy_dict = {
-    'http': 'http://127.0.0.1:7890',
-    'https': 'http://127.0.0.1:7890'
-}
 
 def gpt4v_response(system_prompt='', edit_prompt=None, image_encoded=None, has_encoded=True, json_mode=True):
     if not has_encoded:
@@ -80,4 +70,15 @@ def gpt_4v_bbox_return(image_path, edit_prompt):
     print('response: \n', response)
     return response['choices'][0]['message']['content']
 
+if __name__ == "__main__":
+    TYPE = {'add', 'replace', 'remove', 'move'}
 
+    api_key = list(pd.read_csv('./key.csv')['key'])[0]
+    headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {api_key}'
+        }
+    proxy_dict = {
+        'http': 'http://127.0.0.1:7890',
+        'https': 'http://127.0.0.1:7890'
+    }
