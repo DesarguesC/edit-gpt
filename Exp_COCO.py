@@ -644,8 +644,8 @@ if __name__ == '__main__':
     preloaded_agents = preload_all_agents(opt)
 
     print('\n\nFirst: Replace & Move \n\n')
-    main1(general_path, opt, preloaded_models, preloaded_agents, test_group_num=1, clientSocket=clientSocket)
+    main1(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=clientSocket)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(general_path, opt, preloaded_models, preloaded_agents, test_group_num=1, clientSocket=clientSocket)
+    main2(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=clientSocket)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')
