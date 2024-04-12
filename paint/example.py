@@ -181,7 +181,7 @@ def generate_example(
         gen_images = pipe(
             prompt=prompts,
             negative_prompt=DEFAULT_NEGATIVE_PROMPT,
-            height=576, width=576,
+            height=1024, width=1024,
             num_inference_steps=opt.steps,
             guidance_scale=7.5,
             output_type='latent',
