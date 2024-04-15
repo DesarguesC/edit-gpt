@@ -1,14 +1,7 @@
-from operations import Remove_Me, Remove_Me_lama
-from seem.masks import middleware
-from paint.crutils import ab8, ab64
 from paint.bgutils import refactor_mask, match_sam_box, fix_box
 from paint.example import paint_by_example
-from PIL import Image
-import numpy as np
+
 from .utils import IsAbnormal
-from detectron2.data import MetadataCatalog as mt
-from torch import autocast
-from torch.nn import functional as F
 from prompt.item import Label
 from prompt.guide import get_response, get_bot, system_prompt_expand, Use_Agent
 from jieba import re

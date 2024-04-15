@@ -1,20 +1,10 @@
-from omegaconf import OmegaConf
-import k_diffusion as K
-from PIL import Image
-from einops import repeat, rearrange
-import numpy as np
-import torch, cv2, os, random, math, yaml
-from torch import nn, autocast
 
-from basicsr.utils import tensor2img, img2tensor
+import k_diffusion as K
+import torch, cv2, os, random, math, yaml
 from pytorch_lightning import seed_everything
-from ldm.util import load_model_from_config
 from ldm.inference_base import *
 from prompt.guide import Use_Agent
-from paint.control import get_adapter, get_adapter_feature, get_style_model, process_style_cond
 from paint.control import *
-from ldm.models.diffusion.ddim import DDIMSampler
-from ldm.models.diffusion.plms import PLMSSampler
 
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
@@ -22,18 +12,9 @@ from segment_anything import SamPredictor, sam_model_registry
 from seem.utils.arguments import load_opt_from_config_files
 from seem.modeling.BaseModel import BaseModel
 from seem.modeling import build_model
-from seem.utils.constants import COCO_PANOPTIC_CLASSES
-from seem.demo.seem.tasks import *
-from seem.utils.visualizer import Visualizer
-from detectron2.utils.colormap import random_color
-from detectron2.data import MetadataCatalog
-from detectron2.structures import BitMasks
-from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
 
 from diffusers import StableDiffusionXLAdapterPipeline, T2IAdapter, EulerAncestralDiscreteScheduler, AutoencoderKL, DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
 from controlnet_aux.lineart import LineartDetector
-from transformers import AutoFeatureExtractor
-from torchvision.transforms import Resize
 
 from lama.saicinpainting.training.trainers import load_checkpoint
 

@@ -1,11 +1,7 @@
 import torch, argparse
 from omegaconf import OmegaConf
 from torch.nn import functional as F
-
-
-from ldm.modules.encoders.adapter import Adapter, StyleAdapter, Adapter_light
 from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict, resize_numpy_image
-from prompt.guide import get_response, first_ask_expand
 
 DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, ' \
                           'fewer digits, cropped, worst quality, low quality'\

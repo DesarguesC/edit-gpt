@@ -1,11 +1,9 @@
 import os, cv2
 from jieba import re
 from prompt.guide import get_response, Use_Agent, get_bot, planning_system_prompt, planning_system_first_ask
-from prompt.util import get_image_from_box as get_img
 from prompt.item import Label, get_replace_tuple, get_add_tuple
 import numpy as np
 from PIL import Image
-from einops import repeat, rearrange
 from prompt.arguments import get_arguments
 from operations import Remove_Me, Remove_Me_lama, replace_target, create_location, Add_Object, Transfer_Me_ip2p
 

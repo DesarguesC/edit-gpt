@@ -1,6 +1,4 @@
 import torch, cv2, os
-from torch import autocast
-from torch.nn import functional as F
 from PIL import Image
 import numpy as np
 from einops import repeat, rearrange
@@ -18,7 +16,6 @@ from jieba import re
 from .utils import IsAbnormal
 from seem.masks import middleware, query_middleware
 from basicsr.utils import tensor2img
-from pytorch_lightning import seed_everything
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 from segment_anything import SamPredictor, sam_model_registry
 from prompt.anthropic_util import claude_vision_box

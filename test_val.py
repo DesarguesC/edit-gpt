@@ -2,13 +2,7 @@ import os.path
 
 from prompt.util import Cal_ClipDirectionalSimilarity as cal_similarity
 from prompt.util import Cal_FIDScore as cal_fid
-from prompt.util import cal_metrics_write, PSNR_compute, SSIM_compute
-from PIL import Image, ImageOps
 from prompt.util import *
-from socket import *
-from basicsr import tensor2img, img2tensor
-import numpy as np
-from tqdm import tqdm
 import pandas as pd
 import logging, json
 

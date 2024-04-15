@@ -1,32 +1,14 @@
-import os, time, json, logging
-
-import os, time, json, logging
-from random import randint, choice
-from PIL import Image, ImageOps
-from socket import *
-import numpy as np
-from task_planning import Replace_Method, Move_Method, Transfer_Method
-from operations.vqa_utils import A_IsReplacedWith_B, preload_vqa_model
-from prompt.guide import get_response, get_bot, system_prompt_gen_move_instructions, system_prompt_edit_sort
+import os, time, json, cv2, time
 from task_planning import Add_Method, Remove_Method, Transfer_Method
-from prompt.arguments import get_arguments
-from prompt.util import calculate_clip_score, PSNR_compute, SSIM_compute, write_instruction, write_valuation_results, cal_metrics_write
+from prompt.util import cal_metrics_write
 from preload_utils import *
-from torchmetrics.functional.multimodal import clip_score as CLIP
-from functools import partial
 from pytorch_lightning import seed_everything
 from operations.utils import get_reshaped_img
 from preload_utils import preload_all_models, preload_all_agents
 from task_planning import get_operation_menu, get_planning_system_agent, get_plans_directly, get_plans
 from prompt.arguments import get_arguments
-
-from prompt.guide import get_response, get_bot, planning_system_prompt, planning_system_first_ask
-
 from socket import *
-import numpy as np
-import cv2, time
 from PIL import Image, ImageOps
-from tcputils import receive_image_from_length, Encode_and_Send
 
 def Validate_on_IPr2IPr(opt, preloaded_models, preloaded_agents, test_num=50, clientSocket=None):
 

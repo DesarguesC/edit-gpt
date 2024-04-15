@@ -1,7 +1,5 @@
 import argparse, os
 import pandas as pd
-from prompt.crfill_init import initialize
-from options.base_options import BaseOptions
 from options.test_options import TestOptions
 from ldm.inference_base import get_base_argument_parser
 ENGINES = [
