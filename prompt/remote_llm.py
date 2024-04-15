@@ -3,7 +3,7 @@ import time
 from socket import *
 
 class LLM_Remote():
-    def __init__(self, type="", system_prompt="", llm_model='claude-instant-1.2'):
+    def __init__(self, type="", system_prompt="", llm_model='claude-instant-1.2', temperature=0.8):
         self.type = type
         self.system_prompt = system_prompt
         self.llm_model = llm_model

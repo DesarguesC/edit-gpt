@@ -7,12 +7,13 @@ def encode_image(image_path):
         return base64.b64encode(image_file.read()).decode('utf-8')
 
 class Claude():
-    def __init__(self, engine, api_key, system_prompt, proxy='http://127.0.0.1:7890', max_tokens=300):
+    def __init__(self, engine, api_key, system_prompt, proxy='http://127.0.0.1:7890', max_tokens=300, temperature=0.8):
         self.engine = engine
         self.api_key = api_key
         self.system_prompt = system_prompt + '\nAny irrelevant characters appear in your response is STRICTLY forbidden. '
         self.proxy = proxy
         self.max_tokens = max_tokens
+        self.temperature = temperature
         self.client = anthropic.Client(
             api_key = self.api_key,
             proxies = httpx.Proxy(proxy if isinstance(proxy, str) else 'http://127.0.0.1:7890')
@@ -24,7 +25,7 @@ class Claude():
             model = self.engine, # "claude-2.1",
             max_tokens = self.max_tokens,
             system = self.system_prompt,  # <-- system prompt
-            temperature = 0.8,
+            temperature = self.temperature,
             messages=[
                 {"role": "user", "content": question}  # <-- user prompt
             ]
@@ -41,11 +42,12 @@ class Claude():
 
 
 class Vision_Claude():
-    def __init__(self, engine, api_key, proxy='http://127.0.0.1:7890', max_tokens=300):
+    def __init__(self, engine, api_key, proxy='http://127.0.0.1:7890', max_tokens=300, temperature=0.8):
         self.engine = engine
         self.api_key = api_key
         self.proxy = proxy
         self.max_tokens = max_tokens
+        self.temperature = temperature
         self.client = anthropic.Client(
             api_key=self.api_key,
             proxies=httpx.Proxy(proxy if isinstance(proxy, str) else 'http://127.0.0.1:7890')
@@ -55,7 +57,7 @@ class Vision_Claude():
         response = self.client.messages.create(
             model = self.engine,
             max_tokens = self.max_tokens,
-            temperature = 0.8,
+            temperature = self.temperature,
             messages = [
                 {
                     "role": "user",

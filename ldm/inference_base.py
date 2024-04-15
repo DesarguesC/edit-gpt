@@ -345,6 +345,13 @@ def get_base_argument_parser(parser) -> argparse.ArgumentParser:
         help='whether to use direct '
     )
 
+    parser.add_argument(
+        '--temperature',
+        type=float,
+        default=0.8,
+        help='Temperature when using Claude'
+    )
+
     return parser
 
 def get_sd_models(opt):
