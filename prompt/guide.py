@@ -702,7 +702,7 @@ planning_system_prompt = "You are an image editing system that can give editing 
                             "Output: (Remove, \"remove the sun\"); (Transfer, \"the lights are out, darkness\"); "\
                             "(Add, \"add some birds, they are flying in the sky\")\nNote that when you are giving output, \n"\
                             "A pair of parentheses with only a \"type\" and an \"edit instruction\", "\
-                            "you mustn\'t output any other character"
+                            "you mustn\'t output any other character. "
 planning_system_first_ask = "If you have understood your task, please answer \"yes\" without any other character and "\
                             "I\'ll give you the INPUT. Note that when you are giving output, you mustn\'t output any other character"
 

@@ -91,7 +91,7 @@ def generate_example(
     ad_output = os.path.join(ref_dir, 'ad_cond.jpg')
 
 
-    prompts = f'a photo of  a/an {new_noun}' + f' only, the only one UNOBSTRUCTED object, {PROMPT_BASE}' if expand_agent is not None else ''
+    prompts = f'a/an {new_noun} in the middle of the photo' + f', the only one UNOBSTRUCTED object, {PROMPT_BASE}' if expand_agent is not None else ''
     if expand_agent is not None:
         prompts = f'{prompts}. Simultaneously, {get_response(expand_agent, new_noun)}' if expand_agent != None else prompts
     print(f'prompt: \n {prompts}\n')
