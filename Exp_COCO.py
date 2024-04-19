@@ -635,7 +635,7 @@ if __name__ == '__main__':
         os.mkdir(opt.out_dir)
 
     clientSocket = None
-    if opt.model_type == 'MGIE':
+    if opt.model_type == 'MGIE' and opt.with_ip2p_val:
         clientHost, clientPort = '127.0.0.1', 4096
         clientSocket = socket(AF_INET, SOCK_STREAM)
         clientSocket.connect((clientHost, clientPort))
