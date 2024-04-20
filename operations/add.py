@@ -204,7 +204,9 @@ def Add_Object(
                             preloaded_example_painter = preloaded_model['preloaded_example_painter'] if preloaded_model is not None else None
                         )
         output_path = os.path.join(add_path, f'added_{i}.jpg')
-        painted = tensor2img(painted)
+        # painted = painted.to(opt.device) * target_mask.unsqueeze(0).to(opt.device) + rearrange(torch.from_numpy(np.array(img_pil)), 'h w c -> h w c').unsqueeze(0).to(opt.device) * (1 - target_mask.unsqueeze(0)).to(opt.device)
+        target_mask = rearrange(target_mask.squeeze(0), 'c h w -> h w c').detach().cpu().numpy()
+        painted = np.uint8(tensor2img(painted) * target_mask + cv2.cvtColor(np.array(img_pil), cv2.COLOR_BGR2RGB) * (1.-target_mask))
         cv2.imwrite(output_path, painted)
         img_pil = Image.fromarray(cv2.cvtColor(painted, cv2.COLOR_BGR2RGB))
         print(f'Added: Image \'added_{i}.jpg\' saved at \'{output_path}\' folder.')
