@@ -77,7 +77,7 @@ system_prompt_locate = 'You are a text detector, expert at generating a new boun
                        'Additianally, $(X_i,Y_i), (W_i,H_i)$ is in form of the bounding box, '\
                        'where $(X_i,Y_i)$ represent the coordinate of the point at the top left corner in the edge of bounding box, '\
                        'And $(W_i,H_i)$ represents the width and height of a rectangular box that including the i-th object. '\
-                       '"Target" indicates a target to be edited, and we enssure '\
+                       '"Target" indicates a target to be edited, and we ensure '\
                        'that Name in \"Target\" field is equivalent to $Name_n$ in \"Objects\" field. '\
                        'Finally, in \"Edit-Text\" field, you will get the edit prompt. '\
                        'Your task is to arrange a proper place and size, in form of bounding box, '\
