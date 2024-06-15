@@ -3,6 +3,7 @@ from random import randint, choice
 from PIL import Image, ImageOps
 from socket import *
 import numpy as np
+from tqdm import tqdm
 import _pickle as pickle
 from task_planning import Replace_Method, Move_Method, Transfer_Method
 from operations.vqa_utils import A_IsReplacedWith_B, preload_vqa_model
@@ -13,19 +14,6 @@ from prompt.util import write_instruction, write_valuation_results, cal_metrics_
 from preload_utils import *
 from operations.vqa_utils import preload_vqa_model, Val_add_amount, IsRemoved
 from pytorch_lightning import seed_everything
-
-
-# RefCOCO utils
-# class REFER:
-#     def __init__(self, data_root):
-#         self.refcoco_path = data_root
-#         self.instance_path = os.path.join(data_root, 'instances.json') # refcoco instance.json
-#         self.image_path = '/root/autodl-tmp/COCO/val2017'
-#
-
-
-
-
 
 def use_exp_agent(opt, system_prompt):
     agent = get_bot(engine=opt.engine, api_key=opt.api_key, system_prompt=system_prompt, proxy=opt.net_proxy,
@@ -42,10 +30,10 @@ def read_original_prompt(path_to_json):
     return (prompt1, prompt2, edit)
 
 
-def Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket=None):
+def Val_Replace_Method(opt, preloaded_models=None, preloaded_agents=None, clientSocket=None):
     seed_everything(opt.seed)
     # agent = use_exp_agent(opt, system_prompt_edit_sort)
-    val_folder = '../autodl-tmp/COCO/val2017'
+    val_folder = '../autodl-tmp/COCO/train2017'
     ref_file = pickle.load(open('../autodl-tmp/RefCOCOs/refcoco/refs(unc).p', 'rb'))
     # TODO: create a dic, query certain instance via image-id.
     ref_instance = {}
@@ -59,22 +47,21 @@ def Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket=Non
         else:
             continue
 
-    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data_ = json.load(f)
         # query caption via image_id
-    data_val = data_['annotations']
-    folders = os.listdir(val_folder)
-    length = len(folders)
+
+    length = len(all_image_id)
+    print(f'all_image_id length = {length}')
     selected_list = []
 
-    model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)
 
-
-    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
         captions = json.load(f)
 
     captions_dict = {}
-    for x in captions['annotations']:
+    for idx in tqdm(range(len(captions['annotations']))):
+        x = captions['annotations'][idx]
         image_id = str(x['image_id'])
         if image_id not in ref_instance:
             continue
@@ -87,12 +74,16 @@ def Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket=Non
     for x in data_['categories']:
         label_metadata[str(x['id'])] = x['name']
 
+    # print(f'label_metadata = \n\t{label_metadata}')
+    print('\nFile Preloaded...\n')
+
     image_before_list, image_after_list, image_ip2p_list = [], [], []
     caption_before_list, caption_after_list = [], []
     acc_num_replace, acc_num_ip2p = 0, 0
     static_out_dir = opt.out_dir
 
     # 4-6 images in a folder
+    model_dict = preload_vqa_model(opt.vqa_model_path, opt.device) # prepare VQA validation
     while len(selected_list) < opt.test_group_num:
         start_time = time.time()
         idx = randint(0, length - 1)
@@ -106,7 +97,7 @@ def Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket=Non
 
         try:
             img_id = all_image_id[idx]
-            img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
+            img_path = os.path.join(val_folder, f'{int(img_id):0{12}}.jpg')
             label_new_id = randint(1, 80)
             label_new = label_metadata[str(label_new_id)]
 
@@ -116,6 +107,9 @@ def Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket=Non
             opt.edit_txt = f'replace {label_ori} with {label_new}'
             caption1 = captions_dict[str(img_id)]
             caption2 = f'{caption1}; with {label_ori} replaced with {label_new}'
+
+            # print('All Settings are DONE, no model and continue!' + '\n'*2)
+            # continue
 
             out_pil = Replace_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents, record_history=False)
             if out_pil.size != (512, 512):
@@ -188,9 +182,9 @@ def Val_Replace_Method(opt, preloaded_models, preloaded_agents, clientSocket=Non
     )
 
 
-def Val_Remove_Method(opt, preloaded_models, preloaded_agents, clientSocket=None):
+def Val_Remove_Method(opt, preloaded_models=None, preloaded_agents=None, clientSocket=None):
     seed_everything(opt.seed)
-    val_folder = '../autodl-tmp/COCO/val2017'
+    val_folder = '../autodl-tmp/COCO/train2017'
     ref_file = pickle.load(open('../autodl-tmp/RefCOCOs/refcoco/refs(unc).p', 'rb'))
     # TODO: create a dic, query certain instance via image-id.
     ref_instance = {}
@@ -203,32 +197,35 @@ def Val_Remove_Method(opt, preloaded_models, preloaded_agents, clientSocket=None
             ref_instance[image_id] = item['sentences'][0]['raw'].lower()
         else:
             continue
-    with open('../autodl-tmp/COCO/annotations/instances_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data_val = json.load(f)
         # query caption via image_id
     selected_list = []
-    length = len(data_val['annotations'])
+    length = len(all_image_id)
+    print(f'all_image_id length = {length}')
+    print(f'ref_instances length = {len(ref_instance)}')
 
     caption_before_list, caption_after_list = [], []
     image_before_list, image_after_list, image_ip2p_list = [], [], []
 
-    model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)
-
     if not os.path.exists(f'{opt.out_dir}/Inputs-Add/'):
         os.mkdir(f'{opt.out_dir}/Inputs-Add/')
 
-    with open('../autodl-tmp/COCO/annotations/captions_val2017.json') as f:
+    with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
         captions = json.load(f)
 
     captions_dict = {}
-    for x in captions['annotations']:
+    for idx in tqdm(range(len(captions['annotations']))):
+        x = captions['annotations'][idx]
         image_id = str(x['image_id'])
-        if image_id not in all_image_id:
+        if image_id not in ref_instance: # i/o speed: in dict >> in list
             continue
         if image_id in captions_dict:
             captions_dict[image_id] = captions_dict[image_id] + '; ' + x['caption']
         else:
             captions_dict[image_id] = x['caption']
+
+
     label_metadata = {}
     for x in data_val['categories']:
         label_metadata[str(x['id'])] = x['name']
@@ -236,6 +233,7 @@ def Val_Remove_Method(opt, preloaded_models, preloaded_agents, clientSocket=None
     acc_num_remove, acc_num_ip2p = 0, 0
     static_out_dir = opt.out_dir
 
+    model_dict = preload_vqa_model(opt.vqa_model_path, opt.device)  # prepare VQA validation
     while len(selected_list) < opt.test_group_num:
 
         start_time = time.time()
@@ -255,7 +253,7 @@ def Val_Remove_Method(opt, preloaded_models, preloaded_agents, clientSocket=None
             caption1 = captions_dict[str(img_id)]
 
             ori_label = ref_instance[str(img_id)]
-            img_path = os.path.join(val_folder, f'{img_id:0{12}}.jpg')
+            img_path = os.path.join(val_folder, f'{int(img_id):0{12}}.jpg')
             ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
             opt.in_dir = img_path
 
@@ -331,9 +329,7 @@ def Val_Remove_Method(opt, preloaded_models, preloaded_agents, clientSocket=None
         type_name='Remove', extra_string=string, model_type=opt.model_type
     )
 
-
-
-def main1(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=None):
+def main1(general_path, opt, preloaded_models=None, preloaded_agents=None, test_group_num=50, clientSocket=None):
     if os.path.isfile('Replace_Move.log'): os.system('Replace_Move.log')
     setattr(opt, 'test_group_num', test_group_num)
     seed_everything(opt.seed)
@@ -358,7 +354,7 @@ def main1(general_path, opt, preloaded_models, preloaded_agents, test_group_num=
     # print('Start to valuate Move Method...')
     # Val_Move_Method(opt, preloaded_models, preloaded_agents, clientSocket)
 
-def main2(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=None):
+def main2(general_path, opt, preloaded_models=None, preloaded_agents=None, test_group_num=50, clientSocket=None):
 
     if os.path.isfile('Add_Remove.log'): os.system('rm Add_Remove.log')
 
@@ -404,8 +400,8 @@ if __name__ == '__main__':
         clientSocket = socket(AF_INET, SOCK_STREAM)
         clientSocket.connect((clientHost, clientPort))
     from preload_utils import preload_all_agents, preload_all_models
-    preloaded_models = preload_all_models(opt)
-    preloaded_agents = preload_all_agents(opt)
+    preloaded_models = preload_all_models(opt) # if opt.preload_all_models else None
+    preloaded_agents = preload_all_agents(opt) # if opt.preload_all_agents else None
 
     print('\n\nFirst: Replace & Move \n\n')
     main1(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=clientSocket)
