@@ -35,6 +35,7 @@ def Val_Replace_Method(opt, preloaded_models=None, preloaded_agents=None, client
     # agent = use_exp_agent(opt, system_prompt_edit_sort)
     val_folder = '../autodl-tmp/COCO/train2017'
     ref_file = pickle.load(open('../autodl-tmp/RefCOCOs/refcoco/refs(unc).p', 'rb'))
+    # refcoco/refs(unc).p, refcocog/refs(umd).p, refcoco+/refs(unc).p
     # TODO: create a dic, query certain instance via image-id.
     ref_instance = {}
     all_image_id = []
