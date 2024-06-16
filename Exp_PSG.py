@@ -37,30 +37,46 @@ def Val_Replace_Method(opt, preloaded_models=None, preloaded_agents=None, client
     with open('../autodl-tmp/PSG/psg_train_val.json') as f:
         psg_file = json.load(f)
     relation_hash = psg_file['predicate_classes'] # list
+    # print(f'relation_hash.keys = {}')
     all_image_id = []
     psg_instance = {}
-    for item in psg_file['data']:
+    max_0, max_1, max_2 = -1,-1,-1
+    min_0, min_1, min_2 = 100, 100, 100
+    for idx in tqdm(range(len(psg_file['data']))):
+        item = psg_file['data'][idx]
         image_id = str(item['coco_image_id'])
-        if image_id not in all_image_id:
+        if image_id not in psg_instance: # hash > sequence
             all_image_id.append(image_id)
         else: continue
+        # rela_list = item['relations'][0]
+        # print(f'relations at [item:{idx}] - {rela_list}')
+        id1, id2 = item['relations'][0][0], item['relations'][0][2]
+        obj_1_id, obj_2_id = id1, id2# item['annotations'][id1]['category_id'], item['annotations'][id2]['category_id']
+        max_0, max_1, max_2 = max(max_0, item['relations'][0][0]), max(max_1, item['relations'][0][1]), max(max_2, item['relations'][0][2])
+        min_0, min_1, min_2 = min(max_0, item['relations'][0][0]), min(max_1, item['relations'][0][1]), min(max_2, item['relations'][0][2])
+        try:
+            relation = relation_hash[int(item['relations'][0][1])]
+            psg_instance[image_id] = {'id1': obj_1_id, 'relation': relation, 'id2': obj_2_id} # int, str, int
+        except Exception as err:
+            now = item['annotations']
+            print(f'now length of item = {len(now)}')
+            print(now)
 
-        obj_1_id, obj_2_id = item['relations'][0], item['relations'][2]
-        relation = relation_hash[int(item['relations'][1])]
-        psg_instance[image_id] = {'id1': obj_1_id, 'relation': relation, 'id2': obj_2_id}
 
+
+    print(f'max_0 = {max_0}, max_1 = {max_1}, max_2 = {max_2}')
+    print(f'min_0 = {min_0}, min_1 = {min_1}, min_2 = {min_2}')
+    # exit(-1)
+
+    print('File Data Loaded...')
     print(f'len(all_image_id) = {len(all_image_id)}')
     print(f'len(psg_instance) = {len(psg_instance)}')
+    length = len(psg_instance)
+    selected_list = []
 
     with open('../autodl-tmp/COCO/annotations/instances_train2017.json') as f:
         data_ = json.load(f)
         # query caption via image_id
-
-    length = len(psg_instance)
-    print(f'all_image_id length = {length}')
-    selected_list = []
-
-
     with open('../autodl-tmp/COCO/annotations/captions_train2017.json') as f:
         captions = json.load(f)
 
@@ -76,6 +92,18 @@ def Val_Replace_Method(opt, preloaded_models=None, preloaded_agents=None, client
     label_metadata = {}
     for x in data_['categories']:
         label_metadata[str(x['id'])] = x['name']
+
+    for it in psg_instance.keys():
+        img_id = it
+        break
+    obj_dict = psg_instance[img_id]
+    print(str(obj_dict['id1']), obj_dict['relation'], str(obj_dict['id2']))
+    caption_ = 'the %s %s %s' % (label_metadata[str(obj_dict['id1'])], obj_dict['relation'], label_metadata[str(obj_dict['id2'])])
+    print(caption_)
+    print(f'img_id = {img_id}')
+    print(f'label_metadata = {label_metadata}')
+    exit(-1)
+
 
     # print(f'label_metadata = \n\t{label_metadata}')
     print('\nFile Preloaded...\n')
@@ -98,75 +126,76 @@ def Val_Replace_Method(opt, preloaded_models=None, preloaded_agents=None, client
             os.mkdir(opt.out_dir)
             os.mkdir(f'{opt.out_dir}/Inputs-Outputs/')
 
-        try:
-            img_id = all_image_id[idx]
-            img_path = os.path.join(val_folder, f'{int(img_id):0{12}}.jpg')
-            label_new_id = randint(1, 80)
-            label_new = label_metadata[str(label_new_id)]
+        # try:
+        img_id = all_image_id[idx]
+        img_path = os.path.join(val_folder, f'{int(img_id):0{12}}.jpg')
+        label_new_id = randint(1, 80)
+        label_new = label_metadata[str(label_new_id)]
 
-            ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
-            opt.in_dir = img_path
-            label_ori_dict = psg_instance[str(img_id)]
-            label_ori = 'the %s %s %s'%(label_metadata(str(label_ori_dict['id1'])), label_ori_dict['relation'], label_metadata(str(label_ori_dict['id2'])))
-            opt.edit_txt = f'replace {label_ori} with {label_new}'
-            caption1 = captions_dict[str(img_id)]
-            caption2 = f'{caption1}; with {label_ori} replaced with {label_new}'
+        ori_img = ImageOps.fit(Image.open(img_path).convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
+        opt.in_dir = img_path
+        label_ori_dict = psg_instance[str(img_id)]
+        label_ori = 'the %s %s %s'%(label_metadata(str(label_ori_dict['id1'])), label_ori_dict['relation'], label_metadata(str(label_ori_dict['id2'])))
+        print(f'label_ori = {label_ori}')
+        opt.edit_txt = f'replace {label_ori} with {label_new}'
+        caption1 = captions_dict[str(img_id)]
+        caption2 = f'{caption1}; with {label_ori} replaced with {label_new}'
 
-            # print('All Settings are DONE, no model and continue!' + '\n'*2)
-            # continue
+        # print('All Settings are DONE, no model and continue!' + '\n'*2)
+        # continue
 
-            out_pil = Replace_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents, record_history=False)
-            if out_pil.size != (512, 512):
-                out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
-            if opt.with_ip2p_val:
-                out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents,
-                                           record_history=False, model_type=opt.model_type, clientSocket=clientSocket,
-                                           size=(512, 512))
-                if out_ip2p.size != (512, 512):
-                    out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
+        out_pil = Replace_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents, record_history=False)
+        if out_pil.size != (512, 512):
+            out_pil = ImageOps.fit(out_pil.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
+        if opt.with_ip2p_val:
+            out_ip2p = Transfer_Method(opt, 0, 0, ori_img, preloaded_models, preloaded_agents,
+                                       record_history=False, model_type=opt.model_type, clientSocket=clientSocket,
+                                       size=(512, 512))
+            if out_ip2p.size != (512, 512):
+                out_ip2p = ImageOps.fit(out_ip2p.convert('RGB'), (512, 512), method=Image.Resampling.LANCZOS)
 
-            ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
-            out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
-            if opt.with_ip2p_val:
-                out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-{opt.model_type}.jpg')
-            write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
+        ori_img.save(f'{opt.out_dir}/Inputs-Outputs/input.jpg')
+        out_pil.save(f'{opt.out_dir}/Inputs-Outputs/output-EditGPT.jpg')
+        if opt.with_ip2p_val:
+            out_ip2p.save(f'{opt.out_dir}/Inputs-Outputs/output-{opt.model_type}.jpg')
+        write_instruction(f'{opt.out_dir}/Inputs-Outputs/caption.txt', caption1, caption2, opt.edit_txt)
 
-            image_before_list.append(ori_img)
-            image_after_list.append(out_pil)
-            if opt.with_ip2p_val:
-                image_ip2p_list.append(out_ip2p)
+        image_before_list.append(ori_img)
+        image_after_list.append(out_pil)
+        if opt.with_ip2p_val:
+            image_ip2p_list.append(out_ip2p)
 
-            caption_before_list.append(caption1)
-            caption_after_list.append(caption2)
+        caption_before_list.append(caption1)
+        caption_after_list.append(caption2)
 
-            amount_list = A_IsReplacedWith_B(model_dict, label_ori, label_new, ori_img,
-                                             [out_pil, out_ip2p] if opt.with_ip2p_val else out_pil, opt.device)
-            if opt.with_ip2p_val:
-                if len(amount_list) != 2:
-                    string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
-                    print(string__)
-                    logging.warning(string__)
-                a, b = amount_list[0], amount_list[1]
-                acc_num_replace += a
-                acc_num_ip2p += b
-            else:
-                assert not isinstance(amount_list, list)
-                acc_num_replace += amount_list
+        amount_list = A_IsReplacedWith_B(model_dict, label_ori, label_new, ori_img,
+                                         [out_pil, out_ip2p] if opt.with_ip2p_val else out_pil, opt.device)
+        if opt.with_ip2p_val:
+            if len(amount_list) != 2:
+                string__ = f"Invalid Val_add_amount in VQA return: len(amount_list) = {len(amount_list)}"
+                print(string__)
+                logging.warning(string__)
+            a, b = amount_list[0], amount_list[1]
+            acc_num_replace += a
+            acc_num_ip2p += b
+        else:
+            assert not isinstance(amount_list, list)
+            acc_num_replace += amount_list
 
-            end_time = time.time()
+        end_time = time.time()
 
-            string = (
-                f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT/{opt.model_type}]~[{True if a == 1 else False}|'
-                f'{True if b == 1 else False}] | Time cost: {end_time - start_time}') if opt.with_ip2p_val else \
-                f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT] ~ [{True if amount_list == 1 else False}] | Time cost: {end_time - start_time}'
-            print(string)
-            logging.info(string)
+        string = (
+            f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT/{opt.model_type}]~[{True if a == 1 else False}|'
+            f'{True if b == 1 else False}] | Time cost: {end_time - start_time}') if opt.with_ip2p_val else \
+            f'Images have been replaced: {len(selected_list)} | Acc: [EditGPT] ~ [{True if amount_list == 1 else False}] | Time cost: {end_time - start_time}'
+        print(string)
+        logging.info(string)
 
-        except Exception as e:
-            string = f'Exception Occurred: {e}'
-            print(string)
-            logging.error(string)
-            del selected_list[-1]
+        # except Exception as e:
+        #     string = f'Exception Occurred: {e}'
+        #     print(string)
+        #     logging.error(string)
+        #     del selected_list[-1]
 
     # TODO: Clip Image Score & PSNR && SSIM
     acc_ratio_replace = acc_num_replace / len(selected_list)
@@ -404,12 +433,13 @@ if __name__ == '__main__':
         clientSocket = socket(AF_INET, SOCK_STREAM)
         clientSocket.connect((clientHost, clientPort))
     from preload_utils import preload_all_agents, preload_all_models
-    preloaded_models = preload_all_models(opt) # if opt.preload_all_models else None
-    preloaded_agents = preload_all_agents(opt) # if opt.preload_all_agents else None
+    preloaded_models = preload_all_models(opt) if opt.preload_all_models else None
+    preloaded_agents = preload_all_agents(opt) if opt.preload_all_agents else None
 
     print('\n\nFirst: Replace & Move \n\n')
-    main1(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=clientSocket)
+    main1(general_path, opt, preloaded_models, preloaded_agents, test_group_num=1, clientSocket=clientSocket)
+    exit(0)
     print('\n\nSecond: Add & Remove \n\n')
-    main2(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=clientSocket)
+    # main2(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=clientSocket)
     end_time = time.time()
     print(f'Total Main func, Valuation cost: {end_time - start_time} (seconds).')
