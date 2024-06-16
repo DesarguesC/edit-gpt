@@ -768,7 +768,7 @@ if __name__ == '__main__':
     print('\n\nSecond: Add & Remove \n\n')
     main2(general_path, opt, preloaded_models, preloaded_agents, test_group_num=50, clientSocket=clientSocket)
 
-    opt.out_dir = '../autodl-tmp/exp_RefCOCOg_to_mgie'
+    opt.out_dir = '../autodl-tmp/exp_RefCOCOg_to_sdedit'
     general_path = opt.out_dir
 
     if os.path.exists(opt.out_dir):
